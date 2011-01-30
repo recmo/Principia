@@ -1,7 +1,8 @@
 #pragma once
 #include "fixups.h"
+#include "Value.h"
 
-typedef vector<uint64>(*builtinFunction)(const vector<uint64>&);
+typedef vector<Value>(*builtinFunction)(const vector<Value>&);
 
 class BuiltinsStatic: public map<string, builtinFunction>
 {

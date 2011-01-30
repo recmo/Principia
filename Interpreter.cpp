@@ -84,7 +84,7 @@ void Interpreter::processLine(const wstring& line)
 		}
 		Symbol* symbol =  it->second;
 		wcerr << L"Evaluating " << symbol->label << L"…" << endl;
-		uint64 value = symbol->evaluate(&context);
+		Value value = symbol->evaluate(&context);
 		wcout << symbol->label << L" = " << value << "." << endl;
 		return;
 	}

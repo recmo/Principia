@@ -16,7 +16,7 @@ Closure* ClosureDefinition::close(const Context* context) const
 	Closure* closure = new Closure(this, my_context);
 	
 	// Add the current closure to the context to allow recursion
-	my_context->values[function] = reinterpret_cast<uint64>(closure);
+	my_context->values[function] = Value(closure);
 	
 	// Return the closure
 	return closure;

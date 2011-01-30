@@ -59,6 +59,9 @@ odd? on ↦ odd?on
 	odd?onf ≔ if on ask_even false
 	odd?on ≔ odd?onf
 
+e123 ≔ even? 123
+e123
+
 
 TODO: http://en.wikipedia.org/wiki/Hofstadter_sequence
 TODO: http://en.wikipedia.org/wiki/Collatz_conjecture
@@ -76,6 +79,12 @@ Euclid a b ↦ gcd x y
 		x" ≔ sub x' y"
 	next ≔ if r recurse base
 	gcd x y ≔ next
+
+g p q ≔ Euclid 123 321
+g
+p
+q
+
 
 
 Currying:
@@ -98,24 +107,23 @@ Differentiate function:
 
 diff f ε ↦ (df x ↦ (f(x + δ) - f(x)) / δ)
 
-1. ≔ itof 1
-1000. ≔ itof 1000
+1. ≔ real 1
+10. ≔ real 10
 
 diff f δ ↦ df
 	df x ↦ dfx
-		x' ≔ addf x δ
+		x' ≔ addr x δ
 		fx' ≔ f x'
 		fx ≔ f x
-		Δf ≔ subf fx' fx
-		dfx ≔ divf Δf δ
+		Δf ≔ subr fx' fx
+		dfx ≔ divr Δf δ
 
 sqr s ↦ ss
-ss ≔ mulf s s
+ss ≔ mulr s s
 
-ε ≔ divf 1. 1000.
+ε ≔ divr 1. 10.
 dsqr ≔ diff sqr ε
 
-dsqr1000 ≔ dsqr 1000.
-dsqr1000n ≔ ftoi dsqr1000
-dsqr1000n
+dsqr10 ≔ dsqr 10.
+dsqr10
 

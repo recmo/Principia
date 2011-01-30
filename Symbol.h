@@ -1,5 +1,6 @@
 #pragma once
 #include "fixups.h"
+#include "Value.h"
 
 class Context;
 class ClosureDefinition;
@@ -10,7 +11,7 @@ class Symbol
 public:
 	Symbol();
 	
-	uint64 evaluate(Context* context);
+	Value evaluate(Context* context);
 
 	string label;
 	ClosureDefinition* closure;

@@ -12,10 +12,10 @@ Symbol::Symbol()
 
 }
 
-uint64 Symbol::evaluate(Context* context)
+Value Symbol::evaluate(Context* context)
 {
 	// Return value if already defined in this context
-	map<Symbol*, uint64>::const_iterator it;
+	map<Symbol*, Value>::const_iterator it;
 	it = context->values.find(this);
 	if(it != context->values.end())
 	{
@@ -26,7 +26,7 @@ uint64 Symbol::evaluate(Context* context)
 		// wcerr << L"↦" << call->function->label << endl;
 		
 		// Pack the arguments
-		vector<uint64> arguments;
+		vector<Value> arguments;
 		arguments.reserve(call->arguments.size());
 		vector<Symbol*>::const_iterator arg;
 		for(arg = call->arguments.begin(); arg != call->arguments.end(); ++arg)
@@ -34,7 +34,7 @@ uint64 Symbol::evaluate(Context* context)
 			arguments.push_back((*arg)->evaluate(context));
 		}
 		
-		vector<uint64> returns;
+		vector<Value> returns;
 		auto builtin = builtins.find(call->function->label);
 		if(builtin != builtins.end())
 		{
@@ -44,17 +44,17 @@ uint64 Symbol::evaluate(Context* context)
 		else
 		{
 			// This symbol is defined as a return value
-			uint64 closure_value = call->function->evaluate(context);
+			Value closure_value = call->function->evaluate(context);
 			
 			// Call the closure
-			Closure* c = reinterpret_cast<Closure*>(closure_value);
+			const Closure* c = closure_value.function();
 			returns = c->evaluate(arguments);
 		}
 		
 		// Unpack the return values
 		// assert(returns.size() == call->returns.size());
 		vector<Symbol*>::const_iterator symbol =  call->returns.begin();
-		vector<uint64>::const_iterator value = returns.begin();
+		vector<Value>::const_iterator value = returns.begin();
 		for(; symbol != call->returns.end(); ++symbol, ++value)
 		{
 			context->values[*symbol] = *value;
@@ -69,13 +69,14 @@ uint64 Symbol::evaluate(Context* context)
 		
 		// This symbol is defined as a the result of a closure
 		Closure* c = closure->close(context);
-		uint64 value = reinterpret_cast<uint64>(c);
+		Value value = Value(c);
 		context->values[this] = value;
 		return value;
 	}
 	try
 	{
-		return parse<uint64>(label);
+		/// TODO: double types and string types
+		return Value(parse<sint64>(label));
 	}
 	catch(...)
 	{

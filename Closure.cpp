@@ -8,7 +8,7 @@ Closure::Closure(const ClosureDefinition* clo, const Context* con)
 {
 }
 
-vector<uint64> Closure::evaluate(const std::vector<uint64>& arguments) const
+vector<Value> Closure::evaluate(const std::vector<Value>& arguments) const
 {
 	// Create an execution context
 	Context exec;
@@ -29,7 +29,7 @@ vector<uint64> Closure::evaluate(const std::vector<uint64>& arguments) const
 	}
 	
 	// Evaluate the return values
-	vector<uint64> returns;
+	vector<Value> returns;
 	for(sit = closure->returns.begin(); sit != closure->returns.end(); ++sit)
 	{
 		returns.push_back((*sit)->evaluate(&exec));

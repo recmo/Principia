@@ -5,11 +5,6 @@ using namespace std;
 
 sint32 Main(const std::vector<wstring>& args)
 {
-	assert(sizeof(void*) <= sizeof(uint64));
-	assert(sizeof(double) <= sizeof(uint64));
-	
-	/// TODO: Values as tagged unions of {closure, uint64, double}
-	/// TODO: Runtime type checking
 	/// TODO: Memory management in interpreter
 	/// TODO: Static analysis
 	/// TODO: Store minimal context in closures
@@ -36,7 +31,7 @@ sint32 Main(const std::vector<wstring>& args)
 		}
 		catch(exception e)
 		{
-			wcerr << e.what();
+			wcerr << L"Exception: " << e.what() << endl;
 		}
 	}
 	wcout << endl;

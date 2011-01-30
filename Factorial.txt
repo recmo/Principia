@@ -1,0 +1,12 @@
+fact n ↦ r
+	base ↦ 1
+	p ≔ sub n 1
+	fp ≔ fact p
+	fn ≔ mul fp n
+	recurse ↦ fn
+	case ≔ if n recurse base
+	r ≔ case
+	
+f20 ≔ fact 20
+f20
+

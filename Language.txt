@@ -1,0 +1,367 @@
+Syntac demands for binary operators:
+- Basic operations are repsented by conventional mathematical operators, unless these are ambiguious.
+- Commutative operators are represented by infix symmetric symbols
+- Non commutative operators are represented by asymetric infix symbols
+- A conventional system of operator presedences prevents superfluous use of enclosures
+- Associative operators do not require enclosures
+
+== APG: (Abstract Program Graph) ==
+
+= Unconditional control flow =
+
+Representation of a function application with three inputs and two outputs:
+
+         ↑   ↑
+   → o——————————
+       ↑   ↑   ↑
+
+Definition of a function with three inputs and two outputs:
+
+       ↑   ↑   ↑
+   ← o——————————
+         ↑   ↑
+
+The representation of recursion is now trivial: the output of the function definition is used inside the function body.
+
+= Conditional control flow =
+
+The representation of conditional flow control is less trivial. First of all, given recursion any flow-control construct can be implemented using only one flow-control construct such as an if statement or a loop (structured program theorem). The if statement can be represented by a function:
+
+            ↑
+ if → o——————————
+        ↑   ↑   ↑
+
+Where the first input is the condition, and maps to some boolean type, the second input is the expression-when-true and the last input is the expression-when-false. Either the first or last expression is returned on the output.
+
+= Correct if =
+
+The "if" function as defined above requires special treatment compared to a normal function; it's argument must be evaluated lazily. This special treatment can be removed if we demand the second and third arguments to be functions taking no inputs and having one output. That is, we make the following transformation:
+
+	result ≔ if condition expr_then expr_else
+
+to
+
+	restult ≔ if condition func_then func_else
+	func_then ↦ expr_then
+	func_else ↦ expr_else
+
+Where the if function would evaluate and return either the first or the second expression, depending on the condition. The "if" is now an ordinary function.
+
+However, this reveals a more general problem; which function calls are part of the function body (to be executed on every evaluation) and which are part of the definition (to be evaluated once on declaration).
+
+One strategy would be to minimize the function body (resulting in fast functions). This can be done by evaluating everything that does not depend on an input and replacing it by the result.
+
+But this would mean that functions returning constants are evaluated at compile time and have their body replaced by the constant. This is not always what we want, for example, this would defeat the lazy evaluation of expr_then, since it would get evaluated when defining func_then.
+
+Question: There is an obvious minimal function body, given by causal relations between inputs and outputs. Is there a maximal function body?
+Answer: No, we can always invent a new function taking no inputs and outputs, and include it in the body. However, this only changes the program if functions can have side effects (or consume time, for that matter)
+
+TODO: Resolve this problem in the most elegant way.
+
+== Virtual arrows ==
+
+One solution would be to explicitely specify which function calls should be included in which function bodies and we could explicitely order the function calls within a function order. Both of these would prevent certain optimizations however.
+
+Perhaps we should allow the programmer to define a partial order on the instructions. It would be best if this could somehow also include the notion of including and excluding a function from a function body.
+
+This can be implemented by allowing the user to include additional artificial dependencies in the program graph. These are drawn using dotted arrows.
+
+      ↑   ↑   ↑   ⇡
+   ← o—————————————
+        ↑   ↑   ⇡
+
+Note that whereas multiple artificial inputs can be necesarry, there is never a need for more than one artificial output.
+
+A textual syntax can defined as follows:
+
+Call:		<output 1> <output 2> <etc…> ; <artificial output> ≔ <input 1> <input 2> <etc…> ; <artificial input 1> <etc…>
+Defn:		<argument 1> <argument 2> <etc…> ; <artificial argument 1> <etc…> ↦ <return 1> <return 2> <etc…> ; <artificial return>
+
+o1 o2 ; ao ≔ i1 i2 ; ai1 ai2
+
+= Examples =
+
+A function doing absolutely nothing: e ↦
+This is how constants can be defined
+A function returning itself: c ↦ c
+
+A function calculating the average of two parameters (given the functions add, div and two):
+
+avg a b ↦ r
+	sum ≔ add a b
+	r ≔ div r two
+
+Or with a little syntax suggar:
+
+avg a b ↦ r
+	r ≔ (a + b) / 2
+
+
+only evaluate f after z is calculated:
+y ≔ f x ; z
+
+two function f and g taking no inputs or outputs, but must be invoked in that order:
+
+; o ≔ f
+≔ g ; o
+
+The function h (no inputs, no outputs) calls f and g (no specific order)
+
+h ; hi ↦ ; of og
+; of ≔ f ; hi
+; og ≔ g ; hi
+
+hi ensures they can not be called untill h is called (prevents them from being replaced by constants)
+ho ensures that they need to be called before h returns (prevents dead code ellimination)
+
+
+The functions f, g and should be called before h and after k:
+
+≔ k ; ok
+; of ≔ f ; ok
+; og ≔ g ; ok
+≔ h ; of og
+
+
+== Uniqueness Types ==
+
+Specify a type of arrow that can not be split. This guarantees that only one copy of the value is in existance, which may be distructively updated.
+
+
+
+== Other Thoughts ==
+
+TODO: Proposed control instructions, can they all be converted to simpler contructions?
+See wp:Control_flow
+ - "Loop with test in the middle"
+ - "Multiple early exit/exit from nested loops"
+
+TODO: Perhaps allow multiple different return paths from functions. Suppose a function could either return the answer or an error. Both would have a different return type, but conventional multi valued function definition require the number (and type) if values to be fixed. This can be resolved by having multiple return paths, each with different types and different control flow in the calling body. This is simmilar (and could be implemented as) continuation-passing-style with multiple continuations.
+
+TODO: A proper type system.
+
+TODO: Monads? Can they add something?
+
+= Bytecode =
+
+The proposed language consists of:
+ - Calls
+ - Closures
+ - Inputs
+ - Outputs
+ - Dependency inputs
+ - Dependency outputs
+
+[strings:]
+  [num strings]
+    [prefix] [length] [data]
+[closures]
+  [num closures]
+    [func output]
+    [num inputs] [inputs...]
+    [num outputs] [outputs...]
+[calls]
+  []
+
+
+= Interpreter implementation =
+
+map[variable, (values | expression) ]
+
+evaluate(variable)
+{
+	if(map[variable] == value) return value;
+	expression e = map[variable];
+	inputs = evaluate(e.inputs);
+	outputs = call(e.func, inputs);
+}
+
+outputs call (func, inputs)
+{
+	map[variable, (values | expression)] local;
+	
+}
+
+
+
+= Non-local control flow =
+
+Exceptions, and continuations. Exceptions can probably be expressed as continuations.
+
+
+== Simple syntax ==
+
+Function definition:
+
+   func input_1 input_2 ↦ output_1 output_2
+
+Function appplication:
+
+   output_1 output_2 ≔ func input_1 input_2
+
+
+
+= Average function =
+
+	int average(int a, int b)
+	{
+		return (a + b)/2;
+	}
+
+
+	average a b ↦ r
+		t1 ≔ + a b
+		r ≔ / t1 2
+
+= Factorial function =
+
+	int factorial(int n)
+	{
+		if(n == 1) return 1;
+		return n * fac(n – 1);
+	}
+
+
+	factorial n ↦ r
+		c ≔ = n 1
+		func_then ↦ c1
+			c1 ≔ 1
+		func_else ; e ↦ t3
+			t1 ≔ - n 1 ; e
+			t2 ≔ fact t1
+			t3 ≔ * n t2
+		r ≔ if c func_then func_else
+
+
+= While function =
+
+	int while(int (*loop)(int, &bool), int initial)
+	{
+		bool continue;
+		int result = loop(initial, continue);
+		if(continue) return while(loop, result);
+		else return result;
+	}
+
+
+	while loop initial ↦ final
+		result continue ≔ loop initial
+		t1 ≔ while loop result
+		final ≔ if continue result t1
+
+
+= Division function =
+
+	void divide(int& quotient, int& remainder,
+					int dividend, int divisor)
+	{
+		quotient = 0;
+		remainder = dividend;
+		while(remainder >= divisor)
+		{
+			remainder -= divisor;
+			++quotient;
+		}
+	}
+
+	divide dividend divisor ↦ quotient remainder
+		loop istate ↦ fstate repeat
+			iquotient iremainder ldivisor ≔ istate
+			repeat ≔ ≥ iremainder ldivisor
+			fremainder ≔ - iremainder ldivisor
+			fquotient ≔ + iquotient 1
+			nstate ↦ fquotient fremainder ldivisor
+			fstate ≔ if repeat nstate istate
+		initial ↦ 0 dividend divisor
+		final ≔ while loop initial
+		quotient remainder ignore ≔ final
+
+= Differentiation function =
+
+
+	typedef double (*function)(double);
+	function makeDerivative(function f, double dx)
+	{
+		return delegate double (double x)
+		{
+			return (f(x + dx) – f(x)) / dx;
+		};
+	}
+
+
+// Compilation passes:
+// - Construct closure-call diagram
+// - Verify causality
+// - Optimization passes
+// - Construct (random, minimal) evaluation order
+// - Evaluate
+
+// Optimization passes
+// - Remove redundant artificial dependencies (i.e. once that are implied by other dependencies)
+// - Remove dead code
+
+
+
+# Syntax suggar:
+# http://compilers.iecc.com/comparch/article/01-07-068
+
+
+Fundamental:
+;	Statement separator (can also be a newline) (Warning: no unicode mirror available?) ◺ ◿
+`	Function application (or nothing) (mirror: ´)
+,	Tuple creation (or nothing) (Warning: no unicode mirror available?)
+≔	Assignment (mirror ≕)
+↦	Function creation (mirror ↤)
+
+Can be defined in terms of the previous:
+◃	Function composition (associative) (mirror: ▹)
+
+Type theoretic:
+×	Tuple type creation (todo: mirror)
+→	Function type creation (mirror ←)
+
+
+The following should be equivalent:
+g ≔ x ↦ f`(g`(x))
+g ≔ f ◃ g
+g ≔ g ▹ f
+g ≔ x ↦ ((x)´f)´g
+
+
+a,b ≔ b,a
+
+
+gcd ≔ a, b ↦ (
+	while b ≠ 0:
+		a, b ≔ b, (a mod b)
+	return a
+	)
+
+
+f(g(x))
+f`(g`(x))
+(f ◃ g)`(x)
+x´(f ◃ g)
+x´(g ▹ f)
+
+
+TODO: What ambiguity arrises when function application and tuple separation can both be represented by 'nothing'? How do we resolve this?
+
+
+Function application:
+x ≔ sin a
+x ≔ sin`a
+x ≔ a´sin
+x ≔ sin`(a)
+
+x ≔ sin`a
+a´sin ≕ x
+
+
+Swapping:
+a b ≔ b a
+a,b ≔ b,a
+a,b ≔ b,a
+(a b) ≔ (b a)
+(a, b) ≔ (b, a)
+

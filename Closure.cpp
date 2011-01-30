@@ -1,0 +1,48 @@
+#include "Closure.h"
+#include "ClosureDefinition.h"
+#include "Context.h"
+#include "Symbol.h"
+
+Closure::Closure(const ClosureDefinition* clo, const Context* con)
+: closure(clo), context(con)
+{
+}
+
+vector<uint64> Closure::evaluate(const std::vector<uint64>& arguments) const
+{
+	wcerr << L"Evaluating " << closure->function->label << L" with " << arguments << endl;
+	
+	wcerr << closure->arguments.size() << endl;
+	for(auto sit = closure->arguments.begin(); sit != closure->arguments.end(); ++sit)
+	{
+		wcerr << (*sit)->label << endl;
+	}
+	
+	// Create an execution context
+	Context exec;
+	
+	// Start with the closed over context
+	for(auto it = context->values.begin(); it != context->values.end(); ++it)
+	{
+		exec.values.insert(*it);
+	}
+	
+	// Add the arguments
+	assert(arguments.size() == closure->arguments.size());
+	auto sit = closure->arguments.begin();
+	auto vit = arguments.begin();
+	for(; sit != closure->arguments.end(); ++sit, ++ vit)
+	{
+		exec.values[*sit] = *vit;
+	}
+	
+	// Evaluate the return values
+	vector<uint64> returns;
+	for(sit = closure->returns.begin(); sit != closure->returns.end(); ++sit)
+	{
+		returns.push_back((*sit)->evaluate(&exec));
+	}
+	
+	return returns;
+}
+

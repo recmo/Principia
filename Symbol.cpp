@@ -23,7 +23,7 @@ uint64 Symbol::evaluate(Context* context)
 	}
 	if(call)
 	{
-		wcerr << L"↦" << call->function->label << endl;
+		// wcerr << L"↦" << call->function->label << endl;
 		
 		// Pack the arguments
 		vector<uint64> arguments;
@@ -65,7 +65,7 @@ uint64 Symbol::evaluate(Context* context)
 	}
 	if(closure)
 	{
-		wcerr << L"≔" << closure->function->label << endl;
+		// wcerr << L"≔" << closure->function->label << endl;
 		
 		// This symbol is defined as a the result of a closure
 		Closure* c = closure->close(context);

@@ -41,6 +41,43 @@ p36 ≔ PRA 3 6
 p36
 
 
+Mutual recursion:
+
+even? en ↦ even?en
+	true ↦ 1
+	ask_odd ↦ odd?pen
+		pen ≔ sub en 1
+		odd?pen ≔ odd? pen
+	even?enf ≔ if en ask_odd true
+	even?en ≔ even?enf
+
+odd? on ↦ odd?on
+	false ↦ 0
+	ask_even ↦ even?pon
+		pon ≔ sub on 1
+		even?pon ≔ even? pon
+	odd?onf ≔ if on ask_even false
+	odd?on ≔ odd?onf
+
+
+TODO: http://en.wikipedia.org/wiki/Hofstadter_sequence
+TODO: http://en.wikipedia.org/wiki/Collatz_conjecture
+
+
+
+Eulicd's algorithm for Extended Greatest Common Divisor:
+
+Euclid a b ↦ gcd x y
+	d r ≔ div a b
+	base ↦ b 0 1
+	recurse ↦ gcd' y' x"
+		gcd' x' y' ≔ Euclid b r
+		y" ≔ mul y' d
+		x" ≔ sub x' y"
+	next ≔ if r recurse base
+	gcd x y ≔ next
+
+
 Currying:
 
 bind5 f ↦ boundf
@@ -64,13 +101,13 @@ diff f ε ↦ (df x ↦ (f(x + δ) - f(x)) / δ)
 1. ≔ itof 1
 1000. ≔ itof 1000
 
-x' ≔ addf x δ
-fx' ≔ f x'
-fx ≔ f x
-Δf ≔ subf fx' fx
-dfx ≔ divf Δf δ
-df x ↦ dfx
 diff f δ ↦ df
+	df x ↦ dfx
+		x' ≔ addf x δ
+		fx' ≔ f x'
+		fx ≔ f x
+		Δf ≔ subf fx' fx
+		dfx ≔ divf Δf δ
 
 sqr s ↦ ss
 ss ≔ mulf s s

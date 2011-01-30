@@ -13,6 +13,12 @@ sint32 Main(const std::vector<wstring>& args)
 	/// TODO: Memory management in interpreter
 	/// TODO: Static analysis
 	/// TODO: Store minimal context in closures
+	
+	/// TODO: String support
+	/// TODO: Standard library with I/O
+	/// TODO: Reflection
+	/// TODO: Dynamic syntax sugar system
+	/// TODO: Self-interpreter
 	/// TODO: Memory management in language
 	/// TODO: Inline hot closures and compile to machine code
 	

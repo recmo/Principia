@@ -23,7 +23,7 @@ uint64 Symbol::evaluate(Context* context)
 	}
 	if(call)
 	{
-		wcerr << L"Calling function " << call->function->label << endl;
+		wcerr << L"↦" << call->function->label << endl;
 		
 		// Pack the arguments
 		vector<uint64> arguments;
@@ -33,7 +33,6 @@ uint64 Symbol::evaluate(Context* context)
 		{
 			arguments.push_back((*arg)->evaluate(context));
 		}
-		wcerr << L"With arguments " << arguments << endl;
 		
 		vector<uint64> returns;
 		auto builtin = builtins.find(call->function->label);
@@ -60,14 +59,13 @@ uint64 Symbol::evaluate(Context* context)
 		{
 			context->values[*symbol] = *value;
 		}
-		wcerr << L"Returned " << returns << endl;
 		
 		// Return our value
 		return context->values[this];
 	}
 	if(closure)
 	{
-		wcerr << L"Closing over " << closure->function->label << endl;
+		wcerr << L"≔" << closure->function->label << endl;
 		
 		// This symbol is defined as a the result of a closure
 		Closure* c = closure->close(context);

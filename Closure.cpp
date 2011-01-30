@@ -10,14 +10,6 @@ Closure::Closure(const ClosureDefinition* clo, const Context* con)
 
 vector<uint64> Closure::evaluate(const std::vector<uint64>& arguments) const
 {
-	wcerr << L"Evaluating " << closure->function->label << L" with " << arguments << endl;
-	
-	wcerr << closure->arguments.size() << endl;
-	for(auto sit = closure->arguments.begin(); sit != closure->arguments.end(); ++sit)
-	{
-		wcerr << (*sit)->label << endl;
-	}
-	
 	// Create an execution context
 	Context exec;
 	

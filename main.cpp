@@ -5,6 +5,17 @@ using namespace std;
 
 sint32 Main(const std::vector<wstring>& args)
 {
+	assert(sizeof(void*) <= sizeof(uint64));
+	assert(sizeof(double) <= sizeof(uint64));
+	
+	/// TODO: Values as tagged unions of {closure, uint64, double}
+	/// TODO: Runtime type checking
+	/// TODO: Memory management in interpreter
+	/// TODO: Static analysis
+	/// TODO: Store minimal context in closures
+	/// TODO: Memory management in language
+	/// TODO: Inline hot closures and compile to machine code
+	
 	wcout << L"Simple C++ interpreter for the language using ≔ and ↦." << endl;
 	wcout << endl;
 	Interpreter interpreter;
@@ -13,7 +24,14 @@ sint32 Main(const std::vector<wstring>& args)
 	{
 		wcout << L"> ";
 		getline<wchar>(wcin, line);
-		interpreter.processLine(line);
+		try
+		{
+			interpreter.processLine(line);
+		}
+		catch(exception e)
+		{
+			wcerr << e.what();
+		}
 	}
 	wcout << endl;
 	if(wcin.fail() && !wcin.eof())

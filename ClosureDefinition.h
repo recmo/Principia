@@ -8,7 +8,7 @@ class Context;
 class ClosureDefinition
 {
 public:
-	Closure* close(Context* context) const;
+	Closure* close(const Context* context) const;
 	
 	Symbol* function;
 	vector<Symbol*> arguments;

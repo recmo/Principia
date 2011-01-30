@@ -1,10 +1,25 @@
 #include "ClosureDefinition.h"
 #include "Closure.h"
 #include "Symbol.h"
+#include "Context.h"
 
-Closure* ClosureDefinition::close(Context* context) const
+Closure* ClosureDefinition::close(const Context* context) const
 {
-	return new Closure(this, context);
+	// Copy the context
+	Context* my_context = new Context;
+	for(auto it = context->values.begin(); it != context->values.end(); ++it)
+	{
+		my_context->values.insert(*it);
+	}
+	
+	// Create a closure using this context
+	Closure* closure = new Closure(this, my_context);
+	
+	// Add the current closure to the context to allow recursion
+	my_context->values[function] = reinterpret_cast<uint64>(closure);
+	
+	// Return the closure
+	return closure;
 }
 
 std::wostream& operator<<(std::wostream& out, const ClosureDefinition* cd)

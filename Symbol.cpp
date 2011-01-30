@@ -2,7 +2,6 @@
 #include "Symbol.h"
 #include "ClosureDefinition.h"
 #include "CallDefinition.h"
-#include "Context.h"
 #include "Closure.h"
 #include "Builtins.h"
 
@@ -12,12 +11,12 @@ Symbol::Symbol()
 
 }
 
-Value Symbol::evaluate(Context* context)
+Value Symbol::evaluate(Context& context)
 {
 	// Return value if already defined in this context
 	map<Symbol*, Value>::const_iterator it;
-	it = context->values.find(this);
-	if(it != context->values.end())
+	it = context.find(this);
+	if(it != context.end())
 	{
 		return it->second;
 	}
@@ -57,20 +56,20 @@ Value Symbol::evaluate(Context* context)
 		vector<Value>::const_iterator value = returns.begin();
 		for(; symbol != call->returns.end(); ++symbol, ++value)
 		{
-			context->values[*symbol] = *value;
+			context[*symbol] = *value;
 		}
 		
 		// Return our value
-		return context->values[this];
+		return context[this];
 	}
 	if(closure)
 	{
 		// wcerr << L"≔" << closure->function->label << endl;
 		
 		// This symbol is defined as a the result of a closure
-		Closure* c = closure->close(context);
+		Closure* c =  new Closure(closure, context);
 		Value value = Value(c);
-		context->values[this] = value;
+		context[this] = value;
 		return value;
 	}
 	try

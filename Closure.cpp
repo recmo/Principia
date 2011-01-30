@@ -1,11 +1,11 @@
 #include "Closure.h"
 #include "ClosureDefinition.h"
-#include "Context.h"
 #include "Symbol.h"
 
-Closure::Closure(const ClosureDefinition* clo, const Context* con)
+Closure::Closure(const ClosureDefinition* clo, const Context& con)
 : closure(clo), context(con)
 {
+	context[closure->function] = this;
 }
 
 vector<Value> Closure::evaluate(const std::vector<Value>& arguments) const
@@ -14,9 +14,9 @@ vector<Value> Closure::evaluate(const std::vector<Value>& arguments) const
 	Context exec;
 	
 	// Start with the closed over context
-	for(auto it = context->values.begin(); it != context->values.end(); ++it)
+	for(auto it = context.begin(); it != context.end(); ++it)
 	{
-		exec.values.insert(*it);
+		exec.insert(*it);
 	}
 	
 	// Add the arguments
@@ -25,14 +25,14 @@ vector<Value> Closure::evaluate(const std::vector<Value>& arguments) const
 	auto vit = arguments.begin();
 	for(; sit != closure->arguments.end(); ++sit, ++ vit)
 	{
-		exec.values[*sit] = *vit;
+		exec[*sit] = *vit;
 	}
 	
 	// Evaluate the return values
 	vector<Value> returns;
 	for(sit = closure->returns.begin(); sit != closure->returns.end(); ++sit)
 	{
-		returns.push_back((*sit)->evaluate(&exec));
+		returns.push_back((*sit)->evaluate(exec));
 	}
 	
 	return returns;

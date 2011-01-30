@@ -24,7 +24,7 @@ void Interpreter::processLine(const wstring& line)
 			wcerr << it->second->call << L", " << it->second->closure << L")";
 			wcerr << endl;
 		}
-		for(auto it = context.values.begin(); it != context.values.end(); ++it)
+		for(auto it = context.begin(); it != context.end(); ++it)
 		{
 			wcerr << it->first->label << L" = " << it->second << endl;
 		}
@@ -84,7 +84,7 @@ void Interpreter::processLine(const wstring& line)
 		}
 		Symbol* symbol =  it->second;
 		wcerr << L"Evaluating " << symbol->label << L"…" << endl;
-		Value value = symbol->evaluate(&context);
+		Value value = symbol->evaluate(context);
 		wcout << symbol->label << L" = " << value << "." << endl;
 		return;
 	}

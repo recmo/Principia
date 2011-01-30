@@ -1,8 +1,6 @@
 #pragma once
 #include "fixups.h"
-
-class Context;
-class Symbol;
+#include "Symbol.h"
 
 class CallDefinition
 {

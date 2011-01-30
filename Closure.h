@@ -1,17 +1,16 @@
 #pragma once
 #include "fixups.h"
+#include "Symbol.h"
 #include "Value.h"
 
-class Context;
 class ClosureDefinition;
 
-class Closure
+struct Closure
 {
-public:
-	Closure(const ClosureDefinition* closure, const Context* context);
+	Closure(const ClosureDefinition* closure, const Context& context);
 	vector<Value> evaluate(const vector<Value>& arguments) const;
 	
-	const ClosureDefinition* const closure;
-	const Context* const context;
+	const ClosureDefinition* closure;
+	Context context;
 };
 

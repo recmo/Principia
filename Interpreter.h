@@ -1,8 +1,7 @@
 #pragma once
 #include "fixups.h"
 #include "Program.h"
-#include "Context.h"
-
+#include "Symbol.h"
 
 class Symbol;
 class Closure;

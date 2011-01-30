@@ -2,16 +2,18 @@
 #include "fixups.h"
 #include "Value.h"
 
-class Context;
+class Symbol;
 class ClosureDefinition;
 class CallDefinition;
+
+typedef map<Symbol*, Value> Context;
 
 class Symbol
 {
 public:
 	Symbol();
 	
-	Value evaluate(Context* context);
+	Value evaluate(Context& context);
 
 	string label;
 	ClosureDefinition* closure;

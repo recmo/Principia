@@ -63,11 +63,6 @@ e123 ≔ even? 123
 e123
 
 
-TODO: http://en.wikipedia.org/wiki/Hofstadter_sequence
-TODO: http://en.wikipedia.org/wiki/Collatz_conjecture
-
-
-
 Eulicd's algorithm for Extended Greatest Common Divisor:
 
 Euclid a b ↦ gcd x y
@@ -102,8 +97,68 @@ test6 ≔ mul5 6
 test6
 
 
+Complex number structure:
 
-Differentiate function:
+ℂ ℂ_xℜ ℂ_xℑ ↦ ℂ_z
+	ℂ_z ↦ ℂ_xℜ ℂ_xℑ
+
+ℜ ℜ_z ↦ ℜ_zℜ
+	ℜ_zℜ ℜ_zℑ ≔ ℜ_z
+
+ℑ ℑ_z ↦ ℑ_zℑ
+	ℑ_zℜ ℑ_zℑ ≔ ℑ_z
+
+ℂ+ ℂ+_a ℂ+_b ↦ ℂ+_r
+	ℂ+_aℜ ℂ+_aℑ ≔ ℂ+_a
+	ℂ+_bℜ ℂ+_bℑ ≔ ℂ+_b
+	ℂ+_rℜ ≔ addr ℂ+_aℜ ℂ+_bℜ
+	ℂ+_rℑ ≔ addr ℂ+_aℑ ℂ+_bℑ
+	ℂ+_r ↦ ℂ+_rℜ ℂ+_rℑ
+
+ℂ× ℂ×_a ℂ×_b ↦ ℂ×_r
+	ℂ×_aℜ ℂ×_aℑ ≔ ℂ×_a
+	ℂ×_bℜ ℂ×_bℑ ≔ ℂ×_b
+	ℂ×_rℜ1 ≔ mulr ℂ×_aℜ ℂ×_bℜ
+	ℂ×_rℜ2 ≔ mulr ℂ×_aℑ ℂ×_bℑ
+	ℂ×_rℜ ≔ subr ℂ×_rℜ1 ℂ×_rℜ2
+	ℂ×_rℑ1 ≔ mulr ℂ×_aℜ ℂ×_bℑ
+	ℂ×_rℑ2 ≔ mulr ℂ×_aℑ ℂ×_bℜ
+	ℂ×_rℑ ≔ addr ℂ×_rℑ1 ℂ×_rℑ2
+	ℂ×_r ↦ ℂ×_rℜ ℂ×_rℑ
+
+ℂ/ ℂ/_a ℂ/_b ↦ ℂ/_r
+	ℂ/_aℜ ℂ/_aℑ ≔ ℂ/_a
+	ℂ/_rℜ ≔ divr ℂ/_aℜ ℂ/_b
+	ℂ/_rℑ ≔ divr ℂ/_aℑ ℂ/_b
+	ℂ/_r ↦ ℂ/_rℜ ℂ/_rℑ
+
+ 0.  ≔ real 0
+ 1.  ≔ real 1
+ 2.  ≔ real 2
+ 6.  ≔ real 6
+10.  ≔ real 10
+ 0.1 ≔ divr 1. 10.
+ 1c  ≔ ℂ 1. 0.
+
+Exp cez ↦ cer
+	cer1 ≔ ℂ+ 1c cez
+	cez2 ≔ ℂ× cez cez
+	cet2 ≔ ℂ/ cez2 2.
+	cer2 ≔ ℂ+ cer1 cet2
+	cez3 ≔ ℂ× cez2 cez
+	cet3 ≔ ℂ/ cez3 6.
+	cer ≔ ℂ+ cer2 cet3
+
+w ≔ ℂ 0.1 0.1
+z ≔ Exp w
+
+ℜz ≔ ℜ z
+ℑz ≔ ℑ z
+ℜz
+ℑz
+
+
+Numerically Differentiate function:
 
 diff f ε ↦ (df x ↦ (f(x + δ) - f(x)) / δ)
 

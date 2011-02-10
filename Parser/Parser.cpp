@@ -1,18 +1,21 @@
-#include "Interpreter.h"
-#include "fixups.h"
-#include "Symbol.h"
-#include "CallDefinition.h"
-#include "ClosureDefinition.h"
+#include "Parser.h"
+#include "IR/IntRep.h"
+#include "IR/SymbolVertex.h"
+#include "IR/CallNode.h"
+#include "IR/ClosureNode.h"
 
-using namespace std;
-
-Interpreter::Interpreter()
+Parser::Parser(IntRep* program)
+: _program(program)
 {
 }
 
-void Interpreter::processLine(const wstring& line)
+Parser::~Parser()
 {
-	vector<wstring> tokens = tokenize(line);
+}
+
+void Parser::parseLine(const string& line)
+{
+	vector<string> tokens = tokenize(line);
 	if(tokens.empty()) return;
 	
 	if(line == L"dump")
@@ -91,6 +94,20 @@ void Interpreter::processLine(const wstring& line)
 	
 	// Nothing matched!
 	wcerr << L"Error: Could not parse line." << endl;
+}
+
+SymbolVertex* Parser::symbolFromIdentifier(const string& identifier, bool autoCreate)
+{
+	foreach(symbol, program()->symbols())
+		if(symbol->identifier() == identifier)
+			return symbol;
+	if(autoCreate)
+	{
+		SymbolVertex *symbol = new SymbolVertex(identifier);
+		program()->symbols().push_back(symbol);
+		return symbol;
+	}
+	return null;
 }
 
 void Interpreter::addCall(const std::wstring& func_label, const std::vector<wstring>& input_labels, const std::vector<wstring>& output_labels)

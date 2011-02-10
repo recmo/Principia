@@ -13,7 +13,19 @@
 #include<algorithm>
 #include<typeinfo>
 
-# define assert(expr) ((expr) ? true : assert_fail(__STRING(expr), __FILE__, __LINE__, __PRETTY_FUNCTION__));
+/// @brief Assert implementation that throws exceptions
+#define assert(expr) ((expr) ? true : assert_fail(__STRING(expr), __FILE__, __LINE__, __PRETTY_FUNCTION__));
+
+/// @brief Foreach implementation
+/// Given a STL style collection with begin() and end()
+/// and a variable name var it will itterate trough all
+/// items and set var to each item.
+/// Additionally the current itterator and current numerical
+/// index can be accessed at var_itterator and var_index.
+#define foreach(var, collection) for(auto var##_collection = collection, var##_itterator = var##_collection.begin(), var = *var##_itterator, var##_index = 0; var##_itterator != var##_collection.end(); ++var##_itterator, var = *var##_itterator, ++var##_index)
+
+/// @brief Define a zero pointer
+#define null 0
 
 // Remove the _t's from elementary types…
 typedef uint8_t uint8;
@@ -31,6 +43,7 @@ using std::wcin;
 using std::wcout;
 using std::wcerr;
 using std::endl;
+using std::flush;
 
 template<class T>
 T min(const T& a, const T& b)

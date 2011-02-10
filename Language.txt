@@ -5,6 +5,76 @@ Syntac demands for binary operators:
 - A conventional system of operator presedences prevents superfluous use of enclosures
 - Associative operators do not require enclosures
 
+
+Example functions:
+	- Average (functions)
+	- Division algorithm, extended Euclidean algorithm (multiple return values)
+	- Factorial, Ackermann (recursion)
+	- Numerical differentiation (first class functions + closures)
+	- Symbolic differentiation (reflection)
+	- I/O: "Name?" <name> "Hello <name>!"
+	- Structures: make_complex(a,b) add_complex(a,b) mul_complex(a,b)
+	- Bottles of beer
+	- Trabb_Pardo-Knuth_algorithm
+
+Derive f x ↦ fx
+	arguments returns ≔ arity f
+	arg1 ≔ arg f 1
+	ret1 ≔ ret f 1
+
+Symbol → closure with 0 inputs and 0 outputs
+
+function Derive(function f, variable x)
+{
+	if f = c      return 0
+	if f = x      return 1
+	if f = a + b  return Derive(a, x) + Derive(b, x)
+	if f = a * b  return Derive(a, x) * b + a * Derive(b, x)
+	if f = a / b  return (Derive(a, x) * b + a * Derive(b, x)) / (b ^ 2)
+	if f = a ^ b  return Derive(exp(ln(a) * b), x)
+	if f = sin(a) return cos(a) * Derive(a, x)
+	if f = cos(a) return -sin(a) * Derive(a, x)
+	if f = exp(a) return exp(a) * Derive(a, x)
+	if f = ln(a)  return Derive(a, x) / a
+	if f = a(b)   return Derive(a(x), x)(b) * Derive(b, x)
+}
+
+
+== Iterators ==
+
+Consider an itterator with a state n that produces squares:
+
+	itterate n ↦ (n ^ 2) (n + 1)
+
+such that
+
+	a0 next ≔ itterate 0
+	a1 next' ≔ itterate next
+	a2 next"' ≔ itterate next'
+	…
+
+== Iterators with state in closure ==
+
+Can we save the state internally in a closure? i.e. can we construct a closure such that:
+
+	a0 next ≔ begin
+	a1 next' ≔ next
+	a2 next" ≔ next'
+	a3 next"' ≔ next"
+	…
+
+begin ↦ a0 next
+	a0 state ≔ itterate 0
+	next ↦ a1 next'
+		a1 state' ≔ itterate state
+		next' ≔ next-with-state-bound-to-"state'"
+
+To implement this one would need a reflection construct that allows rebinding of externals, i.e. modifying closures.
+
+
+
+
+
 == APG: (Abstract Program Graph) ==
 
 = Unconditional control flow =
@@ -123,6 +193,25 @@ The functions f, g and should be called before h and after k:
 ≔ h ; of og
 
 
+== Lexical scoping ==
+
+ℂ+ ℂ+_a ℂ+_b ↦ ℂ+_r
+	ℂ+_aℜ ℂ+_aℑ ≔ ℂ+_a
+	ℂ+_bℜ ℂ+_bℑ ≔ ℂ+_b
+	ℂ+_rℜ ≔ addr ℂ+_aℜ ℂ+_bℜ
+	ℂ+_rℑ ≔ addr ℂ+_aℑ ℂ+_bℑ
+	ℂ+_r ↦ ℂ+_rℜ ℂ+_rℑ
+
+. ⇒ ℂ+_
+	ℂ+ .a .b ↦ .r
+	.aℜ .aℑ ≔ .a
+	.bℜ .bℑ ≔ .b
+	.rℜ ≔ addr .aℜ .bℜ
+	.rℑ ≔ addr .aℑ .bℑ
+	.r ↦ .rℜ .rℑ
+. ⇒
+
+
 == Uniqueness Types ==
 
 Specify a type of arrow that can not be split. This guarantees that only one copy of the value is in existance, which may be distructively updated.
@@ -135,6 +224,8 @@ TODO: Proposed control instructions, can they all be converted to simpler contru
 See wp:Control_flow
  - "Loop with test in the middle"
  - "Multiple early exit/exit from nested loops"
+
+TODO: Loop cycle detection: Given a loop with initial state I and iterator L(I) ↦ I'. Simultaniously compute two copies of the loop, one iterating twice as fast the other. If the two returned states are equal the loop is infinite.
 
 TODO: Perhaps allow multiple different return paths from functions. Suppose a function could either return the answer or an error. Both would have a different return type, but conventional multi valued function definition require the number (and type) if values to be fixed. This can be resolved by having multiple return paths, each with different types and different control flow in the calling body. This is simmilar (and could be implemented as) continuation-passing-style with multiple continuations.
 

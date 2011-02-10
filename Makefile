@@ -1,11 +1,8 @@
-NAME=proglang
-CPP=g++ -std=c++0x -Wall -pedantic -O3 -ggdb -I.
-OBJECTS=$(patsubst %.cpp,%.o,$(wildcard *.cpp))
+NAME := proglang
 
 all: ${NAME}
 
-${NAME}: ${OBJECTS}
-	${CPP} $^ -o $@
-
-%.o: %.cpp *.h Makefile
-	${CPP} -c $<
+${NAME}: $(shell find -type f -name '*.cpp')
+	g++ -std=c++0x -Wall -pedantic -O3 -ggdb -I. $^ -o $@
+	objcopy --compress-debug-sections --only-keep-debug $@ $@.dbg
+	objcopy --strip-debug $@

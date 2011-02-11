@@ -201,8 +201,27 @@ sint32 main(sint32 argc, char* argv[])
 		std::wcerr << msg << L"\"" << std::endl;
 		return -1;
 	}
+	catch(const std::string& msg)
+	{
+		std::wcerr << L"Unhandled exception: \"";
+		std::wcerr << decodeLocal(msg) << L"\"" << std::endl;
+		return -1;
+	}
+	catch(const wchar* msg)
+	{
+		std::wcerr << L"Unhandled exception: \"";
+		std::wcerr << msg << L"\"" << std::endl;
+		return -1;
+	}
+	catch(const char* msg)
+	{
+		std::wcerr << L"Unhandled exception: \"";
+		std::wcerr << decodeLocal(msg) << L"\"" << std::endl;
+		return -1;
+	}
 	catch(...)
 	{
+		/// TODO: Print type
 		std::wcerr << L"Unhandled exception of unknown type." << std::endl;
 		return -1;
 	}

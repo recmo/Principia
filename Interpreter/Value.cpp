@@ -2,14 +2,14 @@
 #include "Closure.h"
 #include "IR/ClosureNode.h"
 #include "IR/SymbolVertex.h"
-#include "math.h"
+#include "Interpreter/Builtins.h"
 
 std::wostream& operator<<(std::wostream& out, const Value& value)
 {
 	switch(value.kind)
 	{
 		case Value::None:
-			out << "none";
+			out << L"none";
 			break;
 		case Value::Function:
 			out << value.function()->closure()->function()->identifier();
@@ -20,6 +20,13 @@ std::wostream& operator<<(std::wostream& out, const Value& value)
 		case Value::Real:
 			out.precision(5);
 			out << std::fixed << value.real();
+			break;
+		case Value::Builtin:
+			string name;
+			if(tryGetKey<string, BuiltinFunction>(builtins, value.builtin(), name))
+				out << L"builtin_" << name;
+			else
+				out << L"builtin";
 			break;
 	}
 	return out;

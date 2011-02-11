@@ -29,8 +29,8 @@ CallNode* SymbolVertex::callNode() const
 
 ClosureNode* SymbolVertex::closureNode() const
 {
-	assert(DefinitionType() == DefinitionType::Function
-		|| DefinitionType() == DefinitionType::Argument);
+	assert(definitionType() == DefinitionType::Function
+		|| definitionType() == DefinitionType::Argument);
 	return _closureNode;
 }
 
@@ -64,6 +64,6 @@ SymbolVertex& SymbolVertex::setArgumentOf(ClosureNode* value)
 
 std::wostream& operator<<(std::wostream& out, const SymbolVertex* s)
 {
-	out << L"<" << s->identifier() << L">";
+	out << L"<" << s->identifier() << L":" << s->definitionType().toString() << L">";
 	return out;
 }

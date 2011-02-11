@@ -8,7 +8,8 @@
 
 sint32 Main(const vector<string>& args)
 {
-	/// Parser -> ASG -> Interpreter
+	/// TODO: Re-use contexts
+	/// TODO: Garbage management of closures
 	
 	/// TODO: Validate programs
 	///  Rule: Only cycles allowed are in ClosureDefinition from arguments or closure to returns
@@ -32,7 +33,6 @@ sint32 Main(const vector<string>& args)
 	
 	wcerr << L"Simple C++ interpreter for the language using ≔ and ↦." << endl;
 	wcerr << endl;
-	wcerr << args << endl;
 	if(args.size() < 3)
 	{
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
@@ -43,9 +43,7 @@ sint32 Main(const vector<string>& args)
 	std::wifstream input;
 	input.open(encodeLocal(args[1]), std::ios_base::in);
 	if(!input.good())
-	{
 		throw std::runtime_error("Could not open source file.");
-	}
 	
 	// Parse file
 	wcerr << L"Parsing file…" << flush;
@@ -60,29 +58,34 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl;
 	
 	// Find function to call
-	wcerr << L"Looking for " << args[2] << L"…" << flush;
-	SymbolVertex* function = 0;
+	SymbolVertex* functionSymbol = 0;
 	foreach(symbol, ir->symbols())
 		if(symbol->identifier() == args[2])
-			function = symbol;
-	if(!function)
+			functionSymbol = symbol;
+	if(!functionSymbol)
 		throw std::runtime_error("Could not find specified function.");
-	wcerr << endl;
 	
 	// Parse arguments
-	wcerr << L"Parsing arguments…" << flush;
 	vector<Value> arguments;
 	for(unsigned int i = 3; i < args.size(); i++)
 	{
-		arguments.push_back(parse<sint64>(args[i]));
+		sint64 integer;
+		double real;
+		if(parse<sint64>(args[i], integer))
+			arguments.push_back(integer);
+		else if(parse<double>(args[i], real))
+			arguments.push_back(real);
+		else
+			throw "Could not parse argument";
 	}
-	wcerr << endl;
 	
 	// Execute IR
+	wcerr << L"Executing…" << flush;
 	Interpreter interpreter(ir);
 	vector<Value> returns;
-	returns = interpreter.evaluateCall(function, arguments);
-	wcout << returns;
+	returns = interpreter.evaluateFunction(functionSymbol, arguments);
+	wcerr << endl;
 	
+	wcout << returns << endl;
 	return 0;
 }

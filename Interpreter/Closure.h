@@ -8,13 +8,13 @@ class ClosureNode;
 class Closure
 {
 public:
-	Closure(const ClosureNode* closure, const map<SymbolVertex*,Value>& context);
+	Closure(const ClosureNode* closure, const map<const SymbolVertex*,Value>& context);
 	
 	const ClosureNode* closure() const { return _closure; }
-	map<SymbolVertex*,Value> context() const { return _context; }
-	map<SymbolVertex*,Value>& context() { return _context; }
+	map<const SymbolVertex*,Value> context() const { return _context; }
+	map<const SymbolVertex*,Value>& context() { return _context; }
 	
 private:
 	const ClosureNode* _closure;
-	map<SymbolVertex*,Value> _context;
+	map<const SymbolVertex*,Value> _context;
 };

@@ -79,9 +79,32 @@ bool contains(const std::vector<T>& v, const T& value)
 }
 
 template<class Key, class Value>
-bool contains(const std::map<Key, Value>& map, const Key& value)
+bool contains(const std::map<Key, Value>& map, const Key& key)
 {
-	return map.find(value) != map.end();
+	return map.find(key) != map.end();
+}
+
+template<class Key, class Value>
+bool tryGet(const std::map<Key, Value>& map, const Key& key, Value& value)
+{
+	typename std::map<Key, Value>::const_iterator it = map.find(key);
+	if(it == map.end()) return false;
+	value = it->second;
+	return true;
+}
+
+template<class Key, class Value>
+bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
+{
+	for(typename std::map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it)
+	{
+		if(it->second == value)
+		{
+			key = it->first;
+			return true;
+		}
+	}
+	return false;
 }
 
 template<class T>
@@ -122,14 +145,10 @@ std::string encodeLocal(const std::wstring& plaintext);
 std::vector<std::wstring> tokenize(const std::wstring& string);
 
 template<class T>
-T parse(const std::wstring &string)
+bool parse(const std::wstring &string, T& value)
 {
-	T value;
-	std::wstringstream ss(string);
-	ss >> value;
-	/// TODO: Catch parsing errors
-	/// TODO: Ensure the whole string is parsed
-	return value;
+	std::wistringstream ss(string);
+	return (ss >> value) && ss.eof();
 }
 
 template<class T>

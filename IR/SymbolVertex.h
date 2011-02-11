@@ -15,6 +15,7 @@ public:
 	const static int Return = 1;
 	const static int Function = 2;
 	const static int Argument = 3;
+	// const static int Constant = 3;
 	
 private:
 	int value;

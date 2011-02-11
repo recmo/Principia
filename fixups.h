@@ -79,7 +79,7 @@ bool contains(const std::vector<T>& v, const T& value)
 }
 
 template<class Key, class Value>
-bool contains(const std::map<Key, Value>& map, const Value& value)
+bool contains(const std::map<Key, Value>& map, const Key& value)
 {
 	return map.find(value) != map.end();
 }

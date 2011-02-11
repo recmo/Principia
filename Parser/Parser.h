@@ -14,6 +14,6 @@ public:
 	
 private:
 	IntRep* _program;
-	SymbolVertex* symbolFromIdentifier(const string& identifier, bool autoCreate = false);
+	SymbolVertex* symbolFromIdentifier(const string& identifier, bool autoCreate = true);
 	
 };

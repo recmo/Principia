@@ -33,18 +33,18 @@ sint32 Main(const vector<string>& args)
 	wcerr << L"Simple C++ interpreter for the language using ≔ and ↦." << endl;
 	wcerr << endl;
 	wcerr << args << endl;
-	if(args.size() < 2)
+	if(args.size() < 3)
 	{
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
-		throw std::runtime_error("No input file.");
+		throw std::runtime_error("Not enough arguments.");
 	}
 	
 	// Open
 	std::wifstream input;
-	input.open(encodeLocal(args[0]), std::ios_base::in);
+	input.open(encodeLocal(args[1]), std::ios_base::in);
 	if(!input.good())
 	{
-		throw std::runtime_error("");
+		throw std::runtime_error("Could not open source file.");
 	}
 	
 	// Parse file
@@ -54,16 +54,16 @@ sint32 Main(const vector<string>& args)
 	while(input.good())
 	{
 		string line;
-		std::getline<wchar>(wcin, line);
+		std::getline<wchar>(input, line);
 		parser.parseLine(line);
 	}
 	wcerr << endl;
 	
 	// Find function to call
-	wcerr << L"Looking for " << args[1] << L"…" << flush;
+	wcerr << L"Looking for " << args[2] << L"…" << flush;
 	SymbolVertex* function = 0;
 	foreach(symbol, ir->symbols())
-		if(symbol->identifier() == args[1])
+		if(symbol->identifier() == args[2])
 			function = symbol;
 	if(!function)
 		throw std::runtime_error("Could not find specified function.");
@@ -72,7 +72,7 @@ sint32 Main(const vector<string>& args)
 	// Parse arguments
 	wcerr << L"Parsing arguments…" << flush;
 	vector<Value> arguments;
-	for(unsigned int i = 2; i < args.size(); i++)
+	for(unsigned int i = 3; i < args.size(); i++)
 	{
 		arguments.push_back(parse<sint64>(args[i]));
 	}

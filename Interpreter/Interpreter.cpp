@@ -16,7 +16,7 @@ Interpreter::~Interpreter()
 Value Interpreter::evaluateSymbol(SymbolVertex* symbol)
 {
 	// Has it already been evaluated?
-	if(contains<SymbolVertex*, Value>(_context, symbol))
+	if(contains<SymbolVertex*,Value>(_context, symbol))
 		return _context[symbol];
 	
 	// TODO: Builtins!
@@ -49,26 +49,25 @@ vector<Value> Interpreter::evaluateCall(SymbolVertex* callSymbol, const vector<V
 	const Closure* closure = closureValue.function();
 	
 	// Create an execution context
-	map<SymbolVertex*,Value> exec;
-	
-	// Start with the closed over context
-	foreach(pair, _context)
-		exec[pair.first] = pair.second;
+	map<SymbolVertex*,Value> old_context = _context;
+	_context = closure->context();
 	
 	// Add the arguments
 	assert(arguments.size() == closure->closure()->arguments().size());
 	foreach(arg, closure->closure()->arguments())
-		exec[arg] = arguments[arg_index];
+		_context[arg] = arguments[arg_index];
 	
 	// Evaluate the return values
 	vector<Value> returns;
 	foreach(ret, closure->closure()->returns())
 		returns.push_back(evaluateSymbol(ret));
 	
+	_context = old_context;
 	return returns;
 }
 
-Value Interpreter::evaluateClosure(ClosureNode* closure)
+Value Interpreter::evaluateClosure(ClosureNode* closureNode)
 {
-
+	// TODO: Prune unused symbols
+	return new Closure(closureNode, _context);
 }

@@ -38,6 +38,7 @@ typedef wchar_t wchar;
 typedef std::wstring string;
 using std::vector;
 using std::map;
+using std::set;
 using std::exception;
 using std::wcin;
 using std::wcout;

@@ -72,6 +72,22 @@ begin ↦ a0 next
 To implement this one would need a reflection construct that allows rebinding of externals, i.e. modifying closures.
 
 
+= Structured Functional Programming =
+
+Replace recursion by catamorphism, anamorphisms, hylomorphisms and paramorphisms
+
+
+catamorphism: R (R I → R) → ([I] → R) 
+catamorphism first ⊕ ↦ f
+	f list ↦ result
+		result ≔ first ⊕ list[0] ⊕ list[0] ⊕ … ⊕ list[n]
+
+
+See also:
+
+http://www.scss.tcd.ie/Edsko.de.Vries/talks/
+http://www.scss.tcd.ie/Edsko.de.Vries/talks/recursion-patterns.pdf
+http://www.scss.tcd.ie/Edsko.de.Vries/talks/linear_logic.pdf
 
 
 

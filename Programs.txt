@@ -158,12 +158,26 @@ z ≔ Exp w
 ℑz
 
 
+Lisp style linked lists:
+
+cons a b ↦ pair
+	pair ↦ a b
+
+car pair ↦ a
+	a b ≔ pair
+
+cdr pair ↦ b
+	a b ≔ pair
+
+nil ↦
+
+
+
+
 Numerically Differentiate function:
 
 diff f ε ↦ (df x ↦ (f(x + δ) - f(x)) / δ)
 
-1. ≔ real 1
-10. ≔ real 10
 
 diff f δ ↦ df
 	df x ↦ dfx
@@ -174,10 +188,11 @@ diff f δ ↦ df
 		dfx ≔ divr Δf δ
 
 sqr s ↦ ss
-ss ≔ mulr s s
+	ss ≔ mulr s s
 
-ε ≔ divr 1. 10.
-dsqr ≔ diff sqr ε
+dsqr ≔ diff sqr 0.001
+
+
 
 dsqr10 ≔ dsqr 10.
 dsqr10

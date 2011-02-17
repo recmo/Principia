@@ -1,0 +1,15 @@
+even? en ↦ even?en
+	true ↦ 1
+	ask_odd ↦ odd?pen
+		pen ≔ sub en 1
+		odd?pen ≔ odd? pen
+	even?enf ≔ if en ask_odd true
+	even?en ≔ even?enf
+
+odd? on ↦ odd?on
+	false ↦ 0
+	ask_even ↦ even?pon
+		pon ≔ sub on 1
+		even?pon ≔ even? pon
+	odd?onf ≔ if on ask_even false
+	odd?on ≔ odd?onf

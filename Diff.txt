@@ -1,0 +1,13 @@
+diff f δ ↦ df
+	df x ↦ dfx
+		x' ≔ addr x δ
+		fx' ≔ f x'
+		fx ≔ f x
+		Δf ≔ subr fx' fx
+		dfx ≔ divr Δf δ
+
+sqr s ↦ ss
+	ss ≔ mulr s s
+
+dsqr ≔ diff sqr 0.001
+

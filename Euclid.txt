@@ -1,0 +1,10 @@
+Euclid a b ↦ gcd x y
+	d r ≔ div a b
+	base ↦ b 0 1
+	recurse ↦ gcd' y' x"
+		gcd' x' y' ≔ Euclid b r
+		y" ≔ mul y' d
+		x" ≔ sub x' y"
+	next ≔ if r recurse base
+	gcd x y ≔ next
+

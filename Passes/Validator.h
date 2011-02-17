@@ -12,6 +12,8 @@ public:
 	void calculateInternalSymbols();
 	
 	bool validate();
+	void causalPast(std::set<const SymbolVertex*>& past, const SymbolVertex* symbol);
+	void causalFuture(std::set<const SymbolVertex*>& future, const SymbolVertex* symbol);
 	
 private:
 	const IntRep* _program;

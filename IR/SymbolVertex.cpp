@@ -64,6 +64,7 @@ SymbolVertex& SymbolVertex::setArgumentOf(ClosureNode* value)
 
 std::wostream& operator<<(std::wostream& out, const SymbolVertex* s)
 {
-	out << L"<" << s->identifier() << L":" << s->definitionType().toString() << L">";
+	// out << L"<" << s->identifier() << L":" << s->definitionType().toString() << L">";
+	out << s->identifier();
 	return out;
 }

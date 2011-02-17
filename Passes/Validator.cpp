@@ -3,7 +3,15 @@
 #include "IR/ClosureNode.h"
 #include "IR/CallNode.h"
 
+bool insertSymbol(set<const SymbolVertex*>& symbolSet, const SymbolVertex* symbol)
+{
+	if(symbolSet.find(symbol) != symbolSet.end()) return false;
+	symbolSet.insert(symbol);
+	return true;
+}
+
 Validator::Validator(const IntRep* program)
+: _program(program)
 {
 }
 
@@ -11,11 +19,69 @@ Validator::~Validator()
 {
 }
 
-bool insertSymbol(set<const SymbolVertex*>& symbolSet, const SymbolVertex* symbol)
+/// Returns the set of symbols that this symbol depends on
+void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* symbol)
 {
-	if(symbolSet.find(symbol) != symbolSet.end()) return false;
-	symbolSet.insert(symbol);
-	return true;
+	// Prevent infinite recursion
+	if(!insertSymbol(past, symbol)) return;
+	
+	// Add all the nodes
+	switch(symbol->definitionType())
+	{
+		case DefinitionType::Undefined:
+			// Ignore the causes
+			break;
+		case DefinitionType::Argument:
+			// Arguments of a closure are a first cause
+			break;
+		case DefinitionType::Function:
+			// Defined by the closure, so by the closed over variables
+			// but lets also include internal nodes for now.
+			foreach(ret, symbol->closureNode()->returns())
+				causalPast(past, ret);
+			break;
+		case DefinitionType::Return:
+			// Defined by the call and the calls arguments
+			causalPast(past, symbol->callNode()->function());
+			foreach(arg, symbol->callNode()->arguments())
+				causalPast(past, arg);
+			break;
+	}
+}
+
+void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVertex* symbol)
+{
+	// Prevent infinite recursion
+	if(!insertSymbol(future, symbol)) return;
+	
+	// Find calls depending on symbol
+	foreach(call, _program->calls())
+	{
+		if(call->function() != symbol)
+		{
+			bool depends = false;
+			foreach(arg, call->arguments())
+				if(depends = (arg == symbol)) break;
+			if(!depends) continue;
+		}
+		
+		// This call directly depends on symbol, so all the returns are affected
+		foreach(ret, call->returns())
+			causalFuture(future, ret);
+	}
+	
+	// Find closures depending on symbol
+	foreach(closure, _program->closures())
+	{
+		bool depends = false;
+		foreach(ret, closure->returns())
+			if(depends = (ret == symbol)) break;
+		if(!depends) continue;
+		
+		causalFuture(future, closure->function());
+		foreach(arg, closure->arguments())
+			causalFuture(future, arg);
+	}
 }
 
 void Validator::calculateInternalSymbols()
@@ -52,24 +118,20 @@ void Validator::calculateInternalSymbols()
 	}
 }
 
-
 bool Validator::validate()
 {
 	// Calculate the causes for a symbol
 	foreach(symbol, _program->symbols())
 	{
-		switch(symbol->definitionType())
-		{
-			case DefinitionType::Argument:
-				// No causes
-				break;
-			case DefinitionType::Function:
-				// Defined by the closure, so by the closed over variables
-			case DefinitionType::Return:
-				// Defined by the call
-				break;
-		}
+		set<const SymbolVertex*> past;
+		set<const SymbolVertex*> future;
+		causalPast(past, symbol);
+		causalFuture(future, symbol);
+		wcerr << symbol << L" ← " << past << endl; 
+		wcerr << symbol << L" → " << future << endl; 
 	}
 	
 	// Calculate the effects of a symbol
+	
+	return true;
 }

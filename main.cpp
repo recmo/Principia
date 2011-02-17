@@ -5,9 +5,18 @@
 #include "Interpreter/Interpreter.h"
 #include "Interpreter/Value.h"
 #include <fstream>
+#include "Passes/Validator.h"
 
 sint32 Main(const vector<string>& args)
 {
+	/// TODO: Simplify IR, make it HOAS + De Bruijn indices
+	/// Definition sites:
+	///  0) external (constant, builtin, etc…)
+	///  1) return values from calls
+	///  2) closure function
+	///  3) closure argument
+	/// Externaly store metadata such as identifiers
+	
 	/// TODO: Re-use contexts
 	/// TODO: Garbage management of closures
 	
@@ -55,6 +64,13 @@ sint32 Main(const vector<string>& args)
 		std::getline<wchar>(input, line);
 		parser.parseLine(line);
 	}
+	wcerr << endl;
+	
+	// Validate IR
+	wcerr << L"Validating…" << flush;
+	wcerr << endl << endl;
+	Validator validator(ir);
+	validator.validate();
 	wcerr << endl;
 	
 	// Find function to call

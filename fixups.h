@@ -112,14 +112,14 @@ template<class T>
 std::wostream& operator<<(std::wostream& out, const std::set<T>& v)
 {
 	typename std::set<T>::const_iterator it = v.begin();
-	out << L"[";
+	out << L"{";
 	if(it != v.end()) for(;;)
 	{
 		out << *it;
 		if(++it == v.end()) break;
 		out << L", ";
 	}
-	out << L"]";
+	out << L"}";
 	return out;
 }
 

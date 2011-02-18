@@ -6,3 +6,5 @@ fact n ↦ r
 	recurse ↦ fn
 	case ≔ if n recurse base
 	r ≔ case
+
+

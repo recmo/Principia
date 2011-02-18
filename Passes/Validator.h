@@ -14,10 +14,13 @@ public:
 	bool validate();
 	void causalPast(std::set<const SymbolVertex*>& past, const SymbolVertex* symbol);
 	void causalFuture(std::set<const SymbolVertex*>& future, const SymbolVertex* symbol);
+	set<const SymbolVertex*> internals(const ClosureNode* closure);
+	set<const SymbolVertex*> externals(const ClosureNode* closure);
 	
 private:
 	const IntRep* _program;
 	map<const ClosureNode*, set<const SymbolVertex*> > _internal;
-	map<const SymbolVertex*, set<const SymbolVertex*> > _causes;
-	map<const SymbolVertex*, set<const SymbolVertex*> > _effects;
+	map<const ClosureNode*, set<const SymbolVertex*> > _closure;
+	map<const SymbolVertex*, set<const SymbolVertex*> > _causalFuture;
+	map<const SymbolVertex*, set<const SymbolVertex*> > _causalPast;
 };

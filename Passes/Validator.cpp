@@ -22,8 +22,14 @@ Validator::~Validator()
 /// Returns the set of symbols that this symbol depends on
 void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* symbol)
 {
+	wcerr << "causalPast(" << past << ", " << symbol << ")" << endl; 
+	
 	// Prevent infinite recursion
-	if(!insertSymbol(past, symbol)) return;
+	if(!insertSymbol(past, symbol))
+	{
+		wcerr << "done. " << endl;
+		return;
+	}
 	
 	// Add all the nodes
 	switch(symbol->definitionType())
@@ -34,19 +40,26 @@ void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* s
 		case DefinitionType::Argument:
 			// Arguments of a closure are a first cause
 			break;
-		case DefinitionType::Function:
+		case DefinitionType::Function: {
 			// Defined by the closure, so by the closed over variables
 			// but lets also include internal nodes for now.
 			foreach(ret, symbol->closureNode()->returns())
 				causalPast(past, ret);
-			break;
-		case DefinitionType::Return:
+		} break;
+		case DefinitionType::Return: {
 			// Defined by the call and the calls arguments
+			wcerr << "ASD: " << symbol << " " << symbol->callNode() << endl;
 			causalPast(past, symbol->callNode()->function());
+			wcerr << "SDA: " << symbol << " " << symbol->callNode()->arguments() << endl;
+			
 			foreach(arg, symbol->callNode()->arguments())
+			{
+				wcerr << arg << endl;
 				causalPast(past, arg);
-			break;
+			}
+		} break;
 	}
+	wcerr << symbol << L" new  " << past << endl; 
 }
 
 void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVertex* symbol)
@@ -84,54 +97,52 @@ void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVerte
 	}
 }
 
-void Validator::calculateInternalSymbols()
+/// Returns the minimal set of edges to evaluate for every function evaluation
+set<const SymbolVertex*> Validator::internals(const ClosureNode* closure)
 {
-	foreach(closure, _program->closures())
-	{
-		set<const SymbolVertex*>& internal = _internal[closure];
-		foreach(arg, closure->arguments())
-			internal.insert(arg);
-		
-		bool changed = false;
-		do {
-			changed = false;
-			
-			// For each call, if arguments internal then returns internal
-			foreach(call, _program->calls())
-			{
-				bool dependsOnArg = false;
-				foreach(arg, call->arguments()) {
-					if(internal.find(arg) != internal.end()) {
-						dependsOnArg = true;
-						break;
-					}
-				}
-				if(!dependsOnArg) continue;
-				foreach(ret, call->returns())
-					changed |= insertSymbol(internal, ret);
-			}
-			
-			// For each closure, if returns internal then function internal
-			
-			
-		} while (changed);
-	}
+	set<const SymbolVertex*> future;
+	foreach(arg, closure->arguments())
+		insertUnion(future, _causalFuture[arg]);
+	set<const SymbolVertex*> past;
+	foreach(ret, closure->returns())
+		insertUnion(past, _causalPast[ret]);
+	return intersection(future, past);
+}
+
+/// Return the set of edges that could be included in the body but do not have to.
+set<const SymbolVertex*> Validator::externals(const ClosureNode* closure)
+{
+	set<const SymbolVertex*> future;
+	foreach(arg, closure->arguments())
+		insertUnion(future, _causalFuture[arg]);
+	set<const SymbolVertex*> past;
+	foreach(ret, closure->returns())
+		insertUnion(past, _causalPast[ret]);
+	return intersection(future, past);
 }
 
 bool Validator::validate()
 {
-	// Calculate the causes for a symbol
+	// Calculate the causes and effects for a symbol
 	foreach(symbol, _program->symbols())
 	{
+		wcerr << symbol << endl;
 		set<const SymbolVertex*> past;
 		set<const SymbolVertex*> future;
 		causalPast(past, symbol);
-		causalFuture(future, symbol);
 		wcerr << symbol << L" ← " << past << endl; 
+		causalFuture(future, symbol);
 		wcerr << symbol << L" → " << future << endl; 
+		_causalPast[symbol] = past;
+		_causalFuture[symbol] = future;
 	}
 	
-	// Calculate the effects of a symbol
+	wcerr << endl;
+	foreach(closure, _program->closures())
+	{
+		_internal[closure] = internals(closure);
+		wcerr << closure << L" : " << _internal[closure] << endl;
+	}
 	
 	return true;
 }

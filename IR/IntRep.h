@@ -20,6 +20,11 @@ public:
 	vector<SymbolVertex*> symbols() const { return _symbols; }
 	vector<SymbolVertex*>& symbols() { return _symbols; }
 	
+	/// TODO: Metadata maps
+	///  - edge ↦ identifier
+	///  - edge ↦ causalPast, causalFuture
+	///  - closure ↦ minimalBody, maximalBody
+	
 private:
 	vector<ClosureNode*> _closures;
 	vector<CallNode*> _calls;

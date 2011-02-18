@@ -22,7 +22,25 @@
 /// items and set var to each item.
 /// Additionally the current itterator and current numerical
 /// index can be accessed at var_itterator and var_index.
-#define foreach(var, collection) for(auto var##_collection = collection, var##_itterator = var##_collection.begin(), var = *var##_itterator, var##_index = 0; var##_itterator != var##_collection.end(); ++var##_itterator, var = *var##_itterator, ++var##_index)
+/// TODO: Local variable scope breaks case labels
+#define foreach_implementation(var, collection, unique) \
+	auto foreach##unique = collection; \
+	auto foreach_begin##unique = foreach##unique.begin(); \
+	auto foreach_end##unique = foreach##unique.end(); \
+	if(foreach_begin##unique != foreach_end##unique) \
+		for(auto \
+			var##_collection = foreach##unique, \
+			var##_itterator = foreach_begin##unique, \
+			var = *var##_itterator, \
+			var##_index = 0 \
+			; \
+			var##_itterator != foreach_end##unique \
+			; \
+			++var##_itterator, \
+			var = *var##_itterator, \
+			++var##_index)
+#define foreach_expand(var, collection, unique) foreach_implementation(var,collection,unique) 
+#define foreach(var, collection) foreach_expand(var,collection,__COUNTER__) 
 
 /// @brief Define a zero pointer
 #define null 0
@@ -79,6 +97,12 @@ bool contains(const std::vector<T>& v, const T& value)
 	return std::find(v.begin(), v.end(), value) != v.end();
 }
 
+template<class T>
+bool contains(const std::set<T>& v, const T& value)
+{
+	return std::find(v.begin(), v.end(), value) != v.end();
+}
+
 template<class Key, class Value>
 bool contains(const std::map<Key, Value>& map, const Key& key)
 {
@@ -107,6 +131,32 @@ bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
 	}
 	return false;
 }
+
+
+template<class T>
+void insertUnion(set<T>& target, const set<T>& insert)
+{
+	foreach(element, insert)
+		target.insert(element);
+}
+
+template<class T>
+set<T> setUnion(const set<T>& a, const set<T>& b)
+{
+	set<T> u = a;
+	return insertUnion<T>(u, b);
+}
+
+template<class T>
+set<T> intersection(const set<T>& a, const set<T>& b)
+{
+	set<T> i;
+	foreach(e, a)
+		if(contains<T>(b, e))
+			i.insert(e);
+	return i;
+}
+
 
 template<class T>
 std::wostream& operator<<(std::wostream& out, const std::set<T>& v)

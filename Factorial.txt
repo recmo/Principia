@@ -6,5 +6,3 @@ fact n ↦ r
 		fn ≔ mul fp n
 	case ≔ if n recurse base
 	r ≔ case n
-
-

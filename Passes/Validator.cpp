@@ -134,6 +134,7 @@ bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const Symb
 		case DefinitionType::Function:
 			// In scope if the function body is, except for arguments
 			functionScope = outerScope;
+			functionScope.insert(symbol);
 			foreach(arg, symbol->closureNode()->arguments())
 				functionScope.insert(arg);
 			foreach(ret, symbol->closureNode()->returns())
@@ -141,7 +142,9 @@ bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const Symb
 					return false;
 			return true;
 		case DefinitionType::Return:
-			// In scope if all the arguments are
+			// In scope if function and all the arguments are
+			if(!isInScope(outerScope, symbol->callNode()->function()))
+				return false;
 			foreach(arg, symbol->callNode()->arguments())
 				if(!isInScope(outerScope, arg))
 					return false;
@@ -167,6 +170,21 @@ bool Validator::validate()
 	wcerr << "Imports: " << imports << endl;
 	wcerr << "Exports: " << exports << endl;
 	wcerr << "Internal: " << internal << endl;
+	
+	// Find all internals of all closures
+	foreach(closure, _program->closures())
+	{
+		set<const SymbolVertex*> finternals, fexclusive;
+		fexclusive = finternals = internals(closure);
+		foreach(symbol, finternals)
+			if(symbol != closure->function() && symbol->definitionType() == DefinitionType::Function)
+			{
+				fexclusive = setMinus(fexclusive, internals(symbol->closureNode()));
+				fexclusive.insert(symbol);
+			}
+			
+		wcerr << closure->function() << ": " << fexclusive << endl;
+	}
 	
 	return true;
 }

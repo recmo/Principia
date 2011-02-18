@@ -19,28 +19,17 @@
 /// @brief Foreach implementation
 /// Given a STL style collection with begin() and end()
 /// and a variable name var it will itterate trough all
-/// items and set var to each item.
+/// items and set var to each item, as a value.
 /// Additionally the current itterator and current numerical
 /// index can be accessed at var_itterator and var_index.
-/// TODO: Local variable scope breaks case labels
-#define foreach_implementation(var, collection, unique) \
-	auto foreach##unique = collection; \
-	auto foreach_begin##unique = foreach##unique.begin(); \
-	auto foreach_end##unique = foreach##unique.end(); \
-	if(foreach_begin##unique != foreach_end##unique) \
-		for(auto \
-			var##_collection = foreach##unique, \
-			var##_itterator = foreach_begin##unique, \
-			var = *var##_itterator, \
-			var##_index = 0 \
-			; \
-			var##_itterator != foreach_end##unique \
-			; \
-			++var##_itterator, \
-			var = *var##_itterator, \
-			++var##_index)
-#define foreach_expand(var, collection, unique) foreach_implementation(var,collection,unique) 
-#define foreach(var, collection) foreach_expand(var,collection,__COUNTER__) 
+/// No nonexisting itterators are dereferenced
+/// The expression collection is evaluated only once
+/// begin() and end() are called only once
+/// Does not break case lables since there are no local vars
+/// Supports break and continue statements
+/// All overhead easily optimized away
+/// Requires "auto"
+#define foreach(var, collection) for(auto var##_collection = collection, var##_begin = var##_collection.begin(), var##_end = var##_collection.end(), var##_itterator = var##_begin, var##_outer_run = true; var##_outer_run; var##_outer_run = false) if(var##_itterator != var##_end) for(auto var = *var##_itterator, var##_index = 0; var##_itterator != var##_end; var = (++var##_itterator != var##_end) ? *var##_itterator : var, ++var##_index)
 
 /// @brief Define a zero pointer
 #define null 0

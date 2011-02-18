@@ -40,13 +40,13 @@ void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* s
 		case DefinitionType::Argument:
 			// Arguments of a closure are a first cause
 			break;
-		case DefinitionType::Function: {
+		case DefinitionType::Function:
 			// Defined by the closure, so by the closed over variables
 			// but lets also include internal nodes for now.
 			foreach(ret, symbol->closureNode()->returns())
 				causalPast(past, ret);
-		} break;
-		case DefinitionType::Return: {
+			break;
+		case DefinitionType::Return:
 			// Defined by the call and the calls arguments
 			wcerr << "ASD: " << symbol << " " << symbol->callNode() << endl;
 			causalPast(past, symbol->callNode()->function());
@@ -57,7 +57,7 @@ void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* s
 				wcerr << arg << endl;
 				causalPast(past, arg);
 			}
-		} break;
+			break;
 	}
 	wcerr << symbol << L" new  " << past << endl; 
 }
@@ -74,7 +74,12 @@ void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVerte
 		{
 			bool depends = false;
 			foreach(arg, call->arguments())
-				if(depends = (arg == symbol)) break;
+			{
+				if(arg == symbol)
+				{
+					break;
+				}
+			}
 			if(!depends) continue;
 		}
 		

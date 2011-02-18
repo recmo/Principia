@@ -146,6 +146,15 @@ set<T> intersection(const set<T>& a, const set<T>& b)
 	return i;
 }
 
+template<class T>
+set<T> setMinus(const set<T>& a, const set<T>& b)
+{
+	set<T> i;
+	foreach(e, a)
+		if(!contains<T>(b, e))
+			i.insert(e);
+	return i;
+}
 
 template<class T>
 std::wostream& operator<<(std::wostream& out, const std::set<T>& v)

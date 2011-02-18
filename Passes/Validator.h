@@ -17,10 +17,15 @@ public:
 	set<const SymbolVertex*> internals(const ClosureNode* closure);
 	set<const SymbolVertex*> externals(const ClosureNode* closure);
 	
+	
+	set<const SymbolVertex*> imports();
+	set<const SymbolVertex*> exports();
+	bool isInScope(const set<const SymbolVertex*>& outerScope, const SymbolVertex* symbol);
+	
 private:
 	const IntRep* _program;
 	map<const ClosureNode*, set<const SymbolVertex*> > _internal;
-	map<const ClosureNode*, set<const SymbolVertex*> > _closure;
+	map<const ClosureNode*, set<const SymbolVertex*> > _external;
 	map<const SymbolVertex*, set<const SymbolVertex*> > _causalFuture;
 	map<const SymbolVertex*, set<const SymbolVertex*> > _causalPast;
 };

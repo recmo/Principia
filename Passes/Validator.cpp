@@ -22,14 +22,9 @@ Validator::~Validator()
 /// Returns the set of symbols that this symbol depends on
 void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* symbol)
 {
-	wcerr << "causalPast(" << past << ", " << symbol << ")" << endl; 
-	
 	// Prevent infinite recursion
-	if(!insertSymbol(past, symbol))
-	{
-		wcerr << "done. " << endl;
-		return;
-	}
+	if(symbol->definitionType() == DefinitionType::Undefined) return;
+	if(!insertSymbol(past, symbol)) return;
 	
 	// Add all the nodes
 	switch(symbol->definitionType())
@@ -48,40 +43,27 @@ void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* s
 			break;
 		case DefinitionType::Return:
 			// Defined by the call and the calls arguments
-			wcerr << "ASD: " << symbol << " " << symbol->callNode() << endl;
 			causalPast(past, symbol->callNode()->function());
-			wcerr << "SDA: " << symbol << " " << symbol->callNode()->arguments() << endl;
-			
 			foreach(arg, symbol->callNode()->arguments())
-			{
-				wcerr << arg << endl;
 				causalPast(past, arg);
-			}
 			break;
 	}
-	wcerr << symbol << L" new  " << past << endl; 
 }
 
 void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVertex* symbol)
 {
 	// Prevent infinite recursion
+	if(symbol->definitionType() == DefinitionType::Undefined) return;
 	if(!insertSymbol(future, symbol)) return;
 	
 	// Find calls depending on symbol
 	foreach(call, _program->calls())
 	{
-		if(call->function() != symbol)
-		{
-			bool depends = false;
-			foreach(arg, call->arguments())
-			{
-				if(arg == symbol)
-				{
-					break;
-				}
-			}
-			if(!depends) continue;
-		}
+		bool depends = call->function() == symbol;
+		foreach(arg, call->arguments())
+			if(depends |= arg == symbol)
+				break;
+		if(!depends) continue;
 		
 		// This call directly depends on symbol, so all the returns are affected
 		foreach(ret, call->returns())
@@ -93,7 +75,7 @@ void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVerte
 	{
 		bool depends = false;
 		foreach(ret, closure->returns())
-			if(depends = (ret == symbol)) break;
+			if(depends |= ret == symbol) break;
 		if(!depends) continue;
 		
 		causalFuture(future, closure->function());
@@ -106,48 +88,85 @@ void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVerte
 set<const SymbolVertex*> Validator::internals(const ClosureNode* closure)
 {
 	set<const SymbolVertex*> future;
+	future.insert(closure->function());
 	foreach(arg, closure->arguments())
-		insertUnion(future, _causalFuture[arg]);
+		causalFuture(future, arg);
+	
 	set<const SymbolVertex*> past;
+	past.insert(closure->function());
 	foreach(ret, closure->returns())
-		insertUnion(past, _causalPast[ret]);
+		causalPast(past, ret);
+	
 	return intersection(future, past);
 }
 
 /// Return the set of edges that could be included in the body but do not have to.
 set<const SymbolVertex*> Validator::externals(const ClosureNode* closure)
 {
-	set<const SymbolVertex*> future;
-	foreach(arg, closure->arguments())
-		insertUnion(future, _causalFuture[arg]);
+	// Which set is this?
+	// Union(causalPast(ret)) - internals ?
+	
 	set<const SymbolVertex*> past;
 	foreach(ret, closure->returns())
 		insertUnion(past, _causalPast[ret]);
-	return intersection(future, past);
+	
+	set<const SymbolVertex*> internal = internals(closure);
+	
+	return setMinus(past, internal);
+}
+
+bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const SymbolVertex* symbol)
+{
+	if(contains<const SymbolVertex*>(outerScope, symbol))
+		return true;
+	
+	set<const SymbolVertex*> functionScope;
+	switch(symbol->definitionType())
+	{
+		case DefinitionType::Undefined:
+			// Externals are always global scope
+			return true;
+		case DefinitionType::Argument:
+			// Arguments are not in scope, unless specified
+			// in outerscope. (in which case we have already
+			// returned true)
+			return false;
+		case DefinitionType::Function:
+			// In scope if the function body is, except for arguments
+			functionScope = outerScope;
+			foreach(arg, symbol->closureNode()->arguments())
+				functionScope.insert(arg);
+			foreach(ret, symbol->closureNode()->returns())
+				if(!isInScope(functionScope, ret))
+					return false;
+			return true;
+		case DefinitionType::Return:
+			// In scope if all the arguments are
+			foreach(arg, symbol->callNode()->arguments())
+				if(!isInScope(outerScope, arg))
+					return false;
+			return true;
+	}
 }
 
 bool Validator::validate()
 {
-	// Calculate the causes and effects for a symbol
+	// Find all symbols that do not depend on any argument
+	set<const SymbolVertex*> imports;
+	set<const SymbolVertex*> exports;
+	set<const SymbolVertex*> internal;
 	foreach(symbol, _program->symbols())
 	{
-		wcerr << symbol << endl;
-		set<const SymbolVertex*> past;
-		set<const SymbolVertex*> future;
-		causalPast(past, symbol);
-		wcerr << symbol << L" ← " << past << endl; 
-		causalFuture(future, symbol);
-		wcerr << symbol << L" → " << future << endl; 
-		_causalPast[symbol] = past;
-		_causalFuture[symbol] = future;
+		if(symbol->definitionType() == DefinitionType::Undefined)
+			imports.insert(symbol);
+		else if(isInScope(exports, symbol))
+			exports.insert(symbol);
+		else 
+			internal.insert(symbol);
 	}
-	
-	wcerr << endl;
-	foreach(closure, _program->closures())
-	{
-		_internal[closure] = internals(closure);
-		wcerr << closure << L" : " << _internal[closure] << endl;
-	}
+	wcerr << "Imports: " << imports << endl;
+	wcerr << "Exports: " << exports << endl;
+	wcerr << "Internal: " << internal << endl;
 	
 	return true;
 }

@@ -1,10 +1,10 @@
 fact n ↦ r
-	base ↦ 1
-	p ≔ sub n 1
-	fp ≔ fact p
-	fn ≔ mul fp n
-	recurse ↦ fn
+	base dummy ↦ 1
+	recurse rn ↦ fn
+		p ≔ sub rn 1
+		fp ≔ fact p
+		fn ≔ mul fp n
 	case ≔ if n recurse base
-	r ≔ case
+	r ≔ case n
 
 

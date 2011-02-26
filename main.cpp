@@ -75,7 +75,7 @@ sint32 Main(const vector<string>& args)
 	
 	// Find function to call
 	SymbolVertex* functionSymbol = 0;
-	foreach(symbol, ir->symbols())
+	foreach(SymbolVertex* symbol, ir->symbols())
 		if(symbol->identifier() == args[2])
 			functionSymbol = symbol;
 	if(!functionSymbol)

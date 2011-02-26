@@ -10,7 +10,7 @@ IntRep::IntRep()
 IntRep::~IntRep()
 {
 	// IntRep is owner of all its objects
-	foreach(call, _calls) delete call;
-	foreach(closure, _closures) delete closure;
-	foreach(symbol, _symbols) delete symbol;
+	foreach(CallNode* call, _calls) delete call;
+	foreach(ClosureNode* closure, _closures) delete closure;
+	foreach(SymbolVertex* symbol, _symbols) delete symbol;
 }

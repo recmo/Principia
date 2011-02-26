@@ -38,13 +38,13 @@ void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* s
 		case DefinitionType::Function:
 			// Defined by the closure, so by the closed over variables
 			// but lets also include internal nodes for now.
-			foreach(ret, symbol->closureNode()->returns())
+			foreach(SymbolVertex* ret, symbol->closureNode()->returns())
 				causalPast(past, ret);
 			break;
 		case DefinitionType::Return:
 			// Defined by the call and the calls arguments
 			causalPast(past, symbol->callNode()->function());
-			foreach(arg, symbol->callNode()->arguments())
+			foreach(SymbolVertex* arg, symbol->callNode()->arguments())
 				causalPast(past, arg);
 			break;
 	}
@@ -57,29 +57,29 @@ void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVerte
 	if(!insertSymbol(future, symbol)) return;
 	
 	// Find calls depending on symbol
-	foreach(call, _program->calls())
+	foreach(CallNode* call, _program->calls())
 	{
 		bool depends = call->function() == symbol;
-		foreach(arg, call->arguments())
+		foreach(SymbolVertex* arg, call->arguments())
 			if(depends |= arg == symbol)
 				break;
 		if(!depends) continue;
 		
 		// This call directly depends on symbol, so all the returns are affected
-		foreach(ret, call->returns())
+		foreach(SymbolVertex* ret, call->returns())
 			causalFuture(future, ret);
 	}
 	
 	// Find closures depending on symbol
-	foreach(closure, _program->closures())
+	foreach(ClosureNode* closure, _program->closures())
 	{
 		bool depends = false;
-		foreach(ret, closure->returns())
+		foreach(SymbolVertex* ret, closure->returns())
 			if(depends |= ret == symbol) break;
 		if(!depends) continue;
 		
 		causalFuture(future, closure->function());
-		foreach(arg, closure->arguments())
+		foreach(SymbolVertex* arg, closure->arguments())
 			causalFuture(future, arg);
 	}
 }
@@ -89,12 +89,12 @@ set<const SymbolVertex*> Validator::internals(const ClosureNode* closure)
 {
 	set<const SymbolVertex*> future;
 	future.insert(closure->function());
-	foreach(arg, closure->arguments())
+	foreach(SymbolVertex* arg, closure->arguments())
 		causalFuture(future, arg);
 	
 	set<const SymbolVertex*> past;
 	past.insert(closure->function());
-	foreach(ret, closure->returns())
+	foreach(SymbolVertex* ret, closure->returns())
 		causalPast(past, ret);
 	
 	return intersection(future, past);
@@ -107,7 +107,7 @@ set<const SymbolVertex*> Validator::externals(const ClosureNode* closure)
 	// Union(causalPast(ret)) - internals ?
 	
 	set<const SymbolVertex*> past;
-	foreach(ret, closure->returns())
+	foreach(SymbolVertex* ret, closure->returns())
 		insertUnion(past, _causalPast[ret]);
 	
 	set<const SymbolVertex*> internal = internals(closure);
@@ -135,9 +135,9 @@ bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const Symb
 			// In scope if the function body is, except for arguments
 			functionScope = outerScope;
 			functionScope.insert(symbol);
-			foreach(arg, symbol->closureNode()->arguments())
+			foreach(SymbolVertex* arg, symbol->closureNode()->arguments())
 				functionScope.insert(arg);
-			foreach(ret, symbol->closureNode()->returns())
+			foreach(SymbolVertex* ret, symbol->closureNode()->returns())
 				if(!isInScope(functionScope, ret))
 					return false;
 			return true;
@@ -145,7 +145,7 @@ bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const Symb
 			// In scope if function and all the arguments are
 			if(!isInScope(outerScope, symbol->callNode()->function()))
 				return false;
-			foreach(arg, symbol->callNode()->arguments())
+			foreach(SymbolVertex* arg, symbol->callNode()->arguments())
 				if(!isInScope(outerScope, arg))
 					return false;
 			return true;
@@ -158,7 +158,7 @@ bool Validator::validate()
 	set<const SymbolVertex*> imports;
 	set<const SymbolVertex*> exports;
 	set<const SymbolVertex*> internal;
-	foreach(symbol, _program->symbols())
+	foreach(SymbolVertex* symbol, _program->symbols())
 	{
 		if(symbol->definitionType() == DefinitionType::Undefined)
 			imports.insert(symbol);
@@ -172,11 +172,11 @@ bool Validator::validate()
 	wcerr << "Internal: " << internal << endl;
 	
 	// Find all internals of all closures
-	foreach(closure, _program->closures())
+	foreach(ClosureNode* closure, _program->closures())
 	{
 		set<const SymbolVertex*> finternals, fexclusive;
 		fexclusive = finternals = internals(closure);
-		foreach(symbol, finternals)
+		foreach(const SymbolVertex* symbol, finternals)
 			if(symbol != closure->function() && symbol->definitionType() == DefinitionType::Function)
 			{
 				fexclusive = setMinus(fexclusive, internals(symbol->closureNode()));

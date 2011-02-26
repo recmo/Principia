@@ -57,7 +57,7 @@ void Parser::parseLine(const string& line)
 
 SymbolVertex* Parser::symbolFromIdentifier(const string& identifier, bool autoCreate)
 {
-	foreach(symbol, _program->symbols())
+	foreach(SymbolVertex* symbol, _program->symbols())
 		if(symbol->identifier() == identifier)
 			return symbol;
 	if(autoCreate) {

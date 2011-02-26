@@ -9,7 +9,7 @@ Interpreter::Interpreter(const IntRep* program)
 : _program(program)
 {
 	// Link all undefined symbols
-	foreach(symbol, _program->symbols())
+	foreach(SymbolVertex* symbol, _program->symbols())
 	{
 		sint64 integer = 0;
 		double real = 0.0;
@@ -37,16 +37,19 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 	if(contains<const SymbolVertex*,Value>(_context, symbol))
 		return _context[symbol];
 	
+	// wcerr << "Evaluating " << symbol << endl;
+	
 	// Evaluate depending on how
 	switch(symbol->definitionType())
 	{
 		case DefinitionType::Return: {
 			vector<Value> args;
-			foreach(arg, symbol->callNode()->arguments())
+			foreach(SymbolVertex* arg, symbol->callNode()->arguments())
 				args.push_back(evaluateSymbol(arg));
 			vector<Value> rets = evaluateFunction(symbol->callNode()->function(), args);
-			foreach(ret, symbol->callNode()->returns())
-				_context[ret] = rets[ret_index];
+			int ret_index = 0;
+			foreach(SymbolVertex* ret, symbol->callNode()->returns())
+				_context[ret] = rets[ret_index++];
 			return _context[symbol];
 		}
 		case DefinitionType::Function:
@@ -54,7 +57,7 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 		case DefinitionType::Argument:
 		case DefinitionType::Undefined:
 		default:
-			wcerr << symbol->identifier() << endl;
+			wcerr << "When evaluating " << symbol->identifier() << endl;
 			throw std::runtime_error("Could not evaluate symbol.");
 	}
 }
@@ -62,29 +65,35 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 vector<Value> Interpreter::evaluateFunction(const SymbolVertex* functionSymbol, const std::vector< Value >& arguments)
 {
 	Value function = evaluateSymbol(functionSymbol);
+	// wcerr << "Calling " << function << endl;
 	if(function.kind == Value::Function)
 		return evaluateClosureCall(function.function(), arguments);
 	else if(function.kind == Value::Builtin)
 		return function.builtin()(arguments);
 	else
+	{
+		wcerr << "When calling " << functionSymbol << endl;
 		throw "Could not evaluate call";
+	}
 }
 
 vector<Value> Interpreter::evaluateClosureCall(const Closure* closure, const vector<Value>& arguments)
 {
+	// wcerr << "Executing closure " << closure->closure()->function() << endl;
 	// Create an execution context
 	map<const SymbolVertex*, Value> old_context = _context;
 	_context = closure->context();
 	
 	// Add the arguments
 	assert(arguments.size() == closure->closure()->arguments().size());
-	foreach(arg, closure->closure()->arguments())
-		_context[arg] = arguments[arg_index];
+	int arg_index = 0;
+	foreach(SymbolVertex* arg, closure->closure()->arguments())
+		_context[arg] = arguments[arg_index++];
 	
 	// Evaluate the return values
 	/// TODO: randomize order
 	vector<Value> returns;
-	foreach(ret, closure->closure()->returns())
+	foreach(SymbolVertex* ret, closure->closure()->returns())
 		returns.push_back(evaluateSymbol(ret));
 	
 	_context = old_context;

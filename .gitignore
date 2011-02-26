@@ -1,3 +1,8 @@
 *.o
+*.d
 *~
-callgrind*
+callgrind.out.*
+proglang
+proglang.debug
+.kdev*
+

@@ -1,0 +1,11 @@
+fact' f n ↦ fn
+	base ↦ 1
+	recurse ↦ fn
+		p ≔ sub n 1
+		fp ≔ f f p
+		fn ≔ mul fp n
+	case ≔ if n recurse base
+	r ≔ case
+
+fact n ↦ fans
+	fans ≔ fact' fact' n

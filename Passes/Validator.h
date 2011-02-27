@@ -2,6 +2,20 @@
 #include "fixups.h"
 #include <IR/IntRep.h>
 
+class ClosureScope
+{
+public:
+	ClosureScope();
+	~ClosureScope();
+	
+private:
+	vector<const SymbolVertex*> _locals; 
+	vector<const SymbolVertex*> _internals; 
+	vector<const SymbolVertex*> _externals;
+	vector<const ClosureScope*> _nested;
+	// http://en.wikipedia.org/wiki/Sethi–Ullman_algorithm
+};
+
 ///@brief Verifies the correctness of the IR
 class Validator
 {
@@ -16,7 +30,6 @@ public:
 	void causalFuture(std::set<const SymbolVertex*>& future, const SymbolVertex* symbol);
 	set<const SymbolVertex*> internals(const ClosureNode* closure);
 	set<const SymbolVertex*> externals(const ClosureNode* closure);
-	
 	
 	set<const SymbolVertex*> imports();
 	set<const SymbolVertex*> exports();

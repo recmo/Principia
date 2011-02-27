@@ -1,11 +1,12 @@
-fact' f n ↦ fn
-	base ↦ 1
-	recurse ↦ fn
-		p ≔ sub n 1
+fact' f n ↦ r
+	base bn ↦ 1
+	recurse rn ↦ fn
+		p ≔ sub rn 1
 		fp ≔ f f p
-		fn ≔ mul fp n
+		fn ≔ mul fp rn
 	case ≔ if n recurse base
-	r ≔ case
+	r ≔ case n
 
-fact n ↦ fans
-	fans ≔ fact' fact' n
+fact qn ↦ fans
+	fans ≔ fact' fact' qn
+

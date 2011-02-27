@@ -5,6 +5,8 @@
 #include "Closure.h"
 #include "Builtins.h"
 
+static const bool verbose = false;
+
 Interpreter::Interpreter(const IntRep* program)
 : _program(program)
 {
@@ -33,11 +35,13 @@ Interpreter::~Interpreter()
 
 Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 {
+	if(verbose) wcerr << "Retrieving " << symbol << endl;
+	
 	// Has it already been evaluated?
 	if(contains<const SymbolVertex*,Value>(_context, symbol))
 		return _context[symbol];
 	
-	// wcerr << "Evaluating " << symbol << endl;
+	if(verbose) wcerr << "Evaluating " << symbol << endl;
 	
 	// Evaluate depending on how
 	switch(symbol->definitionType())
@@ -49,11 +53,18 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 			vector<Value> rets = evaluateFunction(symbol->callNode()->function(), args);
 			int ret_index = 0;
 			foreach(SymbolVertex* ret, symbol->callNode()->returns())
+			{
+				if(verbose) wcerr << ret << " = " << rets[ret_index] << endl;
 				_context[ret] = rets[ret_index++];
+			}
 			return _context[symbol];
 		}
 		case DefinitionType::Function:
-			return _context[symbol] = evaluateClosure(symbol->closureNode());
+		{
+			Value v = evaluateClosure(symbol->closureNode());
+			if(verbose) wcerr << symbol << " = " << v << endl;
+			return _context[symbol] = v;
+		}
 		case DefinitionType::Argument:
 		case DefinitionType::Undefined:
 		default:
@@ -65,11 +76,19 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 vector<Value> Interpreter::evaluateFunction(const SymbolVertex* functionSymbol, const std::vector< Value >& arguments)
 {
 	Value function = evaluateSymbol(functionSymbol);
-	// wcerr << "Calling " << function << endl;
+	if(verbose) wcerr << "Calling " << functionSymbol->identifier();
+	if(verbose) wcerr << " = " << function;
+	if(verbose) wcerr << " " << arguments << endl;
 	if(function.kind == Value::Function)
+	{
+		if(verbose) wcerr << "... is a closure " <<  function.function()->closure()->function()->identifier() << endl;
 		return evaluateClosureCall(function.function(), arguments);
+	}
 	else if(function.kind == Value::Builtin)
+	{
+		if(verbose) wcerr << "... is a builtin" << endl;
 		return function.builtin()(arguments);
+	}
 	else
 	{
 		wcerr << "When calling " << functionSymbol << endl;
@@ -79,7 +98,6 @@ vector<Value> Interpreter::evaluateFunction(const SymbolVertex* functionSymbol, 
 
 vector<Value> Interpreter::evaluateClosureCall(const Closure* closure, const vector<Value>& arguments)
 {
-	// wcerr << "Executing closure " << closure->closure()->function() << endl;
 	// Create an execution context
 	map<const SymbolVertex*, Value> old_context = _context;
 	_context = closure->context();
@@ -88,13 +106,21 @@ vector<Value> Interpreter::evaluateClosureCall(const Closure* closure, const vec
 	assert(arguments.size() == closure->closure()->arguments().size());
 	int arg_index = 0;
 	foreach(SymbolVertex* arg, closure->closure()->arguments())
+	{
+		if(verbose) wcerr << "  " << arg << " = " << arguments[arg_index] << endl;
 		_context[arg] = arguments[arg_index++];
+	}
+	
+	if(verbose) wcerr << " executing context = " << _context << endl;
 	
 	// Evaluate the return values
 	/// TODO: randomize order
 	vector<Value> returns;
 	foreach(SymbolVertex* ret, closure->closure()->returns())
+	{
+		if(verbose) wcerr << " evaluating " << ret << endl;
 		returns.push_back(evaluateSymbol(ret));
+	}
 	
 	_context = old_context;
 	return returns;
@@ -105,5 +131,7 @@ Value Interpreter::evaluateClosure(const ClosureNode* closureNode)
 	/// TODO: Prune unused symbols
 	Closure* closure = new Closure(closureNode, _context);
 	closure->context()[closureNode->function()] = closure; // for recursive functions
+	if(verbose) wcerr << "Creating closure for " << closureNode->function()->identifier() << endl;
+	if(verbose) wcerr << " context = " << closure->context() << endl;
 	return closure;
 }

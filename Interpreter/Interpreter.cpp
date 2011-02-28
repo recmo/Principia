@@ -25,7 +25,10 @@ Interpreter::Interpreter(const IntRep* program)
 		else if(tryGet<string, BuiltinFunction>(builtins, symbol->identifier(), builtin))
 			_context[symbol] = builtin;
 		else
+		{
+			wcerr << symbol << endl;
 			throw "Could not find symbol";
+		}
 	}
 }
 

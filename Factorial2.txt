@@ -1,12 +1,18 @@
-fact' f n ↦ r
-	base bn ↦ 1
-	recurse rn ↦ fn
-		p ≔ sub rn 1
-		fp ≔ f f p
-		fn ≔ mul fp rn
-	case ≔ if n recurse base
-	r ≔ case n
-
-fact qn ↦ fans
-	fans ≔ fact' fact' qn
-
+f: ⊧ fact:
+	fact f:n ↦ f:k
+	i: ⊧ f:impl:
+		f:impl i:f i:n ↦ i:r
+		b: ⊧ i:base:
+			i:base b:n ↦ 1
+		b: ⊧
+		r: ⊧ i:recurse:
+			i:recurse r:n ↦ r:k
+			r:p ≔ sub r:n 1
+			r:fp ≔ i:f i:f r:p
+			r:k ≔ mul r:fp r:n
+		r: ⊧
+		i:case ≔ if i:n i:recurse i:base
+		i:r ≔ i:case i:n
+	i: ⊧
+	f:k ≔ f:impl f:impl f:n
+f: ⊧

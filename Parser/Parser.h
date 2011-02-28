@@ -15,5 +15,6 @@ public:
 private:
 	IntRep* _program;
 	SymbolVertex* symbolFromIdentifier(const string& identifier, bool autoCreate = true);
-	
+	string prefixDecode(const string& identifier);
+	map<string, string> prefixes;
 };

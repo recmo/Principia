@@ -50,18 +50,41 @@ void Parser::parseLine(const string& line)
 		return;
 	}
 	
+	// Parse <prefix> ⊧ <substitution>
+	auto prefix_sign = find(tokens.begin(), tokens.end(), L"⊧");
+	if(prefix_sign != tokens.end())
+	{
+		if(tokens.begin() + 1 != prefix_sign)
+			throw std::runtime_error("Prefix definition requires single prefix and substitution.");
+		if(tokens.size() == 2)
+			prefixes.erase(tokens[0]);
+		else
+			prefixes[tokens[0]] = prefixDecode(tokens[2]);
+		return;
+	}
+	
 	// Nothing matched!
 	wcerr << endl << line << endl; 
 	throw std::runtime_error("Error: Could not parse line.");
 }
 
+string Parser::prefixDecode(const string& identifier)
+{
+	typedef std::map<string, string> map_type;
+	foreach(map_type::value_type& pattern, prefixes)
+		if(startsWith(pattern.first, identifier))
+			return pattern.second + identifier.substr(pattern.first.size(), identifier.size());
+	return identifier;
+}
+
 SymbolVertex* Parser::symbolFromIdentifier(const string& identifier, bool autoCreate)
 {
+	string full_name = prefixDecode(identifier);
 	foreach(SymbolVertex* symbol, _program->symbols())
-		if(symbol->identifier() == identifier)
+		if(symbol->identifier() == full_name)
 			return symbol;
 	if(autoCreate) {
-		SymbolVertex *symbol = new SymbolVertex(identifier);
+		SymbolVertex *symbol = new SymbolVertex(full_name);
 		_program->symbols().push_back(symbol);
 		return symbol;
 	}

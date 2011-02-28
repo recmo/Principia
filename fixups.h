@@ -216,6 +216,14 @@ std::wstring toString(const T& value)
 	return ss.str();
 }
 
+inline bool startsWith(const string& a, const string& b)
+{
+	if(b.size() < a.size()) return false;
+	for(string::const_iterator i = a.begin(), j = b.begin(); i != a.end(); i++, j++)
+		if(*i != *j) return false;
+	return true;
+}
+
 sint32 Main(const std::vector<std::wstring>& args);
 sint32 main(sint32 argc, char* argv[]);
 bool assert_fail(const char* expression, const char* file, const int line, const char* function);

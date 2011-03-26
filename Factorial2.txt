@@ -1,18 +1,39 @@
+
+# Comment
+
+# id x ↦ x
+# impl f n ↦ (if n ( λ m . 1 ) ( λ m . ( m * ( f f ( m - 1 ) ) ) ) ) ( n )
+# fact n ↦ impl impl n
+
+# Inline function declaration:
+# λ id_a₁ id_a₂ … . exp_r₁ exp_r₂ …
+# Value of expression is the closure
+# List of returns terminates on end of line or )
+
+# Expressions resulting in functions applied to further expressions:
+# Implicit application: (func_expr)(a₁ a₂ …)
+# Explicit application: (func_expr)'(a₁ a₂ …)
+# Alternative: func_expr a₁ a₂ …
+# Alternative: func_expr ' a₁ a₂ …
+
+# How to handle multiple return values?
+#   (f a₁ a₂ … )₁
+# 
+
+# How to do some sort of identation based scope resolution?
+
 f: ⊧ fact:
-	fact f:n ↦ f:k
+fact f:n ↦ f:k
 	i: ⊧ f:impl:
-		f:impl i:f i:n ↦ i:r
+	f:impl i:f i:n ↦ i:r
 		b: ⊧ i:base:
-			i:base b:n ↦ 1
-		b: ⊧
+		i:base b:n ↦ 1
 		r: ⊧ i:recurse:
-			i:recurse r:n ↦ r:k
+		i:recurse r:n ↦ r:k
 			r:p ≔ sub r:n 1
 			r:fp ≔ i:f i:f r:p
 			r:k ≔ mul r:fp r:n
-		r: ⊧
 		i:case ≔ if i:n i:recurse i:base
 		i:r ≔ i:case i:n
-	i: ⊧
 	f:k ≔ f:impl f:impl f:n
-f: ⊧
+

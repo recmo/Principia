@@ -17,6 +17,7 @@ void Parser::parseLine(const string& line)
 {
 	vector<string> tokens = tokenize(line);
 	if(tokens.empty()) return;
+	if(tokens[0] == L"#") return;
 	
 	// Parse <outputs> "≔" <func> <inputs>
 	auto call_sign = find(tokens.begin(), tokens.end(), L"≔");

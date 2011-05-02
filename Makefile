@@ -7,8 +7,17 @@ parsers := $(shell find -wholename './src/*.qx')
 
 # Tools
 finddeps := g++ -Isrc -MM -MP
-compiler := g++ -std=c++0x -I. -Isrc -Ibuild/resources
-linker := g++ -std=c++0x
+
+compiler := g++ -pipe
+compiler := ${compiler} -std=c++0x -Wall -Wextra
+compiler := ${compiler} -fgraphite -flto
+compiler := ${compiler} -I. -Isrc -Ibuild/resources
+compiler := ${compiler} -march=native -O3 -g3
+compiler := ${compiler} -funsafe-loop-optimizations
+# compiler := ${compiler} -Wunsafe-loop-optimizations
+compiler := ${compiler} -ffast-math -freciprocal-math
+
+linker := ${compiler} -fwhole-program
 
 profiling_flags := -fprofile-dir=build/profile -fprofile-generate --coverage
 profiled_flags := -fprofile-dir=build/profile -fprofile-use
@@ -17,7 +26,17 @@ quex := ${QUEX_PATH}/quex-exe.py
 quex := ${quex} --file-extension-scheme pp
 quex := ${quex} --codec utf8 --buffer-limit 0xFF --path-termination 0xFE
 quex := ${quex} --token-prefix Token
+quex := ${quex} --no-mode-transition-check
+quex := ${quex} --template-compression 1.0
 compiler := ${compiler} -I${QUEX_PATH}
+compiler := ${compiler} -DQUEX_OPTION_COMPUTED_GOTOS
+compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
+compiler := ${compiler} -DQUEX_OPTION_TOKEN_STAMPING_WITH_LINE_AND_COLUMN
+compiler := ${compiler} -DQUEX_SETTING_BUFFER_SIZE=32768
+
+lemon := lemon
+compiler := ${compiler} -DNDEBUG
+
 
 profiling_objects := $(patsubst ./src/%.cpp, ./build/profiling/src/%.o, $(sources)) \
 	$(patsubst ./src/%.y, ./build/profiling/build/resources/%.y.o, $(lexers)) \
@@ -26,6 +45,8 @@ profiling_objects := $(patsubst ./src/%.cpp, ./build/profiling/src/%.o, $(source
 profiled_objects := $(patsubst ./src/%.cpp, ./build/profiled/src/%.o, $(sources)) \
 	$(patsubst ./src/%.y, ./build/profiled/build/resources/%.y.o, $(lexers)) \
 	$(patsubst ./src/%.qx, ./build/profiled/build/resources/%.qx.o, $(parsers))
+
+
 
 # Keep all intermediates
 .SECONDARY:
@@ -44,7 +65,7 @@ build/resources/%.d: src/%.cpp
 build/resources/%.y.h build/resources/%.y.cpp: src/%.y
 	@echo "Lemon " $*.y
 	@mkdir -p $(dir $@)
-	@lemon $<
+	@$(lemon) $<
 	@mv src/$*.h build/resources/$*.y.h
 	@mv src/$*.c build/resources/$*.y.cpp
 
@@ -65,8 +86,10 @@ build/profiling/%.o: %.cpp
 	@$(compiler) $(profiling_flags) -c $< -o $@
 
 build/profile/build/profiling/%.gcda:
+	@echo "Profile missing: " $@
+
 build/profiled/%.o: %.cpp build/profile/build/profiling/%.gcda
-	@echo "C++   " $*.cpp "  (profiled)"
+	@echo "C+++  " $*.cpp
 	@mkdir -p $(dir $@)
 	@mkdir -p $(dir build/profile/build/profiled/$*)
 	-@cp build/profile/build/profiling/$*.gcda build/profile/build/profiled/$*.gcda
@@ -83,14 +106,30 @@ build/profiled/$(program): $(profiled_objects)
 	@objcopy --only-keep-debug --compress-debug-sections $@ $@.dbg
 	@objcopy --strip-unneeded $@
 	@objcopy --add-gnu-debuglink=$@.dbg $@
-	@echo "Pack  " $@
-	@upx -q --ultra-brute --best $@ > /dev/null
+	@#echo "Pack  " $@
+	@#upx -q --ultra-brute --best $@ > /dev/null
 
 profiling: build/profiling/$(program)
 	cp $< $@
 
+profile: profiling
+	@echo Profiling...
+	./$< Ackermann.txt PRA 3 6
+	./$< Factorial.txt fact 23
+	./$< Factorial2.txt fact 23
+	./$< EvenOdd.txt odd? 4321
+
+benchmark: profiled
+	@echo Computing...
+	./$< Ackermann.txt PRA 3 6
+	./$< Factorial.txt fact 23
+	./$< Factorial2.txt fact 23
+	./$< EvenOdd.txt odd? 4321
+
 profiled: build/profiled/$(program)
 	cp $< $@
+
+all: profile profiled
 
 clean:
 	@rm -R build/*

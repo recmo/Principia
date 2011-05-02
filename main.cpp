@@ -6,6 +6,9 @@
 #include "Interpreter/Value.h"
 #include <fstream>
 #include "Passes/Validator.h"
+#include "IR/CallNode.h"
+#include "IR/ClosureNode.h"
+#include "Parser/simple.h"
 
 sint32 Main(const vector<string>& args)
 {
@@ -48,6 +51,9 @@ sint32 Main(const vector<string>& args)
 		throw std::runtime_error("Not enough arguments.");
 	}
 	
+	// IntRep* ir2 = new IntRep();
+	Parse(args[1]);
+	
 	// Open
 	std::wifstream input;
 	input.open(encodeLocal(args[1]), std::ios_base::in);
@@ -58,13 +64,14 @@ sint32 Main(const vector<string>& args)
 	wcerr << L"Parsing file…" << flush;
 	IntRep* ir = new IntRep();
 	Parser parser(ir);
-	while(input.good())
-	{
+	while(input.good()) {
 		string line;
 		std::getline<wchar>(input, line);
 		parser.parseLine(line);
 	}
 	wcerr << endl;
+	
+	// ir = ir2;
 	
 	// Validate IR
 	wcerr << L"Validating…" << flush;

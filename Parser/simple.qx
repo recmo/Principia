@@ -1,0 +1,37 @@
+// http://unicode.org/reports/tr31
+
+define {
+	Newline      [:\P{Bidi_Class=Paragraph_Separator}:]
+	Whitespace   [:difference(\P{White_Space}, \P{Bidi_Class=Paragraph_Separator}):]
+	Identifier   [:\P{XID_Start}:][:\P{XID_Continue}:]*
+	PatternSpace [:\P{Pattern_White_Space}:]
+	Syntax       [:\P{Pattern_Syntax}:]
+	Ignorable    [:\P{Default_Ignorable_Code_Point}:]
+	Number       [0-9]+
+	Comment      "#"
+	Assignment   "≔"
+	Closure      "↦"
+}
+
+token {
+	Identifier;
+	Assignment;
+	Closure;
+	EndOfStatement;
+	FAILURE;
+}
+
+mode Program {
+	{Whitespace}                      { }
+	{Comment}[:inverse({Newline}):]*  { }
+	{Newline}+       => TokenEndOfStatement;
+	{Assignment}     => TokenAssignment;
+	{Closure}        => TokenClosure;
+	{Identifier}     => TokenIdentifier(Lexeme);
+	{Number}         => TokenIdentifier(Lexeme);
+	{Syntax}         => TokenIdentifier(Lexeme);
+	on_failure       => TokenFAILURE(Lexeme);
+}
+
+
+

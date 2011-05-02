@@ -8,7 +8,6 @@
 #include "Passes/Validator.h"
 #include "IR/CallNode.h"
 #include "IR/ClosureNode.h"
-#include "Parser/simple.h"
 
 sint32 Main(const vector<string>& args)
 {
@@ -50,9 +49,6 @@ sint32 Main(const vector<string>& args)
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
 		throw std::runtime_error("Not enough arguments.");
 	}
-	
-	// IntRep* ir2 = new IntRep();
-	Parse(args[1]);
 	
 	// Open
 	std::wifstream input;

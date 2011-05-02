@@ -1,97 +1,96 @@
-program = principia
-sources := $(shell find -type f -name '*.cpp')
-lexers := $(shell find -type f -name '*.qx')
-parsers := $(shell find -type f -name '*.y')
+program := principia
 
-compiler = g++ -std=c++0x -Wall -Wextra -I. -pipe -O3 -g3 -fgraphite -flto ${flags}
-linker = ${compiler} -fwhole-program
+# Find all source files
+sources := $(shell find -wholename './src/*.cpp')
+lexers  := $(shell find -wholename './src/*.y')
+parsers := $(shell find -wholename './src/*.qx')
 
-quex := ${QUEX_PATH}/quex-exe.py
+# Tools
+finddeps := g++ -Isrc -MM -MP
+compiler := g++ -std=c++0x -I. -Isrc -Ibuild/resources
+linker := g++ -std=c++0x
 
-# Set the buffer to UTF-8, the symbols 0xFF and 0xFE are therefore disallowed in the buffer and can be used otherwise
+profiling_flags := -fprofile-dir=build/profile -fprofile-generate --coverage
+profiled_flags := -fprofile-dir=build/profile -fprofile-use
+
+quex := ${QUEX_PATH}/quex-exe.py 
+quex := ${quex} --file-extension-scheme pp
 quex := ${quex} --codec utf8 --buffer-limit 0xFF --path-termination 0xFE
-quex := ${quex} --no-mode-transition-check
-quex := ${quex} --template-compression 1.0
-# quex := ${quex} --path-compression
-# quex := ${quex} --path-compression-uniform
-quex := ${quex} --file-extension-scheme xx
 quex := ${quex} --token-prefix Token
+compiler := ${compiler} -I${QUEX_PATH}
 
-# Compiler flags for Queχ:
-flags := ${flags} -I${QUEX_PATH}
-flags := ${flags} -DQUEX_OPTION_COMPUTED_GOTOS
-flags := ${flags} -DQUEX_OPTION_ASSERTS_DISABLED 
-flags := ${flags} -DQUEX_OPTION_TOKEN_STAMPING_WITH_LINE_AND_COLUMN
-flags := ${flags} -DQUEX_SETTING_BUFFER_SIZE=32768
+profiling_objects := $(patsubst ./src/%.cpp, ./build/profiling/src/%.o, $(sources)) \
+	$(patsubst ./src/%.y, ./build/profiling/build/resources/%.y.o, $(lexers)) \
+	$(patsubst ./src/%.qx, ./build/profiling/build/resources/%.qx.o, $(parsers))
 
-# Compiler flags for Lemon:
-flags := ${flags} -DNDEBUG
+profiled_objects := $(patsubst ./src/%.cpp, ./build/profiled/src/%.o, $(sources)) \
+	$(patsubst ./src/%.y, ./build/profiled/build/resources/%.y.o, $(lexers)) \
+	$(patsubst ./src/%.qx, ./build/profiled/build/resources/%.qx.o, $(parsers))
 
-# Own Compiler flags
-# flags := ${flags} -fno-exceptions
-# flags := ${flags} -DDEBUG
-# flags := ${flags} -DRELEASE
-flags := ${flags} -fprofile-use
-flags := ${flags} -fprofile-use -fprofile-generate
-flags := ${flags} -funsafe-loop-optimizations -Wunsafe-loop-optimizations
-flags := ${flags} -ffast-math -freciprocal-math
-
-# TODO:
-# Subfolders:
-# - Source
-# - Tests
-# - Benchmarks
-# - Build/Resources (generated source files, .d files, stuff common to all builds)
-# - Build/Object.generate-profile (object files and executable for the profile generating build)
-# - Build/Profile (profiling data, to be used for all future builds)
-# - Build/Object (object files for the optimized build)
-# - Install/ ()
-
-
-
-all: $(program)
-
--include $(sources:.cpp=.d)
-
+# Keep all intermediates
 .SECONDARY:
 
-%.d: %.cpp
-	@echo "Deps  " $<
-	@$(compiler) -w -MM -MG -MP -MF $@ -MT "$*.o $@" $< 
+all:
 
-%.o: %.cxx
-	@echo "C++   " $<
-	@$(compiler) -c $< -o $@
+-include $(patsubst ./src/%.cpp, ./build/resources/%.d, $(sources))
 
-%.o: %.cpp
-	@echo "C++   " $<
-	@$(compiler) -c $< -o $@
+build/resources/%.d: src/%.cpp
+	@echo "Deps  " $*.cpp
+	@mkdir -p $(dir $@)
+	@$(finddeps) -MG -MF $@ -MT "build/profiling/src/$*.o build/profiled/src/$*.o  $@" $<
+	@sed "s_[^ ]*\.qx\.h_build/resources/\0_" -i $@
+	@sed "s_[^ ]*\.y\.h_build/resources/\0_" -i $@
 
-$(program): $(sources:.cpp=.o) $(lexers:.qx=_Lexer.o) $(parsers:.y=_Parser.o)
+build/resources/%.y.h build/resources/%.y.cpp: src/%.y
+	@echo "Lemon " $*.y
+	@mkdir -p $(dir $@)
+	@lemon $<
+	@mv src/$*.h build/resources/$*.y.h
+	@mv src/$*.c build/resources/$*.y.cpp
+
+build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx build/resources/%.y.h
+	@echo "Queχ  " $*.qx
+	@mkdir -p $(dir $@)
+	@$(quex) -i $< --analyzer-class $(basename $(notdir $<)) --foreign-token-id-file build/resources/$*.y.h
+	@cp $(notdir $*).hpp build/resources/$*.qx.h
+	@mv $(notdir $*).hpp build/resources/$*.hpp
+	@mv $(notdir $*)-token.hpp build/resources/$*-token.hpp
+	@mv $(notdir $*)-token_ids.hpp build/resources/$*-token_ids.hpp
+	@mv $(notdir $*)-configuration.hpp build/resources/$*-configuration.hpp
+	@mv $(notdir $*).cpp build/resources/$*.qx.cpp
+
+build/profiling/%.o: %.cpp
+	@echo "C++   " $*.cpp
+	@mkdir -p $(dir $@)
+	@$(compiler) $(profiling_flags) -c $< -o $@
+
+build/profile/build/profiling/%.gcda:
+build/profiled/%.o: %.cpp build/profile/build/profiling/%.gcda
+	@echo "C++   " $*.cpp "  (profiled)"
+	@mkdir -p $(dir $@)
+	@mkdir -p $(dir build/profile/build/profiled/$*)
+	-@cp build/profile/build/profiling/$*.gcda build/profile/build/profiled/$*.gcda
+	@$(compiler) $(profiled_flags) -c $< -o $@
+
+build/profiling/$(program): $(profiling_objects)
 	@echo "Link  " $@
-	@$(compiler) -fwhole-program $^ -o $@
+	@$(linker) $(profiling_flags) $^ -o $@
+
+build/profiled/$(program): $(profiled_objects)
+	@echo "Link  " $@
+	@$(linker) $(profiled_flags) $^ -o $@
 	@echo "Split " $@
 	@objcopy --only-keep-debug --compress-debug-sections $@ $@.dbg
 	@objcopy --strip-unneeded $@
 	@objcopy --add-gnu-debuglink=$@.dbg $@
-	@#echo "Pack  " $@
-	@#upx -q --ultra-brute --best $@ > /dev/null
+	@echo "Pack  " $@
+	@upx -q --ultra-brute --best $@ > /dev/null
+
+profiling: build/profiling/$(program)
+	cp $< $@
+
+profiled: build/profiled/$(program)
+	cp $< $@
 
 clean:
-	@rm -f $(sources:.cpp=.d) $(sources:.cpp=.gcda) $(sources:.cpp=.o)
-	@rm -f $(lexers:.qx=_Lexer.cxx) $(lexers:.qx=_Lexer.o) $(lexers:.qx=_Lexer.hxx) $(lexers:.qx=_Lexer-token.hxx) $(lexers:.qx=_Lexer-token_ids.hxx)
-	@rm -f $(parsers:.y=_Parser.cxx) $(parsers:.y=_Parser.o) $(parsers:.y=_Parser.hxx)
-	@rm -f $(shell find -type f -name '*~')
-	@rm -f callgrind.out.*
-	@rm -f $(program) $(program).debug
-
-%_Parser.hxx %_Parser.cxx: %.y
-	@echo "Lemon " $<
-	@lemon $<
-	@mv $*.h $*_Parser.hxx
-	@mv $*.c $*_Parser.cxx
-
-%_Lexer.cxx %_Lexer.hxx %_Lexer-token.hxx %_Lexer-token_ids.hxx %_Lexer-configuration.hxx: %.qx %_Parser.hxx
-	@echo "Queχ  " $<
-	@cd $(dir $<); $(quex) -i $(notdir $<) --analyzer-class $(basename $(notdir $<))::Lexer --foreign-token-id-file $(notdir $*)_Parser.hxx
-
+	@rm -R build/*

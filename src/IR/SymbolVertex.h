@@ -31,6 +31,7 @@ public:
 	DefinitionType definitionType() const { return _definitionType; };
 	CallNode* callNode() const;
 	ClosureNode* closureNode() const;
+	SymbolVertex* function() const;
 	
 	SymbolVertex& setUndefined();
 	SymbolVertex& setReturnedBy(CallNode* value);

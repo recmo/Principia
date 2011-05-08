@@ -8,6 +8,52 @@
 #include "Passes/Validator.h"
 #include "IR/CallNode.h"
 #include "IR/ClosureNode.h"
+#include "Parser/simple.h"
+
+/*
+
+TODO: Scoping
+
+TODO: Number litterals
+
+TODO: In place syntax, dropping the first out symbol
+
+  (r₂ r₃ ≔ f a₁ a₂)
+  
+A simplification may be used when there is only one return symbol:
+  
+  (≔ f a₁ a₂)
+
+Similarly anonymous λ-functions:
+
+  (a₁ a₂ ↦ r₁ r₂)
+
+Now if the 'if' function looks at its first argument and returns
+either the second or third then this will create a lazy if:
+
+result ≔ (≔ if condition (↦ lazy_then) (↦ lazy_else))
+
+Beautiful!
+
+
+
+
+
+TODO: Allow syntax modifications in language:
+
+Lexer -> Preprocessor -> Parser
+Lexer: Chunk source into identifiers
+Preprocessor: resolve scoping and references
+Parser: 
+
+
+[parse rule:  #1 + #2 ↦ (. ≔ plus #1 #2) ]
+[parse rule:  if #1 then #2 else #3  ↦ ( . ≔  if(#1, λ(#2), λ(#3)() ) ]
+[parse rule:  /#1/ ↦ ( . ≔  regexp_parse("#3") ) ]
+etc…
+
+*/
+
 
 sint32 Main(const vector<string>& args)
 {
@@ -50,6 +96,8 @@ sint32 Main(const vector<string>& args)
 		throw std::runtime_error("Not enough arguments.");
 	}
 	
+	IntRep* ir2 = Parse(args[1]);
+	
 	// Open
 	std::wifstream input;
 	input.open(encodeLocal(args[1]), std::ios_base::in);
@@ -67,7 +115,7 @@ sint32 Main(const vector<string>& args)
 	}
 	wcerr << endl;
 	
-	// ir = ir2;
+	ir = ir2;
 	
 	// Validate IR
 	wcerr << L"Validating…" << flush;

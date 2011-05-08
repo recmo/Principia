@@ -26,7 +26,7 @@ Interpreter::Interpreter(const IntRep* program)
 			_context[symbol] = builtin;
 		else
 		{
-			wcerr << symbol << endl;
+			wcerr << endl << "Could not find "<< symbol << endl;
 			throw "Could not find symbol";
 		}
 	}

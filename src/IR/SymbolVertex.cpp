@@ -1,4 +1,6 @@
 #include "SymbolVertex.h"
+#include "ClosureNode.h"
+#include "CallNode.h"
 
 string DefinitionType::toString() const
 {
@@ -32,6 +34,17 @@ ClosureNode* SymbolVertex::closureNode() const
 	assert(definitionType() == DefinitionType::Function
 		|| definitionType() == DefinitionType::Argument);
 	return _closureNode;
+}
+
+SymbolVertex* SymbolVertex::function() const
+{
+	switch(definitionType()) {
+		case DefinitionType::Argument: return _callNode->function();
+		case DefinitionType::Function: return _callNode->function();
+		case DefinitionType::Return: return _closureNode->function();
+		case DefinitionType::Undefined:
+		default:	assert(false);
+	}
 }
 
 SymbolVertex& SymbolVertex::setUndefined()

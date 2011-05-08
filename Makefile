@@ -19,15 +19,18 @@ compiler := ${compiler} -ffast-math -freciprocal-math
 
 linker := ${compiler} -fwhole-program
 
-profiling_flags := -fprofile-dir=build/profile -fprofile-generate --coverage
-profiled_flags := -fprofile-dir=build/profile -fprofile-use
+profiling_flags := -fprofile-generate --coverage
+profiled_flags := -fprofile-use
 
-quex := ${QUEX_PATH}/quex-exe.py 
+QUEX_PATH := /home/remco/src/quex/quex-0.58.3/
+
+quex := QUEX_PATH=${QUEX_PATH} ${QUEX_PATH}/quex-exe.py 
 quex := ${quex} --file-extension-scheme pp
 quex := ${quex} --codec utf8 --buffer-limit 0xFF --path-termination 0xFE
 quex := ${quex} --token-prefix Token
 quex := ${quex} --no-mode-transition-check
 quex := ${quex} --template-compression 1.0
+# quex := ${quex} --path-compression
 compiler := ${compiler} -I${QUEX_PATH}
 compiler := ${compiler} -DQUEX_OPTION_COMPUTED_GOTOS
 compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
@@ -65,11 +68,14 @@ build/resources/%.d: src/%.cpp
 build/resources/%.y.h build/resources/%.y.cpp: src/%.y
 	@echo "Lemon " $*.y
 	@mkdir -p $(dir $@)
-	@$(lemon) $<
-	@mv src/$*.h build/resources/$*.y.h
-	@mv src/$*.c build/resources/$*.y.cpp
+	@cp $< build/resources/$*.y
+	@$(lemon) build/resources/$*.y
+	@mv build/resources/$*.h build/resources/$*.y.h
+	@mv build/resources/$*.c build/resources/$*.y.cpp
 
-build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx build/resources/%.y.h
+# There is also an build/resources/%.y.h dependency
+# but this hardly changes and gets touched a lot
+build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
 	@echo "Queχ  " $*.qx
 	@mkdir -p $(dir $@)
 	@$(quex) -i $< --analyzer-class $(basename $(notdir $<)) --foreign-token-id-file build/resources/$*.y.h
@@ -85,14 +91,13 @@ build/profiling/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	@$(compiler) $(profiling_flags) -c $< -o $@
 
-build/profile/build/profiling/%.gcda:
+build/profiling/%.gcda:
 	@echo "Profile missing: " $@
 
-build/profiled/%.o: %.cpp build/profile/build/profiling/%.gcda
+build/profiled/%.o: %.cpp build/profiling/%.gcda
 	@echo "C+++  " $*.cpp
 	@mkdir -p $(dir $@)
-	@mkdir -p $(dir build/profile/build/profiled/$*)
-	-@cp build/profile/build/profiling/$*.gcda build/profile/build/profiled/$*.gcda
+	-@cp build/profiling/$*.gcda build/profiled/$*.gcda &> /dev/null
 	@$(compiler) $(profiled_flags) -c $< -o $@
 
 build/profiling/$(program): $(profiling_objects)
@@ -106,30 +111,33 @@ build/profiled/$(program): $(profiled_objects)
 	@objcopy --only-keep-debug --compress-debug-sections $@ $@.dbg
 	@objcopy --strip-unneeded $@
 	@objcopy --add-gnu-debuglink=$@.dbg $@
-	@#echo "Pack  " $@
-	@#upx -q --ultra-brute --best $@ > /dev/null
+	@echo "Pack  " $@
+	@upx -q --ultra-brute --best $@ > /dev/null
 
 profiling: build/profiling/$(program)
-	cp $< $@
+	@cp $< $@
 
 profile: profiling
 	@echo Profiling...
 	./$< Ackermann.txt PRA 3 6
 	./$< Factorial.txt fact 23
-	./$< Factorial2.txt fact 23
-	./$< EvenOdd.txt odd? 4321
+	./$< EvenOdd.txt odd 4321
 
 benchmark: profiled
 	@echo Computing...
 	./$< Ackermann.txt PRA 3 6
-	./$< Factorial.txt fact 23
-	./$< Factorial2.txt fact 23
-	./$< EvenOdd.txt odd? 4321
+	#./$< Factorial.txt fact 23
+	#./$< EvenOdd.txt odd 4321
+
+# TODO: make tests
+# TODO: Code coverage report for test
+# TODO: Profiling (oprofile ?) report for benchmark
+# TODO: make documentation
 
 profiled: build/profiled/$(program)
-	cp $< $@
+	@cp $< $@
 
-all: profile profiled
+all: profile
 
 clean:
 	@rm -R build/*

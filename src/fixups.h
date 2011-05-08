@@ -89,6 +89,15 @@ std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)
 }
 
 template<class T>
+bool eraseByValue(std::vector<T>& v, const T& value)
+{
+	auto it = std::find(v.begin(), v.end(), value);
+	if(it == v.end()) return false;
+	v.erase(it);
+	return true;
+}
+
+template<class T>
 bool contains(const std::vector<T>& v, const T& value)
 {
 	return std::find(v.begin(), v.end(), value) != v.end();

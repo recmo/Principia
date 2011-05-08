@@ -8,7 +8,7 @@
 #include "Passes/Validator.h"
 #include "IR/CallNode.h"
 #include "IR/ClosureNode.h"
-#include "Parser/simple.h"
+#include "Parser/Parser.h"
 
 /*
 
@@ -96,26 +96,17 @@ sint32 Main(const vector<string>& args)
 		throw std::runtime_error("Not enough arguments.");
 	}
 	
-	IntRep* ir2 = Parse(args[1]);
-	
-	// Open
-	std::wifstream input;
-	input.open(encodeLocal(args[1]), std::ios_base::in);
-	if(!input.good())
-		throw std::runtime_error("Could not open source file.");
-	
 	// Parse file
 	wcerr << L"Parsing file…" << flush;
-	IntRep* ir = new IntRep();
-	Parser parser(ir);
-	while(input.good()) {
-		string line;
-		std::getline<wchar>(input, line);
-		parser.parseLine(line);
-	}
+	Parser parser;
+	parser.parse(args[1]);
+	IntRep* ir = parser.ir();
 	wcerr << endl;
 	
-	ir = ir2;
+	wcerr << endl;
+	foreach(SymbolVertex* symbol, ir->symbols())
+		wcerr << L"Symbol " << symbol << L" " << symbol->definitionType().toString() << endl;
+	wcerr << endl;
 	
 	// Validate IR
 	wcerr << L"Validating…" << flush;

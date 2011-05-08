@@ -14,4 +14,7 @@ PRA m n ↦ r
 
 
 comment ↦ “This is a small comment.”
+num ↦ A123.3A21₁₆⁻⁶⁴
+num ↦ ABCDEF₁₆
+identifier ↦ 0A0 BCEF
 

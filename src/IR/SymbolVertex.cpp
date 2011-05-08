@@ -10,6 +10,7 @@ string DefinitionType::toString() const
 		case DefinitionType::Return: return L"Return";
 		case DefinitionType::Function: return L"Function";
 		case DefinitionType::Argument: return L"Argument";
+		case DefinitionType::Constant: return L"Constant";
 		default: return L"Illegal value";
 	}
 }
@@ -74,6 +75,12 @@ SymbolVertex& SymbolVertex::setArgumentOf(ClosureNode* value)
 	_definitionType = DefinitionType::Argument;
 	return *this;
 }
+
+SymbolVertex& SymbolVertex::setConstant()
+{
+	_definitionType = DefinitionType::Constant;
+}
+
 
 std::wostream& operator<<(std::wostream& out, const SymbolVertex* s)
 {

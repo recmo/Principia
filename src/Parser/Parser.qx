@@ -1,6 +1,8 @@
 // http://unicode.org/reports/tr31
 
 define {
+	
+	// Unicode
 	All          [:inverse([]):]
 	Newline      [:\P{Bidi_Class=Paragraph_Separator}:]
 	Whitespace   [:difference(\P{White_Space}, \P{Bidi_Class=Paragraph_Separator}):]
@@ -8,7 +10,18 @@ define {
 	PatternSpace [:\P{Pattern_White_Space}:]
 	Syntax       [:\P{Pattern_Syntax}:]
 	Ignorable    [:\P{Default_Ignorable_Code_Point}:]
-	Number       [0-9]+
+	
+	// Numbers
+	Digit        [0-9A-Z]
+	Decimal      [0123456789]
+	Subscript    [₀₁₂₃₄₅₆₇₈₉]
+	Superscript  [⁰¹²³⁴⁵⁶⁷⁸⁹]
+	SupSign      [⁻⁺]
+	Separator    \N{THIN SPACE}
+	RadixPoint   "."
+	SepDigit     [:union({Digit},{Separator}):]
+	Number       {Digit}{SepDigit}*({RadixPoint}{SepDigit}*)?({Subscript}+({SupSign}?{Superscript}+)?)?
+
 	Assignment   "≔"
 	Closure      "↦"
 	QuoteOpen    "“"
@@ -20,6 +33,7 @@ define {
 token {
 	Identifier;
 	Quotation;
+	Number;
 	Assignment;
 	Closure;
 	EndOfStatement;
@@ -36,7 +50,8 @@ body {
 
 start = Program;
 
-mode Program: <indentation: "\t" => space 1; {Newline} => newline;> {
+mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
+{
 	// Indentation tabs, newlines and other whitespace
 	on_indent        => TokenBlockBegin;
 	on_dedent        => TokenBlockEnd;
@@ -44,13 +59,13 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;> {
 	{Whitespace}     { }
 	
 	// Syntax
-	{QuoteOpen}      => GOSUB(Quotation);
 	{Assignment}     => TokenAssignment;
 	{Closure}        => TokenClosure;
-	{Identifier}     => TokenIdentifier(Lexeme);
-	{Number}         => TokenIdentifier(Lexeme);
 	{BracketOpen}    => TokenBracketOpen;
 	{BracketClose}   => TokenBracketClose;
+	{Identifier}     => TokenIdentifier(Lexeme);
+	{Number}         => TokenNumber(Lexeme);
+	{QuoteOpen}      => GOSUB(Quotation);
 	{Syntax}         => TokenIdentifier(Lexeme);
 	
 	// Error handling
@@ -60,7 +75,8 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;> {
 }
 
 // Read a quotation, which may be nested
-mode Quotation {
+mode Quotation
+{
 	// Accumulate a string
 	on_entry { self.quote_depth = 1; self_accumulator_clear(); }
 	on_exit { self_accumulator_flush(TokenQuotation); }

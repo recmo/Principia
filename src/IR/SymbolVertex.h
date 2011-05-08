@@ -15,7 +15,7 @@ public:
 	const static int Return = 1;
 	const static int Function = 2;
 	const static int Argument = 3;
-	// const static int Constant = 3;
+	const static int Constant = 4;
 	
 private:
 	int value;
@@ -37,6 +37,7 @@ public:
 	SymbolVertex& setReturnedBy(CallNode* value);
 	SymbolVertex& setFunctionOf(ClosureNode* value);
 	SymbolVertex& setArgumentOf(ClosureNode* value);
+	SymbolVertex& setConstant(/* Value* value */);
 	
 private:
 	string _identifier;

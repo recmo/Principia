@@ -10,30 +10,6 @@ static const bool verbose = false;
 Interpreter::Interpreter(const IntRep* program)
 : _program(program)
 {
-	// Link all undefined symbols
-	foreach(SymbolVertex* symbol, _program->symbols())
-	{
-		sint64 integer = 0;
-		double real = 0.0;
-		BuiltinFunction builtin = 0;
-		
-		if(symbol->definitionType() == DefinitionType::Constant)
-			if(parse<sint64>(symbol->identifier(), integer))
-				_context[symbol] = integer;
-		
-		if(symbol->definitionType() != DefinitionType::Undefined)
-			continue;
-		else if(parse<sint64>(symbol->identifier(), integer))
-			_context[symbol] = integer;
-		else if(parse<double>(symbol->identifier(), real))
-			_context[symbol] = real;
-		else if(tryGet<string, BuiltinFunction>(builtins, symbol->identifier(), builtin))
-			_context[symbol] = builtin;
-		else {
-			wcerr << endl << "Could not find "<< symbol << endl;
-			throw "Could not find symbol";
-		}
-	}
 }
 
 Interpreter::~Interpreter()
@@ -69,6 +45,12 @@ Value Interpreter::evaluateSymbol(const SymbolVertex* symbol)
 		case DefinitionType::Function:
 		{
 			Value v = evaluateClosure(symbol->closureNode());
+			if(verbose) wcerr << symbol << " = " << v << endl;
+			return _context[symbol] = v;
+		}
+		case DefinitionType::Constant:
+		{
+			Value v = *symbol->constant();
 			if(verbose) wcerr << symbol << " = " << v << endl;
 			return _context[symbol] = v;
 		}

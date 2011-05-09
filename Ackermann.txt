@@ -1,20 +1,8 @@
 PRA m n ↦ r
-	pm ≔ sub m 1
-	pn ≔ sub n 1
-	nn ≔ add n 1
-	PRA_m_pn ≔ PRA m pn
-	PRA_pm ≔ PRA pm 1
-	PRA_mn ≔ PRA pm PRA_m_pn
-	f_PRA_pm ↦ PRA_pm
-	f_PRA_mn ↦ PRA_mn
-	if_n ≔ if n f_PRA_mn f_PRA_pm
-	f_nn ↦ nn
-	if_m ≔ if m if_n f_nn
-	r ≔ if_m
-
+	case0 ↦ (≔ add n 1)
+	case1 ↦ (≔ PRA (≔ sub m 1) 1)
+	case2 ↦ (≔ PRA (≔ sub m 1) (≔ PRA m (≔ sub n 1)))
+	r ≔ (≔ if m (≔ if n case2 case1) case0)
 
 comment ↦ “This is a small comment.”
-num ↦ A123.3A21₁₆⁻⁶⁴
-num ↦ ABCDEF₁₆
-identifier ↦ 0A0 BCEF
 

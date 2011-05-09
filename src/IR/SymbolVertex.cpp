@@ -48,6 +48,12 @@ SymbolVertex* SymbolVertex::function() const
 	}
 }
 
+Value* SymbolVertex::constant() const
+{
+	assert(definitionType() == DefinitionType::Constant);
+	return _constant;
+}
+
 SymbolVertex& SymbolVertex::setUndefined()
 {
 	_callNode = 0;
@@ -76,11 +82,11 @@ SymbolVertex& SymbolVertex::setArgumentOf(ClosureNode* value)
 	return *this;
 }
 
-SymbolVertex& SymbolVertex::setConstant()
+SymbolVertex& SymbolVertex::setConstant(Value* constant)
 {
 	_definitionType = DefinitionType::Constant;
+	_constant = constant;
 }
-
 
 std::wostream& operator<<(std::wostream& out, const SymbolVertex* s)
 {

@@ -3,6 +3,7 @@
 
 class ClosureNode;
 class CallNode;
+class Value;
 
 class DefinitionType
 {
@@ -32,12 +33,13 @@ public:
 	CallNode* callNode() const;
 	ClosureNode* closureNode() const;
 	SymbolVertex* function() const;
+	Value* constant() const;
 	
 	SymbolVertex& setUndefined();
 	SymbolVertex& setReturnedBy(CallNode* value);
 	SymbolVertex& setFunctionOf(ClosureNode* value);
 	SymbolVertex& setArgumentOf(ClosureNode* value);
-	SymbolVertex& setConstant(/* Value* value */);
+	SymbolVertex& setConstant(Value* value);
 	
 private:
 	string _identifier;
@@ -46,6 +48,7 @@ private:
 	{
 		CallNode* _callNode;
 		ClosureNode* _closureNode;
+		Value* _constant;
 	};
 };
 

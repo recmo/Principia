@@ -16,7 +16,13 @@ Parser::Parser()
 : _ir(new IntRep)
 {
 	// Create a global scope
-	_scopeStack.push_back(scope());
+	scope global;
+	for(auto i = builtins.begin(); i != builtins.end(); ++i) {
+		SymbolVertex* symbol = new SymbolVertex((*i).first);
+		symbol->setConstant(new Value((*i).second));
+		global[(*i).first] = symbol;
+	}
+	_scopeStack.push_back(global);
 }
 
 Parser::Parser(IntRep* ir)
@@ -54,6 +60,8 @@ Parser& Parser::parse(const string& filename)
 		SymbolVertex *symbol = (*i).second;
 		if(symbol->definitionType() == DefinitionType::Undefined)
 		{
+			wcerr << symbol << endl;
+			throw "Unresolved!";
 			_ir->symbols().push_back(symbol);
 		}
 	}

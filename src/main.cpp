@@ -12,33 +12,6 @@
 
 /*
 
-TODO: Scoping
-
-TODO: Number litterals
-
-TODO: In place syntax, dropping the first out symbol
-
-  (r₂ r₃ ≔ f a₁ a₂)
-  
-A simplification may be used when there is only one return symbol:
-  
-  (≔ f a₁ a₂)
-
-Similarly anonymous λ-functions:
-
-  (a₁ a₂ ↦ r₁ r₂)
-
-Now if the 'if' function looks at its first argument and returns
-either the second or third then this will create a lazy if:
-
-result ≔ (≔ if condition (↦ lazy_then) (↦ lazy_else))
-
-Beautiful!
-
-
-
-
-
 TODO: Allow syntax modifications in language:
 
 Lexer -> Preprocessor -> Parser

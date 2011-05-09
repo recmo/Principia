@@ -6,6 +6,7 @@
 #include "IR/CallNode.h"
 #include "IR/ClosureNode.h"
 #include "Interpreter/Builtins.h"
+#include <cmath>
 
 void* GrammarAlloc(void *(*mallocProc)(size_t));
 void GrammarFree(void*, void (*freeProc)(void*));
@@ -140,19 +141,83 @@ SymbolVertex* Parser::resolveId(const string& id)
 
 SymbolVertex* Parser::parseNumber(const string& litteral)
 {
-	wcerr << L"Parse "  << litteral << endl;
+	string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	wchar_t separator = L'\u2009';
+	wchar_t radixPoint = L'.';
+	string baseDigits = L"₀₁₂₃₄₅₆₇₈₉";
+	string exponentDigits = L"⁰¹²³⁴⁵⁶⁷⁸⁹";
+	wchar_t exponentPositive = L'⁺';
+	wchar_t  exponentNegative = L'⁻';
+	uint64 mantissa;
+	int base;
+	int exponent;
+	
+	// Find a base if we got one
+	size_t baseStart = litteral.find_first_of(baseDigits);
+	if(baseStart != string::npos) {
+		// Read the base
+		size_t basePos = baseStart;
+		base = 0;
+		for(;;) {
+			size_t digit = baseDigits.find_first_of(litteral[basePos]);
+			if(digit == string::npos) break;
+			base *= 10;
+			base += digit;
+			basePos++;
+			if(basePos == litteral.size()) break;
+		}
+		if(basePos < litteral.size())
+		{
+			// Read the exponent sign if its there
+			int expSign = 1;
+			if(litteral[basePos] == exponentPositive) basePos++;
+			else if(litteral[basePos] == exponentNegative) {
+				expSign = -1;
+				basePos++;
+			}
+			
+			// Read the rest of the exponent
+			exponent = 0;
+			for(; basePos < litteral.size(); ++basePos)
+			{
+				size_t digit = exponentDigits.find_first_of(litteral[basePos]);
+				if(digit == string::npos) throw "Syntax error in number";
+				exponent *= 10;
+				exponent += digit;
+			}
+			exponent *= expSign;
+		} else
+			exponent = 0;
+	} else {
+		baseStart = litteral.size();
+		base = 10;
+		exponent = 0;
+	}
+	
+	// Find the rest of the digits
+	mantissa = 0;
+	for(size_t i = 0; i < baseStart; ++i) {
+		if(litteral[i] == radixPoint) {
+			exponent -= baseStart - i - 1;
+			continue;
+		}
+		size_t digit = digits.find_first_of(litteral[i]);
+		if(digit >= base) throw "Syntax error in number";
+		mantissa *= base;
+		mantissa += digit;
+	}
 	
 	SymbolVertex* symbol = new SymbolVertex(litteral);
-	symbol->setConstant();
+	if(exponent == 0) symbol->setConstant(new Value((sint64)mantissa));
+	else symbol->setConstant(new Value(mantissa * pow(base, exponent) ));
 	_ir->symbols().push_back(symbol);
 	return symbol;
 }
 
 SymbolVertex* Parser::stringLitteral(const string& litteral)
 {
-	wcerr << L"Litteral "  << litteral << endl;
 	SymbolVertex* symbol = new SymbolVertex(litteral);
-	symbol->setConstant();
+	symbol->setConstant(new Value(litteral));
 	_ir->symbols().push_back(symbol);
 	return symbol;
 }

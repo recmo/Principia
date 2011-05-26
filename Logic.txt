@@ -1,0 +1,113 @@
+
+Proof parameters
+----------------
+
+Functions take extra arguments and returns that are proof certificates: The extra arguments are hypothesis and the extra results are theorems.
+
+div n m h₁ h₂ h₃ ↦ q r t₁ t₂ t₃ t₄
+	doc h₁ “Proof of n ∊ ℕ”
+	doc h₂ “Proof of m ∊ ℕ”
+	doc h₃ “Proof of m ≠ 0”
+	doc t₁ “Proof of q ∊ ℕ”
+	doc t₂ “Proof of r ∊ ℕ”
+	doc t₃ “Proof of r < m”
+	doc t₄ “Proof of q × m + r = n”
+
+
+Note that h₃ is meaningless without h₂! There can be complex dependency relations between these h's.
+
+ℕ
+0
+a₁ ⊢ (≔ ∊ 0 ℕ)
+
+∊ a b ↦
+
+≠ a b h₁ h₂ ↦
+	doc h₁ “Proof of a ∊ ℕ”
+	doc h₂ “Proof of b ∊ ℕ”
+
+< a b h₁ h₂ ↦
+	doc h₁ “Proof of a ∊ ℕ”
+	doc h₂ “Proof of b ∊ ℕ”
+
+× a b h₁ h₂ ↦ c t₁
+	doc h₁ “Proof of a ∊ ℕ”
+	doc h₂ “Proof of b ∊ ℕ”
+	doc t₁ “Proof of c ∊ ℕ”
+
++ a b h₁ h₂ ↦ c t₁
+	doc h₁ “Proof of a ∊ ℕ”
+	doc h₂ “Proof of b ∊ ℕ”
+
+
+div n m h₁ h₂ h₃ ↦ q r t₁ t₂ t₃ t₄
+	h₁ ⊢ (≔ ∊ n ℕ)
+	h₂ ⊢ (≔ ∊ m ℕ)
+	h₃ ⊢ (≔ ≠ m 0 h₃ a₁)
+	t₁ ⊢ (≔ ∊ q ℕ)
+	t₂ ⊢ (≔ ∊ r ℕ)
+	t₃ ⊢ (≔ < r m t₂ h₂)
+	t₄ ⊢ (≔ = (≔ + (≔ × q m) r) n)
+
+
+
+Proof of halting
+----------------
+
+⊢ f
+
+means “≔ f” halts
+
+
+
+⊢ f a₁ a₂
+
+meas “≔ f a₁ a₂” halts
+
+
+
+
+then boolean statements can be expressed as something like
+
+hang ↦ (≔ hang)
+halt ↦ halt
+assert b ↦ (≔ (≔ if b hang halt) )
+
+⊢ halt
+⊬ hang
+
+⊢ assert ⊤
+⊢ assert ¬⊥
+
+⊢ assert a ∨ ⊤
+⊢ assert ¬ ( a ∧ ⊥ )
+
+
+
+Consider the squaring function:
+
+sqr n ↦ (≔ mul n n)
+
+then we have
+
+“⊢ sqr x” iff “⊢ mul x x”
+
+
+
+Binary logical connectives:
+---------------------------
+
+          |
+         ≠↑ =
+pq ⊥⊽↚¬↛¬⊕⊼∧↔ → ←∨⊤
+⊥⊥ ⊥⊤⊥⊤⊥⊤⊥⊤⊥⊤⊥⊤⊥⊤⊥⊤
+⊥⊤ ⊥⊥⊤⊤⊥⊥⊤⊤⊥⊥⊤⊤⊥⊥⊤⊤
+⊤⊥ ⊥⊥⊥⊥⊤⊤⊤⊤⊥⊥⊥⊥⊤⊤⊤⊤
+⊤⊤ ⊥⊥⊥⊥⊥⊥⊥⊥⊤⊤⊤⊤⊤⊤⊤⊤
+
+
+  ⌜​Godel number⌝
+
+
+
+

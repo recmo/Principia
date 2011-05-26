@@ -9,8 +9,105 @@
 #include "IR/CallNode.h"
 #include "IR/ClosureNode.h"
 #include "Parser/Parser.h"
+#include "DFG/DataFlowGraph.h"
+#include "Parser/Identifier.h"
+#include "Passes/DotFileWriter.h"
+#include <cmath>
 
 /*
+
+TODO: Namespaces and other sugar.
+
+Namespaces = named scopes!
+
+f a b ↦ r
+	x …
+	y …
+
+then allows the global scope to access the constants:
+
+f.x
+f.y
+
+
+Simmilarly, one can define a namespace:
+
+f ↦
+	x …
+	y …
+
+
+TODO: Annotation mechanism, attach metadata to a symbol
+
+
+TODO: importing namespaces:
+
+import int Principia.Integers
+
+int.add a b
+
+
+TODO: process docstrings:
+
+ignore “uncommented piece of code”
+
+doc symbol “Documentation”
+
+
+TODO: Reflection
+
+a ≔ parse “some piece of source code”
+
+doc parse “Returns a closure representing the parsed source code, all unbound variables are arguments, all exported symbols are returns.”
+
+c ≔ link a b
+
+doc link “Go trough all arguments of the closure a and link them to variables in scope b. Unlinked symbols remain.”
+
+rets ≔ eval f args
+
+doc eval “Execute f with arguments args and return the results in rets.”
+
+
+
+
+
+
+TODO: Multiple implementations (algorithms) of the same function
+
+May not differ in the function specification. Must contain full proofs. May differ in runtime resource usage.
+
+The compiler is free to change between different implementations of a function as it sees fit (optimizing). The programmer can provide hints to direct this choice.
+
+Alternative: Functions have a unique implementation, but one can proof equivalences, which the compiler will then use.
+
+Suppose we have two functions, safediv and unsafediv, where the later is faster, but has the additional precondition that m ≠ 0. If the compiler can deduce statically or runtime that always m ≠ 0, then it may move to the unsafediv.
+
+TODO: Types‽ What do we mean we we say “pre n : integer”?
+That there exists functions +, -, ×, |·|, =, ≠, <, ≤, >, ≥, etc… doing the ‘expected’ thing.
+
+They can be implemented as unspecified propositions: IsInteger(n). Dependent types can be implemented as more complex variants: IsMatrix(A, ℂ, 2, 4) to state that A is a complex valued 2 × 4 matrix.
+
+
+TODO: Performance characteristics:
+
+slowdiv n m ↦ q r
+	complexity.time slowdiv log(n) + log(m) 
+	complexity.memory slowdiv 2 * m
+
+
+
+
+TODO: Compiler hints
+
+intdiv n m ↦ q r
+	hint intdiv hint.Inline
+	hint intdiv hint.Tailrecurse
+	force intdiv force.Inline
+
+
+TODO: Something like the Common Lisp Object System and "The Art of the Metaobject Protocol"
+
 
 TODO: Allow syntax modifications in language:
 
@@ -27,44 +124,11 @@ etc…
 
 */
 
-
 sint32 Main(const vector<string>& args)
 {
-	/// TODO: Simplify IR, make it HOAS + De Bruijn indices
-	/// Definition sites:
-	///  0) external (constant, builtin, etc…)
-	///  1) return values from calls
-	///  2) closure function
-	///  3) closure argument
-	/// Externaly store metadata such as identifiers
-	
-	/// TODO: Re-use contexts
-	/// TODO: Garbage management of closures
-	
-	/// TODO: Validate programs
-	///  Rule: Only cycles allowed are in ClosureDefinition from arguments or closure to returns
-	/// TODO: Identifier prefixes
-	/// TODO: Calculate minimal closures
-	/// TODO: Calculate minimal stacks
-	/// TODO: A call should never require memory allocation
-	/// TODO: Correct memory management in interpreter
-	/// TODO: Store minimal context in closures
-	/// TODO: Fixed stacks per closure
-	
-	/// TODO: String support
-	/// TODO: Standard library with I/O
-	/// TODO: Reflection
-	/// TODO: Dynamic syntax sugar system
-	/// TODO: Self-interpreter
-	/// TODO: Memory management in language
-	/// TODO: Inline hot closures and compile to machine code
-	
-	/// TODO: Expand expressions between ( ) as infix math using temps
-	
 	wcerr << L"Simple C++ interpreter for the language using ≔ and ↦." << endl;
 	wcerr << endl;
-	if(args.size() < 3)
-	{
+	if(args.size() < 3) {
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
 		throw std::runtime_error("Not enough arguments.");
 	}
@@ -73,50 +137,29 @@ sint32 Main(const vector<string>& args)
 	wcerr << L"Parsing file…" << flush;
 	Parser parser;
 	parser.parse(args[1]);
-	IntRep* ir = parser.ir();
+	DataFlowGraph* dfg = parser.dataFlowGraph();
 	wcerr << endl;
 	
-	wcerr << endl;
-	foreach(SymbolVertex* symbol, ir->symbols())
-		wcerr << L"Symbol " << symbol << L" " << symbol->definitionType().toString() << endl;
-	wcerr << endl;
+	// Print structure
+	DotFileWriter dfw(L"test.dot");
+	dfw.contractionMode(DotFileWriter::Calls);
+	dfw.write(*dfg);
+	// make && ./profiling Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
 	
-	// Validate IR
-	wcerr << L"Validating…" << flush;
-	wcerr << endl << endl;
-	Validator validator(ir);
+	// To validate
+	// - Take the DFG
+	// - Remove first out of closures
+	// - Contract Edges and Calls
+	// - Verify that the resulting graph is a tree
+	// - For each leaf:
+	//   - Take the strongly connected component containing the closure
+	//   - Verify that all cycles go through the closure
+	//   - Contract the strongly connected component to  
+	
+	// Validate
+	Validator validator(dfg);
 	validator.validate();
-	wcerr << endl;
+	validator.print();
 	
-	// Find function to call
-	SymbolVertex* functionSymbol = 0;
-	foreach(SymbolVertex* symbol, ir->symbols())
-		if(symbol->identifier() == args[2])
-			functionSymbol = symbol;
-	if(!functionSymbol)
-		throw std::runtime_error("Could not find specified function.");
-	
-	// Parse arguments
-	vector<Value> arguments;
-	for(unsigned int i = 3; i < args.size(); i++)
-	{
-		sint64 integer;
-		double real;
-		if(parse<sint64>(args[i], integer))
-			arguments.push_back(integer);
-		else if(parse<double>(args[i], real))
-			arguments.push_back(real);
-		else
-			throw "Could not parse argument";
-	}
-	
-	// Execute IR
-	wcerr << L"Executing…" << flush;
-	Interpreter interpreter(ir);
-	vector<Value> returns;
-	returns = interpreter.evaluateFunction(functionSymbol, arguments);
-	wcerr << endl;
-	
-	wcout << returns << endl;
 	return 0;
 }

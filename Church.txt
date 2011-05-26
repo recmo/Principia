@@ -1,0 +1,38 @@
+title ↦ “Church encoding”
+section ↦ “Church booleans”
+section ↦ “Church lists”
+section ↦ “Church numerals”
+
+c0 f ↦ (x ↦ x)
+c1 f ↦ (x ↦ (≔ f x))
+c2 f ↦ (x ↦ (≔ f (≔ f x)))
+
+succ n ↦ (≔ plus n c1)
+plus m n ↦ (f ↦ (x ↦ (≔ (≔ m f) (≔ (≔ n f) x))))
+mult m n ↦ (f ↦ (≔ m (≔ n f)) )
+exp m n ↦ (≔ n m)
+
+pred n ≔ (f↦(x↦ (≔(≔(≔ n (g↦(h↦(≔ h (≔ g f))))) (u ↦ x)) (v ↦ v)) ))
+
+comment ↦ “sub m n ↦ (≔ (≔ n pred) m)
+isZero n ↦ (≔(≔ n (x ↦ 0)) 1)”
+
+
+encode n ↦ (≔(≔ if n (↦ (≔ succ (≔ encode (≔ sub n 1)))) (↦ c0) ))
+decode n ↦ (≔ (≔ n (n ↦ (≔ add n 1))) 0)
+
+
+TODO ↦ “Factorial, Ackermann, Goodstein implementation”
+
+Y f ↦ Yr
+	Yr ≔ Yf Yf
+	Yf x ↦ (≔ f (≔ x x))
+
+fact f ↦ (n ↦ (≔ if (≔ isZero n) (1) (≔ mult n (≔ f (≔ pred n) )) ))
+
+fact ≔ Y fact
+
+
+
+r n ↦ (≔ decode (≔ pred (≔ encode n) ))
+

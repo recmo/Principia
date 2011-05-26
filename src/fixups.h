@@ -15,6 +15,7 @@
 #include<boost/foreach.hpp>
 
 /// @brief Assert implementation that throws exceptions
+#define DEBUG
 #ifdef DEBUG
 #define assert(expr) ((expr) ? true : assert_fail(__STRING(expr), __FILE__, __LINE__, __PRETTY_FUNCTION__));
 #else

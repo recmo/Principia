@@ -1,0 +1,31 @@
+title ↦ “Fibonnaci sequence by recursion”
+
+goal1 ↦ “
+Optimizer should transform this from exponential time to linear time and constant space.
+
+like this: http://webdocs.cs.ualberta.ca/~holte/T26/efficient-rec.html
+”
+
+Fib n ↦ r
+	rec ≔ add (≔ fib (≔ sub n 1)) (≔ fib (≔ sub n 2))
+	r ≔ (≔ if (≔ < n 2) (↦1) (↦rec))
+
+
+target ↦ “This is the desired tail recursive form:”
+
+Fib2 n u v ↦ (≔(≔ if (≔ = n 0) (↦u) (↦ Fib2 (≔ sub n 1) (≔ add u v) u )) 
+Fib1 n ↦ (≔ Fib2 n 1 0)
+
+
+
+	
+eval f args ↦ rets
+
+rets ≔ eval f (↦ a₁ a₂)
+
+rets ≔ (↦ r₁ r₂)
+	r₁ r₂ ≔ f a₁ a₂
+
+
+
+

@@ -2,7 +2,6 @@ program := principia
 
 # Find all source files
 sources := $(shell find -wholename './src/*.cpp')
-lexers  := $(shell find -wholename './src/*.y')
 parsers := $(shell find -wholename './src/*.qx')
 
 # Tools
@@ -37,18 +36,11 @@ compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
 compiler := ${compiler} -DQUEX_OPTION_TOKEN_STAMPING_WITH_LINE_AND_COLUMN
 compiler := ${compiler} -DQUEX_SETTING_BUFFER_SIZE=32768
 
-lemon := lemon
-compiler := ${compiler} -DNDEBUG
-
-
 profiling_objects := $(patsubst ./src/%.cpp, ./build/profiling/src/%.o, $(sources)) \
-	$(patsubst ./src/%.y, ./build/profiling/build/resources/%.y.o, $(lexers)) \
 	$(patsubst ./src/%.qx, ./build/profiling/build/resources/%.qx.o, $(parsers))
 
 profiled_objects := $(patsubst ./src/%.cpp, ./build/profiled/src/%.o, $(sources)) \
-	$(patsubst ./src/%.y, ./build/profiled/build/resources/%.y.o, $(lexers)) \
 	$(patsubst ./src/%.qx, ./build/profiled/build/resources/%.qx.o, $(parsers))
-
 
 
 # Keep all intermediates
@@ -63,22 +55,11 @@ build/resources/%.d: src/%.cpp
 	@mkdir -p $(dir $@)
 	@$(finddeps) -MG -MF $@ -MT "build/profiling/src/$*.o build/profiled/src/$*.o  $@" $<
 	@sed "s_[^ ]*\.qx\.h_build/resources/\0_" -i $@
-	@sed "s_[^ ]*\.y\.h_build/resources/\0_" -i $@
 
-build/resources/%.y.h build/resources/%.y.cpp: src/%.y
-	@echo "Lemon " $*.y
-	@mkdir -p $(dir $@)
-	@cp $< build/resources/$*.y
-	@$(lemon) build/resources/$*.y
-	@mv build/resources/$*.h build/resources/$*.y.h
-	@mv build/resources/$*.c build/resources/$*.y.cpp
-
-# There is also an build/resources/%.y.h dependency
-# but this hardly changes and gets touched a lot
 build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
 	@echo "Queχ  " $*.qx
 	@mkdir -p $(dir $@)
-	@$(quex) -i $< --analyzer-class $(basename $(notdir $<)) --foreign-token-id-file build/resources/$*.y.h
+	@$(quex) -i $< --analyzer-class $(basename $(notdir $<))
 	@cp $(notdir $*).hpp build/resources/$*.qx.h
 	@mv $(notdir $*).hpp build/resources/$*.hpp
 	@mv $(notdir $*)-token.hpp build/resources/$*-token.hpp
@@ -126,8 +107,8 @@ profile: profiling
 benchmark: profiled
 	@echo Computing...
 	./$< Ackermann.txt PRA 3 6
-	#./$< Factorial.txt fact 23
-	#./$< EvenOdd.txt odd 4321
+	/$< Factorial.txt fact 23
+	/$< EvenOdd.txt odd 4321
 
 # TODO: make tests
 # TODO: Code coverage report for test
@@ -137,7 +118,7 @@ benchmark: profiled
 profiled: build/profiled/$(program)
 	@cp $< $@
 
-all: profile
+all: profiling
 
 clean:
 	@rm -R build/*

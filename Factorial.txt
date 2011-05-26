@@ -1,8 +1,9 @@
+
 fact n ↦ r
-	base dummy ↦ 1
-	recurse rn ↦ fn
-		p ≔ sub rn 1
-		fp ≔ fact p
-		fn ≔ mul fp n
-	case ≔ if n recurse base
-	r ≔ case n
+	if_zero d ↦ 1
+	otherwise d ↦ or
+		or ≔ mul n (≔ fact (≔ sub n 1))
+	fr ≔ if n otherwise if_zero
+	r ≔ fr n
+
+

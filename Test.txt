@@ -1,0 +1,42 @@
+PRA m n ↦ r
+	case0 ↦ (≔ add n 1)
+	case1 ↦ (≔ PRA (≔ sub m 1) 1)
+	case2 ↦ (≔ PRA (≔ sub m 1) (≔ PRA m (≔ sub n 1)))
+	r ≔ (≔ if m (≔ if n case2 case1) case0)
+
+PRA_ m_ n_ ↦ r_
+	case0_ m_0 n_0 ↦ (≔ add n_0 1)
+	case1_ m_1 n_1 ↦ (≔ PRA_ (≔ sub m_1 1) 1)
+	case2_ m_2 n_2 ↦ (≔ PRA_ (≔ sub m_2 1) (≔ PRA_ m_2 (≔ sub n_2 1)))
+	r_ ≔ (≔ if m_ (≔ if n_ case2_ case1_) case0_)
+
+even en ↦ evenen
+	true ↦ 1
+	ask_odd ↦ oddpen
+		pen ≔ sub en 1
+		oddpen ≔ odd pen
+	evenenf ≔ if en ask_odd true
+	evenen ≔ evenenf
+
+odd on ↦ oddon
+	false ↦ 0
+	ask_even ↦ evenpon
+		pon ≔ sub on 1
+		evenpon ≔ even pon
+	oddonf ≔ if on ask_even false
+	oddon ≔ oddonf
+
+
+illegal2 ≔ add  illegal1 illegal1 
+illegal1 ≔ add  illegal2 illegal2
+
+f1 a1 ↦ b1
+	f2 b1 ↦ a1
+
+
+f3 a3 ↦ r3
+	r3 ≔ add a3 a4
+	
+f4 a4 ↦ r4
+	r4 ≔ add r3 r3
+

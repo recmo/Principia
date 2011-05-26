@@ -36,12 +36,13 @@ token {
 	Number;
 	Assignment;
 	Closure;
-	EndOfStatement;
+	StatementSeparator;
 	BlockBegin;
 	BlockEnd;
 	BracketOpen;
 	BracketClose;
-	FAILURE;
+	Failure;
+	EndOfStream;
 }
 
 body {
@@ -55,7 +56,7 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
 	// Indentation tabs, newlines and other whitespace
 	on_indent        => TokenBlockBegin;
 	on_dedent        => TokenBlockEnd;
-	on_nodent        => TokenEndOfStatement;
+	on_nodent        => TokenStatementSeparator;
 	{Whitespace}     { }
 	
 	// Syntax
@@ -66,20 +67,27 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
 	{Identifier}     => TokenIdentifier(Lexeme);
 	{Number}         => TokenNumber(Lexeme);
 	{QuoteOpen}      => GOSUB(Quotation);
+	{QuoteClose}     => TokenFailure(Lexeme);
 	{Syntax}         => TokenIdentifier(Lexeme);
 	
 	// Error handling
-	on_indentation_error => TokenFAILURE(Lexeme);
-	on_indentation_bad   => TokenFAILURE(Lexeme);
-	on_failure           => TokenFAILURE(Lexeme);
+	on_indentation_error => TokenFailure(Lexeme);
+	on_indentation_bad   => TokenFailure(Lexeme);
+	on_failure           => TokenFailure(Lexeme);
+	on_end_of_stream     => TokenEndOfStream;
 }
 
 // Read a quotation, which may be nested
 mode Quotation
 {
 	// Accumulate a string
-	on_entry { self.quote_depth = 1; self_accumulator_clear(); }
-	on_exit { self_accumulator_flush(TokenQuotation); }
+	on_entry {
+		self.quote_depth = 1;
+		self_accumulator_clear();
+	}
+	on_exit {
+		self_accumulator_flush(TokenQuotation);
+	}
 	
 	// Keep track of nesting depth
 	{QuoteOpen} { ++self.quote_depth; self_accumulator_add(LexemeBegin, LexemeEnd);}
@@ -89,8 +97,10 @@ mode Quotation
 	}
 	
 	// Eat all other characters
-	[:inverse({QuoteOpen},{QuoteClose}):]+ { self_accumulator_add(LexemeBegin, LexemeEnd); }
+	[:inverse({QuoteOpen},{QuoteClose}):]+ {
+		self_accumulator_add(Lexeme, LexemeEnd);
+	}
 	
 	// Error handling
-	on_failure           => TokenFAILURE(Lexeme);
+	on_failure           => TokenFailure(Lexeme);
 }

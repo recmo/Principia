@@ -1,161 +1,186 @@
 #include "Parser/Parser.h"
 #include "Parser/Parser.qx.h"
-#include "Parser/Parser.y.h"
-#include "IR/IntRep.h"
-#include "IR/SymbolVertex.h"
-#include "IR/CallNode.h"
-#include "IR/ClosureNode.h"
-#include "Interpreter/Builtins.h"
-#include <cmath>
+#include "DFG/DataFlowGraph.h"
+#include "DFG/Node.h"
+#include "DFG/Edge.h"
+#include "Source.h"
+#include "Constant.h"
+#include "Identifier.h"
 
-void* GrammarAlloc(void *(*mallocProc)(size_t));
-void GrammarFree(void*, void (*freeProc)(void*));
-void Grammar(void*, int, quex::Token*, Parser* ir);
-
-Parser::Parser()
-: _ir(new IntRep)
+Parser::Expression::Expression()
+: type(Parser::undetermined)
+, in()
+, out()
 {
-	// Create a global scope
-	scope global;
-	for(auto i = builtins.begin(); i != builtins.end(); ++i) {
-		SymbolVertex* symbol = new SymbolVertex((*i).first);
-		symbol->setConstant(new Value((*i).second));
-		global[(*i).first] = symbol;
-	}
-	_scopeStack.push_back(global);
 }
 
-Parser::Parser(IntRep* ir)
-: _ir(ir)
+Parser::Parser()
+: _dfg(new DataFlowGraph)
+, _scopeStack()
+, _token(0)
+, _expressionStack(1)
 {
+	pushScope();
+}
+
+Parser::Parser(DataFlowGraph* dfg)
+: _dfg(dfg)
+, _scopeStack()
+, _token(0)
+, _expressionStack(1)
+{
+	assert(dfg != null);
+	pushScope();
 }
 
 Parser& Parser::parse(const string& filename)
 {
-	/// TODO: Scoping:
-	///   Maintain a stack of scopes (identifier → SymbolVertex pairs)
-	///     arg-symbol → look in whole stack, otherwise add to current scope as undefined
-	///     ret-symbol → look in currect scope, if undefined then define, otherwise override or create
-	/// TODO: Error handling
-	quex::Parser lexer(encodeLocal(filename));
-	quex::Token* token = 0;
-	
-	// Create a file level scope
-	_scopeStack.push_back(scope());
-	
-	void* parser = GrammarAlloc(malloc);
+	_filename = filename;
+	quex::Parser lexer(encodeLocal(_filename));
 	do {
-		lexer.receive(&token);
-		wcerr << "Passing token: " <<  decodeLocal(token->type_id_name());
-		if(token->type_id() == TokenIdentifier || token->type_id() == TokenQuotation || token->type_id() == TokenNumber)
-			wcerr << " " << token->pretty_wchar_text();
+		lexer.receive(&_token);
+		
+		// Debug print token
+		wcerr << filename << L" ";
+		wcerr << _token->line_number() << L":";
+		wcerr << _token->column_number() << L" ";
+		wcerr << decodeLocal(_token->type_id_name());
+		if(_token->type_id() == TokenIdentifier)
+			wcerr << L"\t"<<  _token->pretty_wchar_text();
 		wcerr << endl;
-		Grammar(parser, token->type_id(), token, this);
-	} while (token->type_id() != TokenTERMINATION);
-	GrammarFree(parser, free);
-	
-	// Add unresolved symbols...
-	scope& current = _scopeStack.back();
-	for(auto i = current.begin(); i != current.end(); ++i) {
-		SymbolVertex *symbol = (*i).second;
-		if(symbol->definitionType() == DefinitionType::Undefined)
-		{
-			wcerr << symbol << endl;
-			throw "Unresolved!";
-			_ir->symbols().push_back(symbol);
+		
+		// Dispatch on token type
+		switch(_token->type_id()) {
+			case TokenIdentifier: parseIdentifier(); break;
+			case TokenQuotation: parseQuotation(); break;
+			case TokenNumber: parseNumber(); break;
+			case TokenAssignment: parseCall(); break;
+			case TokenClosure: parseClosure(); break;
+			case TokenStatementSeparator: parseStatementSeparator(); break;
+			case TokenBlockBegin: parseBlockBegin(); break;
+			case TokenBlockEnd: parseBlockEnd(); break;
+			case TokenBracketOpen: parseBracketOpen(); break;
+			case TokenBracketClose: parseBracketClose(); break;
+			case TokenFailure: parseFailure(); break;
+			case TokenEndOfStream: break;
+			default:
+				wcerr << L"Unknown token id " <<  _token->type_id();
+				wcerr << L"(" << decodeUtf8(_token->type_id_name()) << L")" << endl;
+				throw L"Unknown token.";
 		}
-	}
-	
-	popScope();
-	
-	assert(_scopeStack.size() == 1);
+	} while (_token->type_id() != TokenEndOfStream);
 	
 	return *this;
 }
 
-void Parser::pushScope(ClosureNode* closure)
+string Parser::lexeme()
 {
-	wcerr << L"Push scope for " << closure->function() << endl;
-	_scopeStack.push_back(scope());
-	
-	// Add unresolved return values to current stack
-	foreach(SymbolVertex* symbol, closure->returns())
-		if(symbol->definitionType() == DefinitionType::Undefined) {
-			_scopeStack.back()[symbol->identifier()] = symbol;
-			wcerr << L"  including " << symbol << endl;
-		}
+	return decodeUtf8(reinterpret_cast<const char*>(_token->get_text().c_str()));
+}
+
+Source Parser::source(bool hasLexeme)
+{
+	int fromLine = _token->line_number();
+	int fromColumn = _token->column_number();
+	int toLine = fromLine;
+	int toColumn = fromColumn;
+	if(hasLexeme) toColumn += lexeme().size() - 1;
+	return Source(_filename, fromLine, fromColumn, toLine, toColumn);
+}
+
+void Parser::pushScope()
+{
+	Scope scope;
+	_scopeStack.push_back(scope);
 }
 
 void Parser::popScope()
 {
-	wcerr << L"Pop scope" << endl;
-	assert(_scopeStack.size() >= 2);
-	
-	// Add undefined symbols to upper scope
-	scope& current = _scopeStack.back();
-	scope& parent = *(_scopeStack.end() - 2);
-	for(auto i = current.begin(); i != current.end(); ++i) {
-		SymbolVertex *symbol = (*i).second;
-		if(symbol->definitionType() == DefinitionType::Undefined)
-		{
-			parent[symbol->identifier()] = symbol;
-			wcerr << L"  upping " << symbol << endl;
-		}
-	}
 	_scopeStack.pop_back();
 }
 
-SymbolVertex* Parser::declareAnonymous()
+void Parser::parseIdentifier()
 {
-	wcerr << L"Anonymous " << endl;
-	return new SymbolVertex(L"anon");
+	// Scoping rules different for call and closure:
+	// In a closure the out values may appear in the in expression:
+	// f a b c ↦ expr(f, a, b, c)
+	//
+	// In a call this is illegal:
+	// f a b c ≔ expr(f, a, b, c)
+	//
+	string id = lexeme();
+	bool isDefinition = true;
+	
+	Edge* edge = 0;
+	wcerr << "Searching for " << id << endl;
+	// Search scope
+	for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend() && edge == 0; ++scopei) {
+		Scope& scope = *scopei;
+		for(auto symboli = scope.begin(); symboli != scope.end() && edge == 0; ++symboli) {
+			wcerr << (*symboli).first  << endl;
+			if((*symboli).first == id) {
+				if(_expressionStack.back().type != undetermined || (*symboli).second->source() == 0)
+					edge = (*symboli).second;
+			}
+		}
+	}
+	wcerr << "Found : " << ((edge == 0) ? "No" : "Yes") << endl;
+	if(edge == 0) {
+		wcerr << "NEW Symbol " << id << endl;
+		// Declare new symbol
+		edge = new Edge();
+		edge->set(Identifier(id));
+		edge->set(source());
+		_scopeStack.back()[id] = edge;
+	}
+	if(_expressionStack.back().type == undetermined)
+		_expressionStack.back().out.push_back(edge);
+	else
+		_expressionStack.back().in.push_back(edge);
 }
 
-SymbolVertex* Parser::declareId(const string& id)
+void Parser::parseQuotation()
 {
-	wcerr << L"Declare "  << id << endl;
+	assert(_expressionStack.back().type != undetermined);
+	string contents = lexeme();
 	
-	// See if an unresolved symbol with this id exists
-	scope& current = _scopeStack.back();
-	for(auto i = current.begin(); i != current.end(); ++i) {
-		SymbolVertex *symbol = (*i).second;
-		if(symbol->definitionType() != DefinitionType::Undefined)
-			continue;
-		if(symbol->identifier() == id)
-			return symbol;
+	// Count line and column number
+	int num_lines = 0;
+	int toColumn = 1;
+	for(int i = 0; i != contents.size(); ++i) {
+		if(contents[i] == (L'\n')) {
+			++num_lines;
+			toColumn = 1;
+		} else {
+			++toColumn;
+		}
 	}
 	
-	// Create a new scoped symbol
-	SymbolVertex* symbol = new SymbolVertex(id);
-	current[id] = symbol;
-	return symbol;
+	/// TODO: Fix line and col number
+	int fromLine = _token->line_number();
+	int fromColumn = _token->column_number();
+	int toLine = fromLine;
+	fromLine -= num_lines;
+	Source location(_filename, fromLine, fromColumn, toLine, toColumn);
+	
+	Edge* constantEdge = new Edge;
+	constantEdge->set(location);
+	constantEdge->set(Constant(contents));
+	_expressionStack.back().in.push_back(constantEdge);
 }
 
-SymbolVertex* Parser::resolveId(const string& id)
+void Parser::parseNumber()
 {
-	wcerr << L"Resolve "  << id << endl;
+	assert(_expressionStack.back().type  != undetermined);
+	const string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	const wchar_t separator = L'\u2009';
+	const wchar_t radixPoint = L'.';
+	const string baseDigits = L"₀₁₂₃₄₅₆₇₈₉";
+	const string exponentDigits = L"⁰¹²³⁴⁵⁶⁷⁸⁹";
+	const wchar_t exponentPositive = L'⁺';
+	const wchar_t  exponentNegative = L'⁻';
 	
-	// See if a symbol with this id already exists
-	for(auto s = _scopeStack.rbegin(); s != _scopeStack.rend(); ++s)
-		for(auto i = (*s).begin(); i != (*s).end(); ++i)
-			if((*i).second->identifier() == id)
-				return (*i).second;
-	
-	// Add it to the current scope
-	SymbolVertex* symbol = new SymbolVertex(id);
-	_scopeStack.back()[id] = symbol;
-	return symbol;
-}
-
-SymbolVertex* Parser::parseNumber(const string& litteral)
-{
-	string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	wchar_t separator = L'\u2009';
-	wchar_t radixPoint = L'.';
-	string baseDigits = L"₀₁₂₃₄₅₆₇₈₉";
-	string exponentDigits = L"⁰¹²³⁴⁵⁶⁷⁸⁹";
-	wchar_t exponentPositive = L'⁺';
-	wchar_t  exponentNegative = L'⁻';
+	string litteral = _token->pretty_wchar_text();
 	uint64 mantissa;
 	int base;
 	int exponent;
@@ -204,8 +229,17 @@ SymbolVertex* Parser::parseNumber(const string& litteral)
 	
 	// Find the rest of the digits
 	mantissa = 0;
+	int separators = 0;
+	bool seenPoint = false;
 	for(size_t i = 0; i < baseStart; ++i) {
+		if(litteral[i] == separator) {
+			++separators;
+			continue;
+		}
 		if(litteral[i] == radixPoint) {
+			assert(!seenPoint);
+			seenPoint = true;
+			separators = 0;
 			exponent -= baseStart - i - 1;
 			continue;
 		}
@@ -214,73 +248,110 @@ SymbolVertex* Parser::parseNumber(const string& litteral)
 		mantissa *= base;
 		mantissa += digit;
 	}
+	if(seenPoint) exponent += separators;
 	
-	SymbolVertex* symbol = new SymbolVertex(litteral);
-	if(exponent == 0) symbol->setConstant(new Value((sint64)mantissa));
-	else symbol->setConstant(new Value(mantissa * pow(base, exponent) ));
-	_ir->symbols().push_back(symbol);
-	return symbol;
+	Edge* constantEdge = new Edge;
+	constantEdge->set(source());
+	constantEdge->set(Constant(mantissa * pow(base, exponent)));
+	_expressionStack.back().in.push_back(constantEdge);
 }
 
-SymbolVertex* Parser::stringLitteral(const string& litteral)
+void Parser::parseCall()
 {
-	SymbolVertex* symbol = new SymbolVertex(litteral);
-	symbol->setConstant(new Value(litteral));
-	_ir->symbols().push_back(symbol);
-	return symbol;
+	assert(_expressionStack.back().type == undetermined);
+	_expressionStack.back().type = call;
 }
 
-CallNode* Parser::createCall(SymbolVertex* function, const vector<SymbolVertex*>& rets, const vector<SymbolVertex*>& args)
+void Parser::parseClosure()
 {
-	wcerr << L"Call " << rets << function << args << endl;
-	
-	// Verify that outputs are undefined
-	foreach(SymbolVertex* ret, rets)
-		assert(ret->definitionType() == DefinitionType::Undefined);
-	
-	// Create the call
-	CallNode* call = new CallNode;
-	call->function(function);
-	foreach(SymbolVertex* arg, args)
-		call->arguments().push_back(arg);
-	foreach(SymbolVertex* ret, rets)
-		call->returns().push_back(ret);
-	
-	// Store in IR structure
-	_ir->calls().push_back(call);
-	foreach(SymbolVertex* ret, rets) {
-		_ir->symbols().push_back(ret);
-		ret->setReturnedBy(call);
+	assert(_expressionStack.back().type == undetermined);
+	_expressionStack.back().type = closure;
+}
+
+void Parser::parseBlockBegin()
+{
+	parseStatementSeparator();
+}
+
+void Parser::parseBlockEnd()
+{
+	parseStatementSeparator();
+}
+
+void Parser::parseStatementSeparator()
+{
+	finishNode();
+}
+
+void Parser::parseBracketOpen()
+{
+	Edge* edge = new Edge;
+	edge->set(source(false));
+	_expressionStack.push_back(Expression());
+	_expressionStack.back().out.push_back(edge);
+}
+
+void Parser::parseBracketClose()
+{
+	finishNode();
+	int i = _expressionStack.size() - 1;
+	assert(i >= 1);
+	Edge* group = _expressionStack.back().out[0];
+	Source start = group->get<Source>();
+	Source end = source(false);
+	Source source(_filename, start.fromLine(), start.fromColumn(), end.toLine(), end.toColumn());
+	group->set(source);
+	_expressionStack[i - 1].in.push_back(group);
+	_expressionStack.pop_back();
+}
+
+void Parser::parseFailure()
+{
+	Source s = source();
+	wcerr << endl << s << L": Syntax error." << endl;
+	s.printCaret(wcerr);
+	throw L"Syntax error.";
+}
+
+Edge* Parser::finishNode()
+{
+	assert(_expressionStack.back().type != undetermined);
+	NodeType type = (_expressionStack.back().type == call) ? NodeType::Call : NodeType::Closure;
+	Node* node = new Node(type,_expressionStack.back().in.size(), _expressionStack.back().out.size());
+	for(int i = 0; i != _expressionStack.back().out.size(); ++i)
+	{
+		Edge* from = _expressionStack.back().out[i];
+		Edge* to = node->out(i);
+		wcerr << from << L" ↦ " << to << endl;
+		
+		// Replace in stack
+		_expressionStack.back().out[i] = to;
+		
+		// Copy info
+		if(from->has<Identifier>() && !to->has<Identifier>())
+			to->set(from->get<Identifier>());
+		if(from->has<Source>() && !to->has<Source>())
+			to->set(from->get<Source>());
+		
+		// Replace in DFG
+		from->replaceWith(to);
+		
+		// Replace in scope as well
+		for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend(); ++scopei) {
+			Scope& scope = *scopei;
+			for(auto symboli = scope.begin(); symboli != scope.end(); ++symboli) {
+				if((*symboli).second == from) {
+					scope[(*symboli).first] = to;
+				}
+			}
+		}
 	}
-	
-	return call;
+	for(int i = 0; i != _expressionStack.back().in.size(); ++i)
+		node->connect(i, _expressionStack.back().in[i]);
+	_dfg->nodes().push_back(node);
+	_expressionStack.back().type = undetermined;
+	_expressionStack.back().out.clear();
+	_expressionStack.back().in.clear();
+	return (node->outArrity() > 0) ? node->out(0) : 0;
 }
 
-ClosureNode* Parser::createClosure(SymbolVertex* function, const vector<SymbolVertex*>& rets, const vector<SymbolVertex*>& args)
-{
-	wcerr << L"Close " << rets << function << args << endl;
-	
-	// Verify that outputs are undefined
-	assert(function->definitionType() == DefinitionType::Undefined)
-	foreach(SymbolVertex* arg, args)
-		assert(arg->definitionType() == DefinitionType::Undefined);
-	
-	// Create the closure
-	ClosureNode* closure = new ClosureNode;
-	closure->function(function);
-	foreach(SymbolVertex* arg, args)
-		closure->arguments().push_back(arg);
-	foreach(SymbolVertex* ret, rets)
-		closure->returns().push_back(ret);
-	
-	// Store in IR structure
-	_ir->closures().push_back(closure);
-	function->setFunctionOf(closure);
-	_ir->symbols().push_back(function);
-	foreach(SymbolVertex* arg, args) {
-		_ir->symbols().push_back(arg);
-		arg->setArgumentOf(closure);
-	}
-	
-	return closure;
-}

@@ -1,44 +1,30 @@
 #pragma once
 #include "fixups.h"
-#include <IR/IntRep.h>
+#include <DFG/DataFlowGraph.h>
 
-class ClosureScope
-{
-public:
-	ClosureScope();
-	~ClosureScope();
-	
-private:
-	vector<const SymbolVertex*> _locals; 
-	vector<const SymbolVertex*> _internals; 
-	vector<const SymbolVertex*> _externals;
-	vector<const ClosureScope*> _nested;
-	// http://en.wikipedia.org/wiki/Sethi–Ullman_algorithm
-};
-
-///@brief Verifies the correctness of the IR
+/// @brief Validates correctness of the dfg and adds analysis metadata
 class Validator
 {
 public:
-	Validator(const IntRep* program);
+	Validator(DataFlowGraph* program);
 	~Validator();
 	
-	void calculateInternalSymbols();
+	void validate();
 	
-	bool validate();
-	void causalPast(std::set<const SymbolVertex*>& past, const SymbolVertex* symbol);
-	void causalFuture(std::set<const SymbolVertex*>& future, const SymbolVertex* symbol);
-	set<const SymbolVertex*> internals(const ClosureNode* closure);
-	set<const SymbolVertex*> externals(const ClosureNode* closure);
+	int indexOf(Node* node);
 	
-	set<const SymbolVertex*> imports();
-	set<const SymbolVertex*> exports();
-	bool isInScope(const set<const SymbolVertex*>& outerScope, const SymbolVertex* symbol);
+	void print();
+	
+	void depthFirstSearch();
+	void visit(int i);
+	void visit(Node* node);
 	
 private:
-	const IntRep* _program;
-	map<const ClosureNode*, set<const SymbolVertex*> > _internal;
-	map<const ClosureNode*, set<const SymbolVertex*> > _external;
-	map<const SymbolVertex*, set<const SymbolVertex*> > _causalFuture;
-	map<const SymbolVertex*, set<const SymbolVertex*> > _causalPast;
+	DataFlowGraph* _program;
+	int _preorderCounter;
+	int _componentCounter;
+	vector<int> _preorder;
+	vector<int> _component;
+	vector<int> _unassigned;
+	vector<int> _undetermined;
 };

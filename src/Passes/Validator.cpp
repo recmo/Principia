@@ -1,190 +1,137 @@
 #include "Passes/Validator.h"
-#include "IR/SymbolVertex.h"
-#include "IR/ClosureNode.h"
-#include "IR/CallNode.h"
+#include <Parser/Identifier.h>
 
-bool insertSymbol(set<const SymbolVertex*>& symbolSet, const SymbolVertex* symbol)
-{
-	if(symbolSet.find(symbol) != symbolSet.end()) return false;
-	symbolSet.insert(symbol);
-	return true;
-}
-
-Validator::Validator(const IntRep* program)
+Validator::Validator(DataFlowGraph* program)
 : _program(program)
+, _preorderCounter(0)
+, _componentCounter(0)
+, _preorder(program->nodes().size())
+, _component(program->nodes().size())
 {
+	for(int i = 0; i < _program->nodes().size(); ++i) {
+		_preorder[i] = -1;
+		_component[i] = -1;
+	}
 }
 
 Validator::~Validator()
 {
 }
 
-/// Returns the set of symbols that this symbol depends on
-void Validator::causalPast(set<const SymbolVertex*>& past, const SymbolVertex* symbol)
+void Validator::validate()
 {
-	// Prevent infinite recursion
-	if(symbol->definitionType() == DefinitionType::Undefined) return;
-	if(!insertSymbol(past, symbol)) return;
-	
-	// Add all the nodes
-	switch(symbol->definitionType())
-	{
-		case DefinitionType::Undefined:
-			// Ignore the causes
-			break;
-		case DefinitionType::Argument:
-			// Arguments of a closure are a first cause
-			break;
-		case DefinitionType::Function:
-			// Defined by the closure, so by the closed over variables
-			// but lets also include internal nodes for now.
-			foreach(SymbolVertex* ret, symbol->closureNode()->returns())
-				causalPast(past, ret);
-			break;
-		case DefinitionType::Return:
-			// Defined by the call and the calls arguments
-			causalPast(past, symbol->callNode()->function());
-			foreach(SymbolVertex* arg, symbol->callNode()->arguments())
-				causalPast(past, arg);
-			break;
-	}
+	// http://en.wikipedia.org/wiki/Cheriyan–Mehlhorn/Gabow_algorithm
+	depthFirstSearch();
 }
 
-void Validator::causalFuture(set<const SymbolVertex*>& future, const SymbolVertex* symbol)
+int Validator::indexOf(Node* node)
 {
-	// Prevent infinite recursion
-	if(symbol->definitionType() == DefinitionType::Undefined) return;
-	if(!insertSymbol(future, symbol)) return;
-	
-	// Find calls depending on symbol
-	foreach(CallNode* call, _program->calls())
-	{
-		bool depends = call->function() == symbol;
-		foreach(SymbolVertex* arg, call->arguments())
-			if(depends |= arg == symbol)
-				break;
-		if(!depends) continue;
+	for(int i = 0; i < _program->nodes().size(); ++i)
+		if(_program->nodes()[i] == node)
+			return i;
+	assert(!"Found");
+}
+
+void Validator::depthFirstSearch()
+{
+	for(int i = 0; i < _program->nodes().size(); ++i)
+		if(_preorder[i] == -1)
+			visit(i);
 		
-		// This call directly depends on symbol, so all the returns are affected
-		foreach(SymbolVertex* ret, call->returns())
-			causalFuture(future, ret);
-	}
+	wcerr << "Left: " << _unassigned << endl;
+	wcerr << "Left: " << _undetermined << endl;
+}
+
+void Validator::visit(int i)
+{
+	wcerr << "Visit " << i << endl;
+	wcerr << _preorder << endl;
+	wcerr << _component << endl;
+	wcerr << _unassigned << endl;
+	wcerr << _undetermined << endl;
 	
-	// Find closures depending on symbol
-	foreach(ClosureNode* closure, _program->closures())
-	{
-		bool depends = false;
-		foreach(SymbolVertex* ret, closure->returns())
-			if(depends |= ret == symbol) break;
-		if(!depends) continue;
+	// Set the preorder number of v to C, and increment C.
+	_preorder[i] = _preorderCounter++;
+	
+	// Push v onto S and also onto P.
+	_unassigned.push_back(i);
+	_undetermined.push_back(i);
+	
+	// For each edge from v to a neighboring vertex w:
+	Node* node = _program->nodes()[i];
+	for(int j = 0; j < node->outArrity(); ++j) {
+		Edge* out = node->out(j);
 		
-		causalFuture(future, closure->function());
-		foreach(SymbolVertex* arg, closure->arguments())
-			causalFuture(future, arg);
-	}
-}
-
-/// Returns the minimal set of edges to evaluate for every function evaluation
-set<const SymbolVertex*> Validator::internals(const ClosureNode* closure)
-{
-	set<const SymbolVertex*> future;
-	future.insert(closure->function());
-	foreach(SymbolVertex* arg, closure->arguments())
-		causalFuture(future, arg);
-	
-	set<const SymbolVertex*> past;
-	past.insert(closure->function());
-	foreach(SymbolVertex* ret, closure->returns())
-		causalPast(past, ret);
-	
-	return intersection(future, past);
-}
-
-/// Return the set of edges that could be included in the body but do not have to.
-set<const SymbolVertex*> Validator::externals(const ClosureNode* closure)
-{
-	// Which set is this?
-	// Union(causalPast(ret)) - internals ?
-	
-	set<const SymbolVertex*> past;
-	foreach(SymbolVertex* ret, closure->returns())
-		insertUnion(past, _causalPast[ret]);
-	
-	set<const SymbolVertex*> internal = internals(closure);
-	
-	return setMinus(past, internal);
-}
-
-bool Validator::isInScope(const set<const SymbolVertex*>& outerScope, const SymbolVertex* symbol)
-{
-	if(contains<const SymbolVertex*>(outerScope, symbol))
-		return true;
-	
-	set<const SymbolVertex*> functionScope;
-	switch(symbol->definitionType())
-	{
-		case DefinitionType::Undefined:
-			// Externals are always global scope
-			return true;
-		case DefinitionType::Argument:
-			// Arguments are not in scope, unless specified
-			// in outerscope. (in which case we have already
-			// returned true)
-			return false;
-		case DefinitionType::Function:
-			// In scope if the function body is, except for arguments
-			functionScope = outerScope;
-			functionScope.insert(symbol);
-			foreach(SymbolVertex* arg, symbol->closureNode()->arguments())
-				functionScope.insert(arg);
-			foreach(SymbolVertex* ret, symbol->closureNode()->returns())
-				if(!isInScope(functionScope, ret))
-					return false;
-			return true;
-		case DefinitionType::Return:
-			// In scope if function and all the arguments are
-			if(!isInScope(outerScope, symbol->callNode()->function()))
-				return false;
-			foreach(SymbolVertex* arg, symbol->callNode()->arguments())
-				if(!isInScope(outerScope, arg))
-					return false;
-			return true;
-	}
-}
-
-bool Validator::validate()
-{
-	// Find all symbols that do not depend on any argument
-	set<const SymbolVertex*> imports;
-	set<const SymbolVertex*> exports;
-	set<const SymbolVertex*> internal;
-	foreach(SymbolVertex* symbol, _program->symbols())
-	{
-		if(symbol->definitionType() == DefinitionType::Undefined)
-			imports.insert(symbol);
-		else if(isInScope(exports, symbol))
-			exports.insert(symbol);
-		else 
-			internal.insert(symbol);
-	}
-	wcerr << "Imports: " << imports << endl;
-	wcerr << "Exports: " << exports << endl;
-	wcerr << "Internal: " << internal << endl;
-	
-	// Find all internals of all closures
-	foreach(ClosureNode* closure, _program->closures())
-	{
-		set<const SymbolVertex*> finternals, fexclusive;
-		fexclusive = finternals = internals(closure);
-		foreach(const SymbolVertex* symbol, finternals)
-			if(symbol != closure->function() && symbol->definitionType() == DefinitionType::Function)
-			{
-				fexclusive = setMinus(fexclusive, internals(symbol->closureNode()));
-				fexclusive.insert(symbol);
-			}
+		//if(node->type() == NodeType::Closure && j == 0)
+		//	continue;
+		
+		for(int k = 0; k < out->sinks().size(); ++k) {
+			Node* child = out->sinks()[k];
+			int child_index = indexOf(child);
 			
-		wcerr << closure->function() << ": " << fexclusive << endl;
+			// If the preorder number of w has not yet been assigned, recursively search w;
+			if(_preorder[child_index] == -1)
+				visit(child_index);
+			
+			// Otherwise, if w has not yet been assigned to a strongly connected component:
+			else if (_component[child_index] == -1) 
+				
+				// Repeatedly pop vertices from P until the top element of P has a preorder number less than or equal to the preorder number of w.
+				while(_preorder[_undetermined.back()] > _preorder[child_index])
+					_undetermined.pop_back();
+		}
 	}
 	
-	return true;
+	// If v is the top element of P:
+	if(_undetermined.back() == i) {
+		
+		// Pop vertices from S until v has been popped, and assign the popped vertices to a new component.
+		wcerr << _unassigned << endl;
+		_component[i] = ++_componentCounter;
+		while(_unassigned.back() != i) {
+			assert(_unassigned.size() > 0);
+			_component[_unassigned.back()] = _componentCounter;
+			_unassigned.pop_back();
+		}
+		_unassigned.pop_back();
+		
+		// Pop v from P.
+		_undetermined.pop_back();
+	}
+	
+	assert(_preorder[i] != -1);
 }
+
+void Validator::visit(Node* node)
+{
+	if(node->type() == NodeType::Call)
+		if(node->in(0)->has(PropertyType::Identifier))
+			wcerr << node->in(0)->get<Identifier>().value();
+		else
+			wcerr << node;
+	else if (node->type() == NodeType::Closure)
+		if(node->out(0)->has(PropertyType::Identifier))
+			wcerr << node->out(0)->get<Identifier>().value();
+		else
+			wcerr << node;
+}
+
+void Validator::print()
+{
+	for(int i = 0; i < _program->nodes().size(); ++i) {
+		visit(_program->nodes()[i]);
+		wcerr << "\t" << _preorder[i] << "\t" << _component[i] << endl;
+	}
+	for(int c = 1; c <= _componentCounter; ++c)
+	{
+		vector<Node> group;
+		for(int i = 0; i < _program->nodes().size(); ++i) {
+			if(_component[i] == c) {
+				visit(_program->nodes()[i]);
+				wcerr << " ";
+			}
+		}
+		wcerr << endl;
+	}
+}
+

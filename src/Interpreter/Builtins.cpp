@@ -1,5 +1,7 @@
 #include "fixups.h"
 #include "Builtins.h"
+#include "Closure.h"
+#include <IR/ClosureNode.h>
 
 BuiltinsStatic builtins;
 
@@ -100,6 +102,167 @@ vector<Value> builtin_divr(const vector<Value>& arg)
 	double result = arg[0].real() / arg[1].real();
 	ret.push_back(result);
 	return ret;
+}
+
+//
+// String processing
+//
+
+vector<Value> length(const vector<Value>& arg)
+{
+	assert(arg.size() == 1);
+	string s = arg[0].stringValue();
+	sint64 result = s.size();
+	vector<Value> ret;
+	ret.push_back(Value(result));
+	return ret;
+}
+
+vector<Value> concat(const vector<Value>& arg)
+{
+	// concat left right ↦ r
+	// r = left ∷ right
+	assert(arg.size() == 2);
+	string left = arg[0].stringValue();
+	string right = arg[1].stringValue();
+	string result = left + right;
+	vector<Value> ret;
+	ret.push_back(Value(result));
+	return ret;
+}
+
+vector<Value> substring(const vector<Value>& arg)
+{
+	// substring s start end ↦ r
+	// r = s[start…end]
+	assert(arg.size() == 3);
+	string s = arg[0].stringValue();
+	sint64 start = arg[1].integer();
+	sint64 end = arg[2].integer();
+	assert(start >= 0);
+	assert(start <= end);
+	assert(end < s.size());
+	string result = s.substr(start, end - start);
+	vector<Value> ret;
+	ret.push_back(Value(result));
+	return ret;
+}
+
+vector<Value> equals(const vector<Value>& arg)
+{
+	// equals a b ↦ r
+	// r = true if the strings are equal, false otherwise
+	assert(arg.size() == 2);
+	string left = arg[0].stringValue();
+	string right = arg[1].stringValue();
+	sint64 result = (left == right) ? 1 : 0;
+	vector<Value> ret;
+	ret.push_back(Value(result));
+	return ret;
+}
+
+//
+// Unicode functions
+//
+// These allow implementation of an ordering of strings
+// by reinterpretting them as arrays of codepoints
+// and sorting those arrays lexicographically
+
+vector<Value> codepoint(const vector<Value>& arg)
+{
+	// codepoint c ↦ r
+	// r = unicode codepoint of char c
+	assert(arg.size() == 1);
+	string c = arg[0].stringValue();
+	assert(c.size() == 1);
+	wchar_t ct = c[0];
+	sint64 cp = ct;
+	vector<Value> ret;
+	ret.push_back(Value(cp));
+	return ret;
+}
+
+vector<Value> character(const vector<Value>& arg)
+{
+	// character c ↦ r
+	// r = unicode codepoint of char c
+	assert(arg.size() == 1);
+	sint64 cp = arg[0].integer();
+	assert(cp >= 0);
+	assert(cp <= 0x10FFFF);
+	wchar_t ct = cp;
+	vector<Value> ret;
+	ret.push_back(string(1, cp));
+	return ret;
+}
+
+//
+//  I O   ¡¡ non pure !!
+//
+
+vector<Value> write(const vector<Value>& arg)
+{
+}
+
+vector<Value> read(const vector<Value>& arg)
+{
+}
+
+
+//
+// Reflection
+//
+
+vector<Value> nodeType(const vector<Value>& arg)
+{
+	// isNodeType closure ↦ node_type
+	// Distinguish between call and closure nodes
+}
+
+vector<Value> call(const vector<Value>& arg)
+{
+	// call num_inputs num_outputs ↦ closure
+}
+
+vector<Value> closure(const vector<Value>& arg)
+{
+	// closure num_inputs num_outputs ↦ closure
+}
+
+vector<Value> arity(const vector<Value>& arg)
+{
+	assert(arg.size() == 1);
+	Value closure = arg[0];
+	vector<Value> ret;
+	if(closure.kind == Value::Builtin) {
+		// TODO
+	} else {
+		sint64 num_inputs = closure.function()->closure()->arguments().size();
+		sint64 num_outputs = closure.function()->closure()->returns().size();
+		ret.push_back(Value(num_inputs));
+		ret.push_back(Value(num_outputs));
+	}
+	return ret;
+}
+
+vector<Value> input(const vector<Value>& arg)
+{
+	// input closure index ↦ closure
+}
+
+vector<Value> output(const vector<Value>& arg)
+{
+	// output closure index ↦ closure
+}
+
+vector<Value> strconcat(const vector<Value>& arg)
+{
+	// concat low_closure high_closure ↦ closure
+}
+
+vector<Value> compose(const vector<Value>& arg)
+{
+	// make_closure in_closure out_closure ↦ closure
 }
 
 BuiltinsStatic::BuiltinsStatic()

@@ -9,32 +9,39 @@ finddeps := g++ -Isrc -MM -MP
 
 compiler := g++ -pipe
 compiler := ${compiler} -std=c++0x -Wall -Wextra
-compiler := ${compiler} -fgraphite -flto
 compiler := ${compiler} -I. -Isrc -Ibuild/resources
-compiler := ${compiler} -march=native -O3 -g3
-compiler := ${compiler} -funsafe-loop-optimizations
+# compiler := ${compiler} -fgraphite -flto
+compiler := ${compiler} -march=native -O3
+# compiler := ${compiler} -funsafe-loop-optimizations
 # compiler := ${compiler} -Wunsafe-loop-optimizations
-compiler := ${compiler} -ffast-math -freciprocal-math
+# compiler := ${compiler} -ffast-math -freciprocal-math
 
-linker := ${compiler} -fwhole-program
+linker := ${compiler}
+# linker := -fwhole-program
 
+debug_flags := -ggdb
 profiling_flags := -fprofile-generate --coverage
 profiled_flags := -fprofile-use
 
-QUEX_PATH := /home/remco/src/quex/quex-0.58.3/
+# QUEX_PATH := /home/remco/src/quex/quex-0.58.3/
+# quex := QUEX_PATH=${QUEX_PATH} ${QUEX_PATH}/quex-exe.py 
 
-quex := QUEX_PATH=${QUEX_PATH} ${QUEX_PATH}/quex-exe.py 
+quex := quex
 quex := ${quex} --file-extension-scheme pp
 quex := ${quex} --codec utf8 --buffer-limit 0xFF --path-termination 0xFE
-quex := ${quex} --token-prefix Token
-quex := ${quex} --no-mode-transition-check
-quex := ${quex} --template-compression 1.0
+quex := ${quex} --token-id-prefix Token
+# quex := ${quex} --no-mode-transition-check
+# quex := ${quex} --template-compression-uniform
 # quex := ${quex} --path-compression
-compiler := ${compiler} -I${QUEX_PATH}
+# quex := ${quex} --template-compression
+compiler := ${compiler} -Iquex
 compiler := ${compiler} -DQUEX_OPTION_COMPUTED_GOTOS
 compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
 compiler := ${compiler} -DQUEX_OPTION_TOKEN_STAMPING_WITH_LINE_AND_COLUMN
 compiler := ${compiler} -DQUEX_SETTING_BUFFER_SIZE=32768
+
+debug_objects := $(patsubst ./src/%.cpp, ./build/debug/src/%.o, $(sources)) \
+	$(patsubst ./src/%.qx, ./build/debug/build/resources/%.qx.o, $(parsers))
 
 profiling_objects := $(patsubst ./src/%.cpp, ./build/profiling/src/%.o, $(sources)) \
 	$(patsubst ./src/%.qx, ./build/profiling/build/resources/%.qx.o, $(parsers))
@@ -67,6 +74,11 @@ build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
 	@mv $(notdir $*)-configuration.hpp build/resources/$*-configuration.hpp
 	@mv $(notdir $*).cpp build/resources/$*.qx.cpp
 
+build/debug/%.o: %.cpp
+	@echo "C++   " $*.cpp
+	@mkdir -p $(dir $@)
+	@$(compiler) $(debug_flags) -c $< -o $@
+
 build/profiling/%.o: %.cpp
 	@echo "C++   " $*.cpp
 	@mkdir -p $(dir $@)
@@ -81,6 +93,10 @@ build/profiled/%.o: %.cpp build/profiling/%.gcda
 	-@cp build/profiling/$*.gcda build/profiled/$*.gcda &> /dev/null
 	@$(compiler) $(profiled_flags) -c $< -o $@
 
+build/debug/$(program): $(debug_objects)
+	@echo "Link  " $@
+	@$(linker) $(debug_flags) $^ -o $@
+
 build/profiling/$(program): $(profiling_objects)
 	@echo "Link  " $@
 	@$(linker) $(profiling_flags) $^ -o $@
@@ -94,6 +110,9 @@ build/profiled/$(program): $(profiled_objects)
 	@objcopy --add-gnu-debuglink=$@.dbg $@
 	@echo "Pack  " $@
 	@upx -q --ultra-brute --best $@ > /dev/null
+
+debug: build/debug/$(program)
+	@cp $< $@
 
 profiling: build/profiling/$(program)
 	@cp $< $@
@@ -118,7 +137,7 @@ benchmark: profiled
 profiled: build/profiled/$(program)
 	@cp $< $@
 
-all: profiling
+all: debug
 
 clean:
 	@rm -R build/*

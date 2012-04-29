@@ -3,16 +3,16 @@
 #include "DFG/PropertyType.h"
 #include "DFG/Property.h"
 
-class Source: public Property
+class SourceProperty: public Property
 {
 public:
-	Source(const Source& copy);
-	Source(const string& file, int fromLine, int fromColumn, int toLine , int toColumn);
-	virtual ~Source();
+	SourceProperty(const SourceProperty& copy);
+	SourceProperty(const string& file, int fromLine, int fromColumn, int toLine , int toColumn);
+	virtual ~SourceProperty();
 	
 	static PropertyType classType;
 	virtual PropertyType type() const { return classType; }
-	virtual Source* clone() const { return new Source(*this); }
+	virtual SourceProperty* clone() const { return new SourceProperty(*this); }
 	
 	virtual void print(std::wostream& out) const;
 	void printCaret(std::wostream& out) const;

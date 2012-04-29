@@ -3,9 +3,9 @@
 #include "DFG/DataFlowGraph.h"
 #include "DFG/Node.h"
 #include "DFG/Edge.h"
-#include "Source.h"
-#include "Constant.h"
-#include "Identifier.h"
+#include "SourceProperty.h"
+#include "ConstantProperty.h"
+#include "IdentifierProperty.h"
 
 Parser::Expression::Expression()
 : type(Parser::undetermined)
@@ -40,6 +40,7 @@ Parser& Parser::parse(const string& filename)
 	do {
 		lexer.receive(&_token);
 		
+		/*
 		// Debug print token
 		wcerr << filename << L" ";
 		wcerr << _token->line_number() << L":";
@@ -48,6 +49,7 @@ Parser& Parser::parse(const string& filename)
 		if(_token->type_id() == TokenIdentifier)
 			wcerr << L"\t"<<  _token->pretty_wchar_text();
 		wcerr << endl;
+		*/
 		
 		// Dispatch on token type
 		switch(_token->type_id()) {
@@ -78,14 +80,14 @@ string Parser::lexeme()
 	return decodeUtf8(reinterpret_cast<const char*>(_token->get_text().c_str()));
 }
 
-Source Parser::source(bool hasLexeme)
+SourceProperty Parser::source(bool hasLexeme)
 {
 	int fromLine = _token->line_number();
 	int fromColumn = _token->column_number();
 	int toLine = fromLine;
 	int toColumn = fromColumn;
 	if(hasLexeme) toColumn += lexeme().size() - 1;
-	return Source(_filename, fromLine, fromColumn, toLine, toColumn);
+	return SourceProperty(_filename, fromLine, fromColumn, toLine, toColumn);
 }
 
 void Parser::pushScope()
@@ -112,24 +114,20 @@ void Parser::parseIdentifier()
 	bool isDefinition = true;
 	
 	Edge* edge = 0;
-	wcerr << "Searching for " << id << endl;
 	// Search scope
 	for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend() && edge == 0; ++scopei) {
 		Scope& scope = *scopei;
 		for(auto symboli = scope.begin(); symboli != scope.end() && edge == 0; ++symboli) {
-			wcerr << (*symboli).first  << endl;
 			if((*symboli).first == id) {
 				if(_expressionStack.back().type != undetermined || (*symboli).second->source() == 0)
 					edge = (*symboli).second;
 			}
 		}
 	}
-	wcerr << "Found : " << ((edge == 0) ? "No" : "Yes") << endl;
 	if(edge == 0) {
-		wcerr << "NEW Symbol " << id << endl;
 		// Declare new symbol
 		edge = new Edge();
-		edge->set(Identifier(id));
+		edge->set(IdentifierProperty(id));
 		edge->set(source());
 		_scopeStack.back()[id] = edge;
 	}
@@ -161,11 +159,11 @@ void Parser::parseQuotation()
 	int fromColumn = _token->column_number();
 	int toLine = fromLine;
 	fromLine -= num_lines;
-	Source location(_filename, fromLine, fromColumn, toLine, toColumn);
+	SourceProperty location(_filename, fromLine, fromColumn, toLine, toColumn);
 	
 	Edge* constantEdge = new Edge;
 	constantEdge->set(location);
-	constantEdge->set(Constant(contents));
+	constantEdge->set(ConstantProperty(contents));
 	_expressionStack.back().in.push_back(constantEdge);
 }
 
@@ -252,7 +250,7 @@ void Parser::parseNumber()
 	
 	Edge* constantEdge = new Edge;
 	constantEdge->set(source());
-	constantEdge->set(Constant(mantissa * pow(base, exponent)));
+	constantEdge->set(ConstantProperty(mantissa * pow(base, exponent)));
 	_expressionStack.back().in.push_back(constantEdge);
 }
 
@@ -297,9 +295,9 @@ void Parser::parseBracketClose()
 	int i = _expressionStack.size() - 1;
 	assert(i >= 1);
 	Edge* group = _expressionStack.back().out[0];
-	Source start = group->get<Source>();
-	Source end = source(false);
-	Source source(_filename, start.fromLine(), start.fromColumn(), end.toLine(), end.toColumn());
+	SourceProperty start = group->get<SourceProperty>();
+	SourceProperty end = source(false);
+	SourceProperty source(_filename, start.fromLine(), start.fromColumn(), end.toLine(), end.toColumn());
 	group->set(source);
 	_expressionStack[i - 1].in.push_back(group);
 	_expressionStack.pop_back();
@@ -307,7 +305,7 @@ void Parser::parseBracketClose()
 
 void Parser::parseFailure()
 {
-	Source s = source();
+	SourceProperty s = source();
 	wcerr << endl << s << L": Syntax error." << endl;
 	s.printCaret(wcerr);
 	throw L"Syntax error.";
@@ -322,16 +320,15 @@ Edge* Parser::finishNode()
 	{
 		Edge* from = _expressionStack.back().out[i];
 		Edge* to = node->out(i);
-		wcerr << from << L" ↦ " << to << endl;
 		
 		// Replace in stack
 		_expressionStack.back().out[i] = to;
 		
 		// Copy info
-		if(from->has<Identifier>() && !to->has<Identifier>())
-			to->set(from->get<Identifier>());
-		if(from->has<Source>() && !to->has<Source>())
-			to->set(from->get<Source>());
+		if(from->has<IdentifierProperty>() && !to->has<IdentifierProperty>())
+			to->set(from->get<IdentifierProperty>());
+		if(from->has<SourceProperty>() && !to->has<SourceProperty>())
+			to->set(from->get<SourceProperty>());
 		
 		// Replace in DFG
 		from->replaceWith(to);

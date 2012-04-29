@@ -1,5 +1,7 @@
 #include "DFG/Node.h"
 #include "DFG/Edge.h"
+#include <set>
+using namespace std;
 
 Node::Node(NodeType type, int inArrity, int outArity)
 : PropertyMap()
@@ -66,9 +68,9 @@ void Node::print(std::wostream& out) const
 	out << type() << "(" << outArrity() << "," << inArrity() << ")";
 }
 
-set<Node*> Node::outNodes(bool ignoreFunctional)
+std::set<Node*> Node::outNodes(bool ignoreFunctional)
 {
-	set<Node*> outNodes;
+	std::set<Node*> outNodes;
 	bool skipFirst = ignoreFunctional && type() == NodeType::Closure;
 	for(int i = (skipFirst) ? 1 : 0; i < outArrity(); ++i)
 		for(int j = 0; j < out(i)->sinks().size(); ++j)
@@ -76,7 +78,7 @@ set<Node*> Node::outNodes(bool ignoreFunctional)
 	return outNodes;
 }
 
-set<Node*> Node::outClosures(bool ignoreFunctional)
+std::set<Node*> Node::outClosures(bool ignoreFunctional)
 {
 
 }

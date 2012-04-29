@@ -1,5 +1,6 @@
 #pragma once
 #include "fixups.h"
+#include <set>
 #include "DFG/PropertyMap.h"
 #include "DFG/NodeType.h"
 #include "DFG/Edge.h"
@@ -25,8 +26,8 @@ public:
 	
 	void print(std::wostream& out) const;
 	
-	set<Node*> outNodes(bool ignoreFunctional);
-	set<Node*> outClosures(bool ignoreFunctional);
+	std::set<Node*> outNodes(bool ignoreFunctional);
+	std::set<Node*> outClosures(bool ignoreFunctional);
 	
 protected:
 	NodeType _type;

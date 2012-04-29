@@ -1,7 +1,7 @@
 #include "Passes/DotFileWriter.h"
-#include "Parser/Identifier.h"
+#include "Parser/IdentifierProperty.h"
 #include <fstream>
-#include <Parser/Constant.h>
+#include <Parser/ConstantProperty.h>
 
 const bool showEdges = false;
 const bool showClosureFunc = false;
@@ -42,16 +42,16 @@ void DotFileWriter::write(const Node& node)
 	if(node.type() == NodeType::Call) {
 		_out << "shape=circle";
 		const Edge* label = node.in(0);
-		if(label->has<Identifier>())
-			_out << " label=\"" << label->get<Identifier>().value() << "\"";
+		if(label->has<IdentifierProperty>())
+			_out << " label=\"" << label->get<IdentifierProperty>().value() << "\"";
 		else
 			_out << " label=\"( )\"";
 		_out << "];" << endl;
 	} else if(node.type() == NodeType::Closure) {
 		_out << "shape=doublecircle";
 		const Edge* label = node.out(0);
-		if(label->has<Identifier>())
-			_out << " label=\"" << label->get<Identifier>().value() << "\"";
+		if(label->has<IdentifierProperty>())
+			_out << " label=\"" << label->get<IdentifierProperty>().value() << "\"";
 		else
 			_out << " label=\"( )\"";
 		_out << "];" << endl;
@@ -108,11 +108,11 @@ void DotFileWriter::write(const Edge& edge)
 	_done.insert(&edge);
 	_out << objectId(&edge);
 	_out << " [shape=diamond";
-	if(edge.has<Identifier>())
-		_out << " label=\"" << edge.get<Identifier>().value() << "\"";
-	else if(edge.has<Constant>())
+	if(edge.has<IdentifierProperty>())
+		_out << " label=\"" << edge.get<IdentifierProperty>().value() << "\"";
+	else if(edge.has<ConstantProperty>())
 		/// TODO: Escape string values
-		_out << " label=\"" << edge.get<Constant>().value() << "\"";
+		_out << " label=\"" << edge.get<ConstantProperty>().value() << "\"";
 	else
 		_out << " label=\"( )\"";
 	_out << "];" << endl;

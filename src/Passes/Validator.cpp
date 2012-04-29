@@ -1,5 +1,5 @@
 #include "Passes/Validator.h"
-#include <Parser/Identifier.h>
+#include <Parser/IdentifierProperty.h>
 
 Validator::Validator(DataFlowGraph* program)
 : _program(program)
@@ -106,12 +106,12 @@ void Validator::visit(Node* node)
 {
 	if(node->type() == NodeType::Call)
 		if(node->in(0)->has(PropertyType::Identifier))
-			wcerr << node->in(0)->get<Identifier>().value();
+			wcerr << node->in(0)->get<IdentifierProperty>().value();
 		else
 			wcerr << node;
 	else if (node->type() == NodeType::Closure)
 		if(node->out(0)->has(PropertyType::Identifier))
-			wcerr << node->out(0)->get<Identifier>().value();
+			wcerr << node->out(0)->get<IdentifierProperty>().value();
 		else
 			wcerr << node;
 }

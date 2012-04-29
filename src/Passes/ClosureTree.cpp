@@ -1,4 +1,5 @@
 #include "Passes/ClosureTree.h"
+#include <set>
 
 ClosureTree::ClosureTree(DataFlowGraph* program)
 : _program(program)
@@ -22,7 +23,7 @@ void ClosureTree::calculate()
 			continue;
 		_parent = i;
 		
-		
+		std::set<Node*> out;
 		
 		recurse(node);
 	}
@@ -30,6 +31,6 @@ void ClosureTree::calculate()
 
 void ClosureTree::recurse(Node* node)
 {
-	for(int o = 0; o < node->outArrity();
+	//for(int o = 0; o < node->outArrity();
 }
 

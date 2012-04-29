@@ -2,7 +2,7 @@
 #include <fixups.h>
 class DataFlowGraph;
 class Edge;
-class Source;
+class SourceProperty;
 namespace quex { class Token; }
 
 class Parser
@@ -42,7 +42,7 @@ private:
 	vector<Expression> _expressionStack;
 	
 	string lexeme();
-	Source source(bool hasLexeme = true);
+	SourceProperty source(bool hasLexeme = true);
 	void parseIdentifier();
 	void parseQuotation();
 	void parseNumber();

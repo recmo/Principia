@@ -3,16 +3,16 @@
 #include "DFG/PropertyType.h"
 #include "DFG/Property.h"
 
-class Identifier: public Property
+class IdentifierProperty: public Property
 {
 public:
-	Identifier(const Identifier& copy);
-	Identifier(const string& identifier);
-	virtual ~Identifier();
+	IdentifierProperty(const IdentifierProperty& copy);
+	IdentifierProperty(const string& identifier);
+	virtual ~IdentifierProperty();
 	
 	static PropertyType classType;
 	virtual PropertyType type() const { return classType; }
-	virtual Identifier* clone() const { return new Identifier(*this); }
+	virtual IdentifierProperty* clone() const { return new IdentifierProperty(*this); }
 	
 	virtual void print(std::wostream& out) const;
 	

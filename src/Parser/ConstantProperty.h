@@ -4,16 +4,16 @@
 #include "DFG/Property.h"
 #include "Interpreter/Value.h"
 
-class Constant: public Property
+class ConstantProperty: public Property
 {
 public:
-	Constant(const Constant& copy);
-	Constant(const Value& value);
-	virtual ~Constant();
+	ConstantProperty(const ConstantProperty& copy);
+	ConstantProperty(const Value& value);
+	virtual ~ConstantProperty();
 	
 	static PropertyType classType;
 	virtual PropertyType type() const { return classType; }
-	virtual Constant* clone() const { return new Constant(*this); }
+	virtual ConstantProperty* clone() const { return new ConstantProperty(*this); }
 	
 	virtual void print(std::wostream& out) const;
 	

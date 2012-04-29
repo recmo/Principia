@@ -1,9 +1,9 @@
-#include "Parser/Source.h"
+#include "Parser/SourceProperty.h"
 #include <fstream>
 
-PropertyType Source::classType = PropertyType::Source;
+PropertyType SourceProperty::classType = PropertyType::Source;
 
-Source::Source(const Source& copy)
+SourceProperty::SourceProperty(const SourceProperty& copy)
 : Property(copy)
 , _filename(copy._filename)
 , _fromLine(copy._fromLine)
@@ -13,7 +13,7 @@ Source::Source(const Source& copy)
 {
 }
 
-Source::Source(const string& file, int fromLine, int fromColumn, int toLine, int toColumn)
+SourceProperty::SourceProperty(const string& file, int fromLine, int fromColumn, int toLine, int toColumn)
 : Property()
 , _filename(file)
 , _fromLine(fromLine)
@@ -23,16 +23,16 @@ Source::Source(const string& file, int fromLine, int fromColumn, int toLine, int
 {
 }
 
-Source::~Source()
+SourceProperty::~SourceProperty()
 {
 }
 
-void Source::print(std::wostream& out) const
+void SourceProperty::print(std::wostream& out) const
 {
 	out << _filename << L":" << _fromLine << L":" << _fromColumn;
 }
 
-void Source::printCaret(std::wostream& out) const
+void SourceProperty::printCaret(std::wostream& out) const
 {
 	print(out);
 	out << endl;

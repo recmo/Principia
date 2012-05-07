@@ -16,7 +16,11 @@ public:
 	void addSink(Node* node);
 	void delSink(const Node* node);
 	
+	void print(std::wostream& out) const;
+	
 	void replaceWith(Edge* edge);
+	
+	bool isFunction() const;
 	
 private:
 	Edge(const Edge& copy);
@@ -27,3 +31,13 @@ private:
 	friend class Node;
 };
 
+inline std::wostream& operator<<(std::wostream& out, const Edge& edge)
+{
+	edge.print(out);
+	return out;
+}
+
+inline std::wostream& operator<<(std::wostream& out, const Edge* edge)
+{
+	return (edge) ? out << *edge: out << L"nullEdge";
+}

@@ -1,5 +1,7 @@
 #include "DFG/Edge.h"
 #include "Node.h"
+#include "Parser/SourceProperty.h"
+#include "Parser/IdentifierProperty.h"
 
 Edge::Edge(Node* source)
 : PropertyMap()
@@ -45,3 +47,20 @@ void Edge::replaceWith(Edge* edge)
 	_sinks.empty();
 }
 
+void Edge::print(std::wostream& out) const
+{
+	if(has<IdentifierProperty>())
+		out << get<IdentifierProperty>().value();
+	else if(has<SourceProperty>()) {
+		SourceProperty sp = get<SourceProperty>();
+		out << L"<" << sp.fromLine();
+		out << L":" << sp.fromColumn();
+		out << L">";
+	} else
+		out << L"<anonymous>";
+}
+
+bool Edge::isFunction() const
+{
+	return _source->type() == NodeType::Closure && _source->outArrity() >= 1 && _source->out(0) == this;
+}

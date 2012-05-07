@@ -41,7 +41,6 @@ Parser& Parser::parse(const string& filename)
 	do {
 		lexer.receive(&_token);
 		
-		/*
 		// Debug print token
 		wcerr << filename << L" ";
 		wcerr << _token->line_number() << L":";
@@ -50,9 +49,6 @@ Parser& Parser::parse(const string& filename)
 		if(_token->type_id() == TokenIdentifier)
 			wcerr << L"\t"<<  _token->pretty_wchar_text();
 		wcerr << endl;
-		*/
-		
-		wcerr << decodeLocal(_token->type_id_name()) << endl;
 		
 		
 		// Dispatch on token type
@@ -302,8 +298,9 @@ void Parser::parseBlockEnd()
 
 void Parser::parseStatementSeparator()
 {
-	// if(_expressionStack.size() > 1)
-		finishNode();
+	if(_expressionStack.size() == 1 && _expressionStack.back().type == undetermined)
+		return;
+	finishNode();
 }
 
 void Parser::parseBracketOpen()
@@ -338,14 +335,10 @@ void Parser::parseFailure()
 
 Edge* Parser::finishNode()
 {
-	if(_expressionStack.back().type == undetermined) {
-		wcout << _expressionStack.size() << endl;
-	}
 	assert(_expressionStack.back().type != undetermined);
 	NodeType type = (_expressionStack.back().type == call) ? NodeType::Call : NodeType::Closure;
 	Node* node = new Node(type,_expressionStack.back().in.size(), _expressionStack.back().out.size());
-	for(int i = 0; i != _expressionStack.back().out.size(); ++i)
-	{
+	for(int i = 0; i != _expressionStack.back().out.size(); ++i) {
 		Edge* from = _expressionStack.back().out[i];
 		Edge* to = node->out(i);
 		

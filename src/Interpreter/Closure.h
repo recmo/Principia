@@ -2,19 +2,19 @@
 #include "fixups.h"
 #include "Interpreter/Value.h"
 
-class SymbolVertex;
-class ClosureNode;
+class Node;
+class Edge;
 
+/// TODO: Reference counting garbage collection
 class Closure
 {
 public:
-	Closure(const ClosureNode* closure, const map<const SymbolVertex*,Value>& context);
+	Closure(const Node* closure, const std::vector<Value>& context);
 	
-	const ClosureNode* closure() const { return _closure; }
-	map<const SymbolVertex*,Value> context() const { return _context; }
-	map<const SymbolVertex*,Value>& context() { return _context; }
+	const Node* node() const { return _closure; }
+	const std::vector<Value>& context() const { return _context; }
 	
 private:
-	const ClosureNode* _closure;
-	map<const SymbolVertex*,Value> _context;
+	const Node* _closure;
+	std::vector<Value> _context;
 };

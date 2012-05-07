@@ -1,8 +1,7 @@
 #include "Closure.h"
-#include "IR/ClosureNode.h"
-#include "IR/SymbolVertex.h"
+#include "DFG/Node.h"
 
-Closure::Closure(const ClosureNode* closure, const map<const SymbolVertex*,Value>& context)
+Closure::Closure(const Node* closure, const vector<Value>& context)
 : _closure(closure), _context(context)
 {
 }

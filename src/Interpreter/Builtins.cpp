@@ -1,7 +1,7 @@
 #include "fixups.h"
 #include "Builtins.h"
 #include "Closure.h"
-#include <IR/ClosureNode.h>
+#include <DFG/Node.h>
 
 BuiltinsStatic builtins;
 
@@ -237,8 +237,8 @@ vector<Value> arity(const vector<Value>& arg)
 	if(closure.kind == Value::Builtin) {
 		// TODO
 	} else {
-		sint64 num_inputs = closure.function()->closure()->arguments().size();
-		sint64 num_outputs = closure.function()->closure()->returns().size();
+		sint64 num_inputs = closure.closure()->node()->inArrity();
+		sint64 num_outputs = closure.closure()->node()->outArrity() - 1;
 		ret.push_back(Value(num_inputs));
 		ret.push_back(Value(num_outputs));
 	}

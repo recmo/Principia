@@ -2,6 +2,7 @@
 #include "Node.h"
 #include "Parser/SourceProperty.h"
 #include "Parser/IdentifierProperty.h"
+#include <Parser/ConstantProperty.h>
 
 Edge::Edge(Node* source)
 : PropertyMap()
@@ -51,6 +52,8 @@ void Edge::print(std::wostream& out) const
 {
 	if(has<IdentifierProperty>())
 		out << get<IdentifierProperty>().value();
+	else if(has<ConstantProperty>())
+		out << get<ConstantProperty>().value();
 	else if(has<SourceProperty>()) {
 		SourceProperty sp = get<SourceProperty>();
 		out << L"<" << sp.fromLine();
@@ -58,6 +61,7 @@ void Edge::print(std::wostream& out) const
 		out << L">";
 	} else
 		out << L"<anonymous>";
+	out << "." << (uint64(this) % 13);
 }
 
 bool Edge::isFunction() const

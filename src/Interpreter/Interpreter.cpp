@@ -3,7 +3,7 @@
 #include "Builtins.h"
 #include "DFG/DataFlowGraph.h"
 #include <Parser/ConstantProperty.h>
-#include "Parser/ClosureProperty.h"
+#include "Passes/ClosureProperty.h"
 
 vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments)
 {

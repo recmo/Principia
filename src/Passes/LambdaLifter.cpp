@@ -2,7 +2,7 @@
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
-#include <Parser/ClosureProperty.h>
+#include <Passes/ClosureProperty.h>
 #include <Parser/SourceProperty.h>
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>

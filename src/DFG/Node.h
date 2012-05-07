@@ -43,6 +43,11 @@ inline std::wostream& operator<<(std::wostream& out, const Node& node)
 	return out;
 }
 
+inline std::wostream& operator<<(std::wostream& out, const Node* node)
+{
+	return (node) ? out << *node : out << L"nullNode";
+}
+
 inline Edge* Node::out(int index)
 {
 	assert(index >= 0 && index < _outArrity);

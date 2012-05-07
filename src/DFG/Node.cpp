@@ -1,5 +1,7 @@
 #include "DFG/Node.h"
 #include "DFG/Edge.h"
+#include <Parser/IdentifierProperty.h>
+#include <Parser/SourceProperty.h>
 #include <set>
 using namespace std;
 
@@ -65,7 +67,19 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 
 void Node::print(std::wostream& out) const
 {
-	out << type() << "(" << outArrity() << "," << inArrity() << ")";
+	if(type() == NodeType::Call)
+		out << L"≔";
+	if(has<IdentifierProperty>())
+		out << get<IdentifierProperty>().value();
+	else if(has<SourceProperty>()) {
+		SourceProperty sp = get<SourceProperty>();
+		out << L"<" << sp.fromLine();
+		out << L":" << sp.fromColumn();
+		out << L">";
+	} else
+		out << L"<anonymous>";
+	if(type() == NodeType::Closure)
+		out << L"↦";
 }
 
 std::set<Node*> Node::outNodes(bool ignoreFunctional)

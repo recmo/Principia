@@ -20,13 +20,6 @@ public:
 	void pushScope();
 	void popScope();
 	
-private:
-	typedef quex::Token Token;
-	typedef map<string, Edge*> Scope;
-	DataFlowGraph* _dfg;
-	vector<Scope> _scopeStack;
-	string _filename;
-	Token* _token;
 	
 	enum Type {
 		undetermined,
@@ -39,6 +32,14 @@ private:
 		vector<Edge*> out;
 		vector<Edge*> in;
 	};
+private:
+	typedef quex::Token Token;
+	typedef map<string, Edge*> Scope;
+	DataFlowGraph* _dfg;
+	vector<Scope> _scopeStack;
+	string _filename;
+	Token* _token;
+	
 	vector<Expression> _expressionStack;
 	
 	string lexeme();
@@ -56,5 +57,3 @@ private:
 	void parseFailure();
 	Edge* finishNode();
 };
-
-

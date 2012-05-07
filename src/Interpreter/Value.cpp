@@ -10,7 +10,7 @@ std::wostream& operator<<(std::wostream& out, const Value& value)
 			out << L"none";
 			break;
 		case Value::Function:
-			out << value.closure()->node();
+			out << value.closure()->node();// << value.closure()->context();
 			break;
 		case Value::Integer:
 			out << value.integer();

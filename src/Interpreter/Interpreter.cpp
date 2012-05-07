@@ -7,6 +7,7 @@
 
 vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments)
 {
+	assert(closureNode);
 	assert(closureNode->type() == NodeType::Closure);
 	assert(closureNode->has<ClosureProperty>());
 	assert(closureNode->outArrity() - 1 == arguments.size());
@@ -116,10 +117,20 @@ Closure* Interpreter::makeClosure(const Node* node)
 {
 	assert(node->type() == NodeType::Closure);
 	assert(node->has<ClosureProperty>());
-	
 	wcerr << "Making closure for " << node << endl;
+	
+	// Create the closure object
+	Closure* closure = new Closure(node);
+	
+	// Add it to the environemnt
+	// so mutual recursion will work
+	_context[node->out(0)] = Value(closure);
+	
+	// Fill the closure object
 	vector<Value> values;
 	foreach(const Edge* edge, node->get<ClosureProperty>().edges())
-		values.push_back(evaluateEdge(edge));
-	return new Closure(node, values);
+		closure->context().push_back(evaluateEdge(edge));
+	
+	// Return it
+	return closure;
 }

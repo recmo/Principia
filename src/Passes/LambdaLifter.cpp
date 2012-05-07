@@ -20,35 +20,79 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 {
 	assert(closureNode->type() == NodeType::Closure);
 	
-	// Calculate internal edges
-	vector<Edge*> internal;
-	internal.push_back(closureNode->out(0));
-	for(int i = 0; i < closureNode->outArrity(); ++i)
-		recurseOut(closureNode->out(i), &internal);
-	wcerr << closureNode << " internal " << internal << endl;
+	// Calculate internal nodes
+	vector<Node*> internalNodes;
+	internalNodes.push_back(closureNode);
+	for(int i = 1; i < closureNode->outArrity(); ++i) {
+		foreach(Node* sink, closureNode->out(i)->sinks())
+			recurseOut(sink, &internalNodes);
+	}
+	recurseOut(closureNode, &internalNodes);
+	wcerr << closureNode << " internalNodes " << internalNodes << endl;
 	
-	// Calculate border edges
+	// Calculate the lazy set
+	bool fixedpoint = false;
+	vector<Node*> lazySet = internalNodes;
+	while(!fixedpoint) {
+		fixedpoint = true;
+		
+		// Calculate the direct source nodes
+		vector<Node*> directSources;
+		foreach(Node* lazy, lazySet) {
+			foreach(const Edge* edge, lazy->in()) {
+				if(!edge->source() && edge->has<ConstantProperty>())
+					continue;
+				Node* directSource = edge->source();
+				assert(edge->source());
+				if(contains(lazySet, directSource))
+					continue;
+				if(contains(directSources, directSource))
+					continue;
+				directSources.push_back(edge->source());
+			}
+		}
+		
+		// For each direct source node
+		foreach(Node* direct, directSources) {
+			
+			// Abort if a sink is outside the lazy set
+			bool abort = false;
+			foreach(const Edge* sink, direct->out()) {
+				foreach(Node* sinkNode, sink->sinks()) {
+					if(!contains(lazySet, sinkNode)) {
+						abort = true;
+						break;
+					}
+				}
+				if(abort)
+					break;
+			}
+			if(abort)
+				continue;
+			
+			// Add to the lazy set
+			assert(!contains(lazySet, direct));
+			lazySet.push_back(direct);
+			fixedpoint = false;
+		}
+	}
+	wcerr << closureNode << " lazy set " << lazySet << endl;
+	
+	// Calculate the border
 	vector<const Edge*> border;
-	for(int i = 0; i < internal.size(); ++i) {
-		Node* source = internal[i]->source();
-		for(int j = 0; j < source->inArrity(); ++j) {
-			if(contains(internal, source->in(j)))
+	foreach(Node* lazyNode, lazySet) {
+		foreach(const Edge* in, lazyNode->in()) {
+			if(in->has<ConstantProperty>())
 				continue;
-			if(source->in(j)->has<ConstantProperty>())
+			assert(in->source());
+			if(contains(lazySet, in->source()))
 				continue;
-			
-			// Do not close over top level functions?
-			
-			if(source->in(j)->isFunction())
+			if(contains(border, in))
 				continue;
-			
-			
-			border.push_back(source->in(j));
+			border.push_back(in);
 		}
 	}
 	wcerr << closureNode << " border " << border << endl;
-	
-	/// TODO: Calculate the lazy set
 	
 	// Set the closure property
 	ClosureProperty cp(border);
@@ -68,6 +112,17 @@ void LambdaLifter::recurseOut(Node* node, vector<Edge*>* edges)
 {
 	for(int i = 0; i < node->outArrity(); ++i)
 		recurseOut(node->out(i), edges);
+}
+
+void LambdaLifter::recurseOut(Node* node, vector<Node*>* nodes)
+{
+	if(contains(*nodes, node))
+		return;
+	nodes->push_back(node);
+	for(int i = 0; i < node->outArrity(); ++i) {
+		foreach(Node* sink, node->out(i)->sinks())
+			recurseOut(sink, nodes);
+	}
 }
 
 void LambdaLifter::recurseIn(Edge* edge, std::vector<Edge*>* edges)

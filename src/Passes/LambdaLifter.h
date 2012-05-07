@@ -18,6 +18,7 @@ protected:
 	void anotateClosure(Node* closureNode);
 	void recurseOut(Edge* edge, std::vector<Edge*>* edges);
 	void recurseOut(Node* node, std::vector<Edge*>* edges);
+	void recurseOut(Node* node, std::vector<Node*>* nodes);
 	void recurseIn(Edge* edge, std::vector<Edge*>* edges);
 	void recurseIn(Node* node, std::vector<Edge*>* edges);
 };

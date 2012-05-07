@@ -8,6 +8,21 @@
 #include "IdentifierProperty.h"
 #include <Interpreter/Builtins.h>
 
+std::wostream& operator<<(std::wostream& out, const Parser::Expression& expression)
+{
+	out << "(";
+	out << expression.out;
+	if(expression.type == Parser::closure)
+		out << " ↦ ";
+	else if(expression.type == Parser::call)
+		out << L" ≔ ";
+	else
+		out << L" ? ";
+	out << expression.in;
+	out << ")";
+	return out;
+}
+
 Parser::Expression::Expression()
 : type(Parser::undetermined)
 , in()
@@ -41,6 +56,12 @@ Parser& Parser::parse(const string& filename)
 	do {
 		lexer.receive(&_token);
 		
+		wcerr << endl << endl;
+		wcerr << L"Scope stack: " << _scopeStack << endl;
+		wcerr << L"Expression stack: " << _expressionStack << endl;
+		foreach(const Node* node, _dfg->nodes())
+			wcerr << node << " " << node->out() << " " << node->in() << endl; 
+		
 		// Debug print token
 		wcerr << filename << L" ";
 		wcerr << _token->line_number() << L":";
@@ -49,7 +70,6 @@ Parser& Parser::parse(const string& filename)
 		if(_token->type_id() == TokenIdentifier)
 			wcerr << L"\t"<<  _token->pretty_wchar_text();
 		wcerr << endl;
-		
 		
 		// Dispatch on token type
 		switch(_token->type_id()) {
@@ -131,10 +151,6 @@ void Parser::parseIdentifier()
 		edge->set(source());
 		if(builtins.find(id) != builtins.end())
 			edge->set(ConstantProperty(builtins[id]));
-		
-		edge->print(wcerr);
-		edge->printProperties(wcerr);
-		
 		_scopeStack.back()[id] = edge;
 	}
 	if(_expressionStack.back().type == undetermined)
@@ -336,11 +352,21 @@ void Parser::parseFailure()
 Edge* Parser::finishNode()
 {
 	assert(_expressionStack.back().type != undetermined);
+	
+	// Construct the new node of the correct type and size
 	NodeType type = (_expressionStack.back().type == call) ? NodeType::Call : NodeType::Closure;
 	Node* node = new Node(type,_expressionStack.back().in.size(), _expressionStack.back().out.size());
+	
+	// Constuct the output nodes
 	for(int i = 0; i != _expressionStack.back().out.size(); ++i) {
 		Edge* from = _expressionStack.back().out[i];
 		Edge* to = node->out(i);
+		
+		// Replace in in
+		for(int j = 0; j < _expressionStack.back().in.size(); ++j) {
+			if(_expressionStack.back().in[j] == from)
+				_expressionStack.back().in[j] = to;
+		}
 		
 		// Replace in stack
 		_expressionStack.back().out[i] = to;
@@ -352,7 +378,10 @@ Edge* Parser::finishNode()
 			to->set(from->get<SourceProperty>());
 		
 		// Replace in DFG
+		wcerr << "Replacing " << from << " with " << to << endl;
 		from->replaceWith(to);
+		foreach(const Node* node, _dfg->nodes())
+			wcerr << node << " " << node->out() << " " << node->in() << endl; 
 		
 		// Replace in scope as well
 		for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend(); ++scopei) {
@@ -366,18 +395,24 @@ Edge* Parser::finishNode()
 	}
 	
 	// Add to the DFG
+	_dfg->nodes().push_back(node);
+	
+	// Set the new node's inputs
 	for(int i = 0; i != _expressionStack.back().in.size(); ++i)
 		node->connect(i, _expressionStack.back().in[i]);
-	_dfg->nodes().push_back(node);
+	
+	// Clear the intem in the expression stack
 	_expressionStack.back().type = undetermined;
 	_expressionStack.back().out.clear();
 	_expressionStack.back().in.clear();
-		
+	
 	// Add an identifier for printing purposes
 	if(node->type() == NodeType::Call && node->inArrity() >= 1 && node->in(0)->has<IdentifierProperty>())
 		node->set(IdentifierProperty(node->in(0)->get<IdentifierProperty>().value()));
 	else if(node->type() == NodeType::Closure && node->outArrity() >= 1 && node->out(0)->has<IdentifierProperty>())
 		node->set(IdentifierProperty(node->out(0)->get<IdentifierProperty>().value()));
+	
+	wcerr << node << node->in() << node->out() << endl;
 	
 	return (node->outArrity() > 0) ? node->out(0) : 0;
 }

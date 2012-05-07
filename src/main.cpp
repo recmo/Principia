@@ -141,6 +141,11 @@ sint32 Main(const vector<string>& args)
 	DataFlowGraph* dfg = parser.dataFlowGraph();
 	wcerr << endl;
 	
+	wcerr << endl << endl;
+	foreach(const Node* node, dfg->nodes())
+		wcerr << node << " " << node->out() << " " << node->in() << endl; 
+	wcerr << endl << endl;
+	
 	// Print structure
 	wcerr << L"Writing dot file…" << flush;
 	DotFileWriter dfw(L"test.dot");
@@ -169,6 +174,11 @@ sint32 Main(const vector<string>& args)
 	// Close over closures
 	LambdaLifter ll(dfg);
 	ll.anotateClosures();
+	
+	wcerr << endl << endl;
+	foreach(const Node* node, dfg->nodes())
+		wcerr << node << " " << node->out() << " " << node->in() << endl; 
+	wcerr << endl << endl;
 	
 	// Lambda lift the struture
 	

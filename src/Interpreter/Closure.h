@@ -9,10 +9,11 @@ class Edge;
 class Closure
 {
 public:
-	Closure(const Node* closure, const std::vector<Value>& context);
+	Closure(const Node* closure);
 	
 	const Node* node() const { return _closure; }
 	const std::vector<Value>& context() const { return _context; }
+	std::vector<Value>& context() { return _context; }
 	
 private:
 	const Node* _closure;

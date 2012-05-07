@@ -18,14 +18,4 @@ Fib1 n ↦ (≔ Fib2 n 1 0)
 
 
 
-	
-eval f args ↦ rets
-
-rets ≔ eval f (↦ a₁ a₂)
-
-rets ≔ (↦ r₁ r₂)
-	r₁ r₂ ≔ f a₁ a₂
-
-
-
 

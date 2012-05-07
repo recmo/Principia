@@ -1,3 +1,5 @@
+comment ↦ “Demonstrates mutual recursion”
+
 even en ↦ evenen
 	true ↦ 1
 	ask_odd ↦ oddpen
@@ -13,3 +15,4 @@ odd on ↦ oddon
 		evenpon ≔ even pon
 	oddonf ≔ if on ask_even false
 	oddon ≔ oddonf
+

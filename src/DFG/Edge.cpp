@@ -61,10 +61,11 @@ void Edge::print(std::wostream& out) const
 		out << L">";
 	} else
 		out << L"<anonymous>";
-	out << "." << (uint64(this) % 13);
 }
 
 bool Edge::isFunction() const
 {
+	if(has<ConstantProperty>() && get<ConstantProperty>().type() == Value::Builtin)
+		return true;
 	return _source->type() == NodeType::Closure && _source->outArrity() >= 1 && _source->out(0) == this;
 }

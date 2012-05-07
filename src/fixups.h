@@ -79,10 +79,10 @@ std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)
 {
 	typename std::vector<T>::const_iterator it = v.begin();
 	out << L"[";
-	if(it != v.end()) for(;;)
-	{
+	if(it != v.end()) for(;;) {
 		out << *it;
-		if(++it == v.end()) break;
+		if(++it == v.end())
+			break;
 		out << L", ";
 	}
 	out << L"]";
@@ -128,10 +128,8 @@ bool tryGet(const std::map<Key, Value>& map, const Key& key, Value& value)
 template<class Key, class Value>
 bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
 {
-	for(typename std::map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it)
-	{
-		if(it->second == value)
-		{
+	for(typename std::map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
+		if(it->second == value) {
 			key = it->first;
 			return true;
 		}

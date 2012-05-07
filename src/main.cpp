@@ -1,17 +1,15 @@
 #include "fixups.h"
 #include "Parser/Parser.h"
-#include "IR/IntRep.h"
-#include "IR/SymbolVertex.h"
 #include "Interpreter/Interpreter.h"
 #include "Interpreter/Value.h"
+#include "Interpreter/Closure.h"
 #include <fstream>
 #include "Passes/Validator.h"
-#include "IR/CallNode.h"
-#include "IR/ClosureNode.h"
 #include "Parser/Parser.h"
 #include "DFG/DataFlowGraph.h"
-#include "Parser/Identifier.h"
+#include "Parser/IdentifierProperty.h"
 #include "Passes/DotFileWriter.h"
+#include "Passes/LambdaLifter.h"
 #include <cmath>
 
 /*
@@ -83,10 +81,13 @@ Alternative: Functions have a unique implementation, but one can proof equivalen
 
 Suppose we have two functions, safediv and unsafediv, where the later is faster, but has the additional precondition that m ≠ 0. If the compiler can deduce statically or runtime that always m ≠ 0, then it may move to the unsafediv.
 
+
+
 TODO: Types‽ What do we mean we we say “pre n : integer”?
 That there exists functions +, -, ×, |·|, =, ≠, <, ≤, >, ≥, etc… doing the ‘expected’ thing.
 
 They can be implemented as unspecified propositions: IsInteger(n). Dependent types can be implemented as more complex variants: IsMatrix(A, ℂ, 2, 4) to state that A is a complex valued 2 × 4 matrix.
+
 
 
 TODO: Performance characteristics:
@@ -126,7 +127,7 @@ etc…
 
 sint32 Main(const vector<string>& args)
 {
-	wcerr << L"Simple C++ interpreter for the language using ≔ and ↦." << endl;
+	wcerr << L"Simple C++ interpreter for the Principia language" << endl;
 	wcerr << endl;
 	if(args.size() < 3) {
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
@@ -141,10 +142,12 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl;
 	
 	// Print structure
+	wcerr << L"Writing dot file…" << flush;
 	DotFileWriter dfw(L"test.dot");
 	dfw.contractionMode(DotFileWriter::Calls);
 	dfw.write(*dfg);
-	// make && ./profiling Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
+	// make && ./debug Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
+	wcerr << endl;
 	
 	// To validate
 	// - Take the DFG
@@ -157,9 +160,59 @@ sint32 Main(const vector<string>& args)
 	//   - Contract the strongly connected component to  
 	
 	// Validate
+	wcerr << L"Validating structure…" << flush;
 	Validator validator(dfg);
 	validator.validate();
 	validator.print();
+	wcerr << endl;
+	
+	// Close over closures
+	LambdaLifter ll(dfg);
+	ll.anotateClosures();
+	
+	// Lambda lift the struture
+	
+	// Get the edge
+	Edge* edge = 0;
+	foreach(Node* node, dfg->nodes()) {
+		for(int i = 0; i < node->outArrity(); ++i) {
+			Edge* tedge = node->out(i);
+			if(tedge == 0)
+				continue;
+			if(!tedge->has<IdentifierProperty>())
+				continue;
+			if(tedge->get<IdentifierProperty>().value() == args[2])
+				edge = tedge;
+		}
+	}
+	if(edge == 0) {
+		wcerr << L"Error could not edge function " << args[2] << endl;
+		return -1;
+	}
+	wcerr << "Evaluating edge " << edge << endl;
+	
+	// Evaluate edge
+	Interpreter interpreter;
+	Value value = interpreter.evaluateEdge(edge);
+	wcerr << "Result is " << value << endl;
+	
+	if(value.kind == Value::Function) {
+	
+		// Parse arguments
+		vector<Value> arguments;
+		for(int i = 3; i < args.size(); ++i) {
+			std::wstringstream ss(args[i]);
+			sint64 value;
+			ss >> value;
+			arguments.push_back(Value(value));
+		}
+		wcerr << "Calling with arguments: " << arguments << endl;
+		
+		// Call function
+		vector<Value> results = Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
+		wcout << "Resulted in: " << results << endl;
+	}
 	
 	return 0;
 }
+

@@ -1,6 +1,6 @@
 #pragma once
 #include "fixups.h"
-#include "IR/IntRep.h"
+#include "DFG/DataFlowGraph.h"
 #include "Interpreter/Value.h"
 
 class ClosureNode;
@@ -9,16 +9,18 @@ class Closure;
 class Interpreter
 {
 public:
-	Interpreter(const IntRep* program);
-	~Interpreter();
+	static vector<Value> evaluateFunction(const Node* function, const vector<Value>& closure, const vector<Value>& arguments);
 	
-	Value evaluateSymbol(const SymbolVertex* symbol);
-	vector<Value> evaluateFunction(const SymbolVertex* function, const vector<Value>& arguments);
-	vector<Value> evaluateClosureCall(const Closure* closure, const vector<Value>& arguments);
-	Value evaluateClosure(const ClosureNode* closure);
+	Interpreter() { }
+	~Interpreter() { }
+	
+	Value evaluateEdge(const Edge* symbol);
 	
 private:
-	const IntRep* _program;
-	map<const SymbolVertex*, Value> _context;
+	typedef std::map<const Edge*, Value> Context;
+	Context _context;
 	
+	vector<Value> evaluateFunction(const Edge* function, const vector<Value>& arguments);
+	Closure* makeClosure(const Node* closure);
+	void evaluateFunction(const Node* function);
 };

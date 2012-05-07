@@ -17,8 +17,10 @@ public:
 	
 	const Edge* in(int index) const;
 	Edge* in(int index);
+	std::vector<const Edge*> in() const;
 	const Edge* out(int index) const;
 	Edge* out(int index);
+	std::vector<const Edge*> out() const;
 	
 	void connect(int index, Edge* edge);
 	void forgetEdge(const Edge* edge);

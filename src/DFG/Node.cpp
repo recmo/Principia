@@ -58,9 +58,12 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 	assert(to != 0);
 	assert(from != to);
 	bool foundsomething = false;
-	for(int i = 0; i < _inArrity; ++i)
-		if(foundsomething  |= _incomming[i] == from)
+	for(int i = 0; i < _inArrity; ++i){
+		if(_incomming[i] == from) {
 			_incomming[i] = to;
+			foundsomething = true;
+		}
+	}
 	to->addSink(this);
 	assert(foundsomething);
 }
@@ -97,6 +100,21 @@ std::set<Node*> Node::outClosures(bool ignoreFunctional)
 
 }
 
+std::vector<const Edge*> Node::in() const
+{
+	vector<const Edge*> result;
+	for(int i = 0; i < inArrity(); ++i)
+		result.push_back(in(i));
+	return result;
+}
+
+std::vector<const Edge*> Node::out() const
+{
+	vector<const Edge*> result;
+	for(int i = 0; i < outArrity(); ++i)
+		result.push_back(out(i));
+	return result;
+}
 
 
 

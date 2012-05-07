@@ -6,6 +6,7 @@
 #include "SourceProperty.h"
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
+#include <Interpreter/Builtins.h>
 
 Parser::Expression::Expression()
 : type(Parser::undetermined)
@@ -50,6 +51,9 @@ Parser& Parser::parse(const string& filename)
 			wcerr << L"\t"<<  _token->pretty_wchar_text();
 		wcerr << endl;
 		*/
+		
+		wcerr << decodeLocal(_token->type_id_name()) << endl;
+		
 		
 		// Dispatch on token type
 		switch(_token->type_id()) {
@@ -129,6 +133,12 @@ void Parser::parseIdentifier()
 		edge = new Edge();
 		edge->set(IdentifierProperty(id));
 		edge->set(source());
+		if(builtins.find(id) != builtins.end())
+			edge->set(ConstantProperty(builtins[id]));
+		
+		edge->print(wcerr);
+		edge->printProperties(wcerr);
+		
 		_scopeStack.back()[id] = edge;
 	}
 	if(_expressionStack.back().type == undetermined)
@@ -197,8 +207,7 @@ void Parser::parseNumber()
 			basePos++;
 			if(basePos == litteral.size()) break;
 		}
-		if(basePos < litteral.size())
-		{
+		if(basePos < litteral.size()) {
 			// Read the exponent sign if its there
 			int expSign = 1;
 			if(litteral[basePos] == exponentPositive) basePos++;
@@ -209,8 +218,7 @@ void Parser::parseNumber()
 			
 			// Read the rest of the exponent
 			exponent = 0;
-			for(; basePos < litteral.size(); ++basePos)
-			{
+			for(; basePos < litteral.size(); ++basePos) {
 				size_t digit = exponentDigits.find_first_of(litteral[basePos]);
 				if(digit == string::npos) throw "Syntax error in number";
 				exponent *= 10;
@@ -246,11 +254,27 @@ void Parser::parseNumber()
 		mantissa *= base;
 		mantissa += digit;
 	}
-	if(seenPoint) exponent += separators;
+	if(seenPoint)
+		exponent += separators;
 	
+	// Set a real or integer constant based on the radix point
 	Edge* constantEdge = new Edge;
 	constantEdge->set(source());
-	constantEdge->set(ConstantProperty(mantissa * pow(base, exponent)));
+	if(seenPoint) {
+		double value = mantissa * pow(base, exponent);
+		constantEdge->set(ConstantProperty(value));
+	} else {
+		sint64 value = mantissa;
+		uint64 squares = base;
+		assert(exponent >= 0);
+		while(exponent) {
+			if(exponent & 1)
+				value *= squares;
+			squares *= squares;
+			exponent >>= 1;
+		}
+		constantEdge->set(ConstantProperty(value));
+	}
 	_expressionStack.back().in.push_back(constantEdge);
 }
 
@@ -278,7 +302,8 @@ void Parser::parseBlockEnd()
 
 void Parser::parseStatementSeparator()
 {
-	finishNode();
+	// if(_expressionStack.size() > 1)
+		finishNode();
 }
 
 void Parser::parseBracketOpen()
@@ -313,6 +338,9 @@ void Parser::parseFailure()
 
 Edge* Parser::finishNode()
 {
+	if(_expressionStack.back().type == undetermined) {
+		wcout << _expressionStack.size() << endl;
+	}
 	assert(_expressionStack.back().type != undetermined);
 	NodeType type = (_expressionStack.back().type == call) ? NodeType::Call : NodeType::Closure;
 	Node* node = new Node(type,_expressionStack.back().in.size(), _expressionStack.back().out.size());
@@ -343,12 +371,21 @@ Edge* Parser::finishNode()
 			}
 		}
 	}
+	
+	// Add to the DFG
 	for(int i = 0; i != _expressionStack.back().in.size(); ++i)
 		node->connect(i, _expressionStack.back().in[i]);
 	_dfg->nodes().push_back(node);
 	_expressionStack.back().type = undetermined;
 	_expressionStack.back().out.clear();
 	_expressionStack.back().in.clear();
+		
+	// Add an identifier for printing purposes
+	if(node->type() == NodeType::Call && node->inArrity() >= 1 && node->in(0)->has<IdentifierProperty>())
+		node->set(IdentifierProperty(node->in(0)->get<IdentifierProperty>().value()));
+	else if(node->type() == NodeType::Closure && node->outArrity() >= 1 && node->out(0)->has<IdentifierProperty>())
+		node->set(IdentifierProperty(node->out(0)->get<IdentifierProperty>().value()));
+	
 	return (node->outArrity() > 0) ? node->out(0) : 0;
 }
 

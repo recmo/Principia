@@ -5,20 +5,24 @@
 #include <Parser/ConstantProperty.h>
 #include "Passes/ClosureProperty.h"
 
+bool debug = false;
+
 vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments)
 {
+	if(debug)
+		wcerr << closureNode << closure << arguments << endl;
 	assert(closureNode);
 	assert(closureNode->type() == NodeType::Closure);
 	assert(closureNode->has<ClosureProperty>());
 	assert(closureNode->outArrity() - 1 == arguments.size());
-	ClosureProperty cp = closureNode->get<ClosureProperty>();
+	const ClosureProperty& cp = closureNode->get<ClosureProperty>();
 	assert(cp.edges().size() == closure.size());
 	
 	// Scope an interpreter
 	Interpreter interpreter;
 	
 	// Load the closure
-	vector<const Edge*> closureEdges = cp.edges();
+	const vector<const Edge*>& closureEdges = cp.edges();
 	for(int i = 0; i < closureEdges.size(); ++i)
 		interpreter._context[closureEdges[i]] = closure[i];
 	
@@ -94,7 +98,9 @@ void Interpreter::evaluateFunction(const Node* callNode)
 	// Evaluate builtin or closure
 	vector<Value> returns;
 	if(value.kind == Value::Builtin) {
-		wcerr << value << arguments << endl;
+		
+		if(debug)
+			wcerr << value << arguments << endl;
 		
 		returns = value.builtin()(arguments);
 	}
@@ -102,7 +108,8 @@ void Interpreter::evaluateFunction(const Node* callNode)
 		const Node* closureNode = value.closure()->node();
 		vector<Value> closureContext = value.closure()->context();
 		
-		wcerr << value << closureContext << arguments << endl;
+		if(debug)
+			wcerr << value << closureContext << arguments << endl;
 		
 		// Evaluate the return values
 		returns = evaluateFunction(closureNode, closureContext, arguments);
@@ -117,7 +124,8 @@ Closure* Interpreter::makeClosure(const Node* node)
 {
 	assert(node->type() == NodeType::Closure);
 	assert(node->has<ClosureProperty>());
-	wcerr << "Making closure for " << node << endl;
+	if(debug)
+		wcerr << "Making closure for " << node << endl;
 	
 	// Create the closure object
 	Closure* closure = new Closure(node);
@@ -127,8 +135,9 @@ Closure* Interpreter::makeClosure(const Node* node)
 	_context[node->out(0)] = Value(closure);
 	
 	// Fill the closure object
-	vector<Value> values;
-	foreach(const Edge* edge, node->get<ClosureProperty>().edges())
+	const vector<const Edge*> edges = node->get<ClosureProperty>().edges();
+	closure->context().reserve(edges.size());
+	foreach(const Edge* edge, edges)
 		closure->context().push_back(evaluateEdge(edge));
 	
 	// Return it

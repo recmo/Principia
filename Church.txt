@@ -1,5 +1,9 @@
 title ↦ “Church encoding”
 section ↦ “Church booleans”
+
+true then else ↦ then
+false then else ↦ else
+
 section ↦ “Church lists”
 section ↦ “Church numerals”
 
@@ -12,15 +16,43 @@ plus m n ↦ (f ↦ (x ↦ (≔ (≔ m f) (≔ (≔ n f) x))))
 mult m n ↦ (f ↦ (≔ m (≔ n f)) )
 exp m n ↦ (≔ n m)
 
-pred n ≔ (f↦(x↦ (≔(≔(≔ n (g↦(h↦(≔ h (≔ g f))))) (u ↦ x)) (v ↦ v)) ))
-
-comment ↦ “sub m n ↦ (≔ (≔ n pred) m)
-isZero n ↦ (≔(≔ n (x ↦ 0)) 1)”
 
 
-encode n ↦ (≔(≔ if n (↦ (≔ succ (≔ encode (≔ sub n 1)))) (↦ c0) ))
-decode n ↦ (≔ (≔ n (n ↦ (≔ add n 1))) 0)
+comment ↦ “pred ≡ λn.λf.λx. n (λg.λh. h (g f)) (λu. x) (λu. u)”
 
+
+pred_initial ↦ c0 c0
+
+pred_next pred_val ↦ (↦ b (≔ succ b))
+	a b ≔ pred_val
+
+pred n ↦ first
+	first second ≔ (≔ (≔ n pred_next) pred_initial)
+
+
+isZero n ↦ (≔(≔ n (x ↦ 0)) 1)
+
+csub m n ↦ (≔ (≔ n pred) m)
+
+
+fact n ↦ r
+	r ≔ (≔ if (≔ isZero n) (↦ c1) (↦ (≔ mult n (≔ fact (≔ pred n)))) )
+
+
+church n ↦ (≔(≔ if n (↦ (≔ succ (≔ church (≔ sub n 1)))) (↦ c0) ))
+
+unchurch n ↦ (≔ (≔ n (n ↦ (≔ add n 1))) 0)
+
+
+testf a ↦ (≔ unchurch (≔ fact (≔ church a)))
+
+tests a b ↦ (≔ unchurch (≔ mult (≔ church a) (≔ church b)))
+
+
+
+
+
+comment ↦ “
 
 TODO ↦ “Factorial, Ackermann, Goodstein implementation”
 
@@ -36,3 +68,4 @@ fact ≔ Y fact
 
 r n ↦ (≔ decode (≔ pred (≔ encode n) ))
 
+”

@@ -10,7 +10,29 @@
 #include "Parser/IdentifierProperty.h"
 #include "Passes/DotFileWriter.h"
 #include "Passes/LambdaLifter.h"
+#include "Passes/ConstantClosure.h"
 #include <cmath>
+
+// TODO: Create constant values for nodes that have empty closures
+// TODO: Then re-do the closure calculation and repeat untill a fixed point is reached
+
+
+
+
+
+// Boolean edges as truth values
+// Theorems as 
+
+// Implement boolean values as:
+// True a b ↦ a
+// False a b ↦ b
+// Then the following are equivalent:
+// a ≔ if condition then else
+// a ≔ condition then else
+
+// IDEA: False = the non-halting function, true = everything else
+
+
 
 /*
 
@@ -172,15 +194,19 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl;
 	
 	// Close over closures
+	// Create constant closures
+	// Repeat untill fixed point
 	LambdaLifter ll(dfg);
-	ll.anotateClosures();
+	ConstantClosure cc(dfg);
+	do {
+		ll.anotateClosures();
+		cc.anotateClosures();
+	} while (!(ll.fixedPoint() && cc.fixedPoint()));
 	
-	wcerr << endl << endl;
-	foreach(const Node* node, dfg->nodes())
-		wcerr << node << " " << node->out() << " " << node->in() << endl; 
-	wcerr << endl << endl;
 	
-	// Lambda lift the struture
+	//
+	//  Parse the command line
+	//
 	
 	// Get the edge
 	Edge* edge = 0;

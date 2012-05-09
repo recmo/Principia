@@ -7,13 +7,16 @@ class Edge;
 /// Anotate the DFG with ClosureProperties
 class LambdaLifter {
 public:
-	LambdaLifter(DataFlowGraph* dfg): _dfg(dfg) { }
+	LambdaLifter(DataFlowGraph* dfg): _dfg(dfg), _fixedPoint(true) { }
 	~LambdaLifter() { }
 	
 	void anotateClosures();
 	
+	bool fixedPoint() const { return _fixedPoint; }
+	
 protected:
 	DataFlowGraph* _dfg;
+	bool _fixedPoint;
 	
 	void anotateClosure(Node* closureNode);
 	void recurseOut(Edge* edge, std::vector<Edge*>* edges);

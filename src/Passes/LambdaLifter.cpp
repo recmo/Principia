@@ -9,6 +9,7 @@
 
 void LambdaLifter::anotateClosures()
 {
+	_fixedPoint = true;
 	foreach(Node* node, _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
@@ -43,7 +44,9 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 				if(!edge->source() && edge->has<ConstantProperty>())
 					continue;
 				Node* directSource = edge->source();
-				assert(edge->source());
+				if(!directSource)
+					wcerr << edge << " has no source" << endl;
+				assert(directSource);
 				if(contains(lazySet, directSource))
 					continue;
 				if(contains(directSources, directSource))
@@ -94,9 +97,30 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 	}
 	wcerr << closureNode << " border " << border << endl;
 	
+	// Check if it already has a closure list
+	if(closureNode->has<ClosureProperty>()) {
+		const vector<const Edge*>& oldList = closureNode->get<ClosureProperty>().edges();
+		
+		// Check if they are identical
+		if(oldList.size() == border.size()) {
+			bool same = true;
+			foreach(const Edge* edge, oldList) {
+				if(!contains(border, edge)) {
+					same = false;
+					break;
+				}
+			}
+			
+			// Return without chaning anything
+			if(same)
+				return;
+		}
+	}
+	
 	// Set the closure property
 	ClosureProperty cp(border);
 	closureNode->set(cp);
+	_fixedPoint = false;
 }
 
 void LambdaLifter::recurseOut(Edge* edge, vector<Edge*>* edges)

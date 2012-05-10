@@ -12,6 +12,7 @@ public:
 	const static int Source = 1;
 	const static int Constant = 2;
 	const static int Closure = 3;
+	const static int Order = 4;
 	
 private:
 	int value;

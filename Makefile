@@ -11,7 +11,8 @@ compiler := g++ -pipe
 compiler := ${compiler} -std=c++0x -Wall -Wextra
 compiler := ${compiler} -I. -Isrc -Ibuild/resources
 # compiler := ${compiler} -fgraphite -flto
-compiler := ${compiler} -march=native -O3
+compiler := ${compiler} -march=corei7 -O3
+#compiler := ${compiler} -march=native -O3
 # compiler := ${compiler} -funsafe-loop-optimizations
 # compiler := ${compiler} -Wunsafe-loop-optimizations
 # compiler := ${compiler} -ffast-math -freciprocal-math

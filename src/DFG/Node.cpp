@@ -65,7 +65,8 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 		}
 	}
 	to->addSink(this);
-	assert(foundsomething);
+	wcerr << "Node " << this << " did not contain " << from << endl;
+	// assert(foundsomething);
 }
 
 void Node::print(std::wostream& out) const

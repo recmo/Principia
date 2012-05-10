@@ -11,14 +11,8 @@
 #include "Passes/DotFileWriter.h"
 #include "Passes/LambdaLifter.h"
 #include "Passes/ConstantClosure.h"
+#include "Passes/TopologicalSorter.h"
 #include <cmath>
-
-// TODO: Create constant values for nodes that have empty closures
-// TODO: Then re-do the closure calculation and repeat untill a fixed point is reached
-
-
-
-
 
 // Boolean edges as truth values
 // Theorems as 
@@ -186,12 +180,14 @@ sint32 Main(const vector<string>& args)
 	//   - Verify that all cycles go through the closure
 	//   - Contract the strongly connected component to  
 	
+	/*
 	// Validate
 	wcerr << L"Validating structure…" << flush;
 	Validator validator(dfg);
 	validator.validate();
 	validator.print();
 	wcerr << endl;
+	*/
 	
 	// Close over closures
 	// Create constant closures
@@ -203,6 +199,10 @@ sint32 Main(const vector<string>& args)
 		cc.anotateClosures();
 	} while (!(ll.fixedPoint() && cc.fixedPoint()));
 	
+	
+	// Topological sort the bodies of functions
+	TopologicalSorter ts(dfg);
+	ts.sortClosures();
 	
 	//
 	//  Parse the command line
@@ -245,7 +245,9 @@ sint32 Main(const vector<string>& args)
 		wcerr << "Calling with arguments: " << arguments << endl;
 		
 		// Call function
-		vector<Value> results = Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
+		vector<Value> results;
+		results.resize(value.closure()->node()->inArrity());
+		Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context().data(), value.closure()->context().size(), arguments.data(), arguments.size(), results.data(), results.size());
 		wcout << "Resulted in: " << results << endl;
 	}
 	

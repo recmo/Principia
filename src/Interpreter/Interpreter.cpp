@@ -5,18 +5,19 @@
 #include <Parser/ConstantProperty.h>
 #include "Passes/ClosureProperty.h"
 
-bool debug = false;
+#define debug true
 
-vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments)
+void Interpreter::evaluateFunction(const Node* closureNode, const Value* closure, int cl, const Value* arguments, int al, Value* returns, int rl)
 {
 	if(debug)
 		wcerr << closureNode << closure << arguments << endl;
 	assert(closureNode);
 	assert(closureNode->type() == NodeType::Closure);
 	assert(closureNode->has<ClosureProperty>());
-	assert(closureNode->outArrity() - 1 == arguments.size());
+	assert(closureNode->outArrity() - 1 == al);
+	assert(closureNode->inArrity() == rl);
 	const ClosureProperty& cp = closureNode->get<ClosureProperty>();
-	assert(cp.edges().size() == closure.size());
+	assert(cp.edges().size() == cl);
 	
 	// Scope an interpreter
 	Interpreter interpreter;
@@ -31,11 +32,8 @@ vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vecto
 		interpreter._context[closureNode->out(i)] = arguments[i - 1];
 	
 	// Evaluate the returns
-	vector<Value> returns;
-	returns.reserve(closureNode->inArrity());
 	for(int i = 0; i < closureNode->inArrity(); ++i)
-		returns.push_back(interpreter.evaluateEdge(closureNode->in(i)));
-	return returns;
+		returns[i] = interpreter.evaluateEdge(closureNode->in(i));
 }
 
 Value Interpreter::evaluateEdge(const Edge* edge)
@@ -112,7 +110,8 @@ void Interpreter::evaluateFunction(const Node* callNode)
 			wcerr << value << closureContext << arguments << endl;
 		
 		// Evaluate the return values
-		returns = evaluateFunction(closureNode, closureContext, arguments);
+		returns.resize(closureNode->inArrity());
+		evaluateFunction(closureNode, closureContext.data(), closureContext.size(), arguments.data(), arguments.size(), returns.data(), returns.size());
 	}
 	
 	// Store the return values in the current context

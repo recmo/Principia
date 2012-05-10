@@ -7,6 +7,8 @@
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 
+#define debug false
+
 void LambdaLifter::anotateClosures()
 {
 	_fixedPoint = true;
@@ -29,7 +31,9 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 			recurseOut(sink, &internalNodes);
 	}
 	recurseOut(closureNode, &internalNodes);
-	wcerr << closureNode << " internalNodes " << internalNodes << endl;
+	
+	if(debug)
+		wcerr << closureNode << " internalNodes " << internalNodes << endl;
 	
 	// Calculate the lazy set
 	bool fixedpoint = false;
@@ -79,7 +83,8 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 			fixedpoint = false;
 		}
 	}
-	wcerr << closureNode << " lazy set " << lazySet << endl;
+	if(debug)
+		wcerr << closureNode << " lazy set " << lazySet << endl;
 	
 	// Calculate the border
 	vector<const Edge*> border;
@@ -95,7 +100,8 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 			border.push_back(in);
 		}
 	}
-	wcerr << closureNode << " border " << border << endl;
+	if(debug)
+		wcerr << closureNode << " border " << border << endl;
 	
 	// Check if it already has a closure list
 	if(closureNode->has<ClosureProperty>()) {

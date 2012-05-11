@@ -12,6 +12,7 @@
 #include "Passes/LambdaLifter.h"
 #include "Passes/ConstantClosure.h"
 #include "Passes/TopologicalSorter.h"
+#include "Passes/StackAllocator.h"
 #include <cmath>
 
 // Boolean edges as truth values
@@ -207,6 +208,11 @@ sint32 Main(const vector<string>& args)
 	// Topological sort the bodies of functions
 	TopologicalSorter ts(dfg);
 	ts.sortClosures();
+	wcerr << endl;
+	
+	// Add stack allocator
+	StackAllocator sa(dfg);
+	sa.annotate();
 	wcerr << endl;
 	
 	//

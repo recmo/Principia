@@ -2,7 +2,6 @@
 
 PropertyType OrderProperty::classType = PropertyType::Order;
 
-
 OrderProperty::OrderProperty(const OrderProperty& copy)
 : _nodes(copy._nodes)
 {

@@ -51,6 +51,8 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 				if(!directSource)
 					wcerr << edge << " has no source" << endl;
 				assert(directSource);
+				if(directSource->type() == NodeType::Closure && edge != directSource->out(0))
+					continue; // Only make-closure is valid
 				if(contains(lazySet, directSource))
 					continue;
 				if(contains(directSources, directSource))

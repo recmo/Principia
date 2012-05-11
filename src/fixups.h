@@ -75,6 +75,20 @@ T max(const T& a, const T& b)
 }
 
 template<class T>
+std::vector<T>& operator<<(std::vector<T>& lhs, const T& rhs)
+{
+	lhs.push_back(rhs);
+	return lhs;
+}
+
+template<class T>
+std::vector<T>& operator<<(std::vector<T>& lhs, const std::vector<T>& rhs)
+{
+	lhs.insert(lhs.end(), rhs.begin(), rhs.end());
+	return lhs;
+}
+
+template<class T>
 std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)
 {
 	typename std::vector<T>::const_iterator it = v.begin();

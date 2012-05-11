@@ -13,6 +13,7 @@ public:
 	const static int Constant = 2;
 	const static int Closure = 3;
 	const static int Order = 4;
+	const static int Stack = 5;
 	
 private:
 	int value;

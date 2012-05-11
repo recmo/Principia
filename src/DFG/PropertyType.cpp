@@ -9,6 +9,7 @@ string PropertyType::toString() const
 		case PropertyType::Constant: return L"Constant";
 		case PropertyType::Closure: return L"Closure";
 		case PropertyType::Order: return L"Order";
+		case PropertyType::Stack: return L"Stack";
 		default: return L"Illegal value";
 	}
 }

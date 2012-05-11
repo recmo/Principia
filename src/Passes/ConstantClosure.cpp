@@ -5,6 +5,8 @@
 #include <Parser/ConstantProperty.h>
 #include <Interpreter/Closure.h>
 
+#define debug false
+
 void ConstantClosure::anotateClosures()
 {
 	_fixedPoint = true;
@@ -23,7 +25,8 @@ void ConstantClosure::anotateClosures()
 		// We now have an closure node with an empty list of closures
 		// Make it constant!
 		node->out(0)->set(ConstantProperty(Value(new Closure(node))));
-		wcerr << node << " is constant " <<  node->out(0)->get<ConstantProperty>().value() << endl;
+		if(debug)
+			wcerr << node << " is constant " <<  node->out(0)->get<ConstantProperty>().value() << endl;
 		
 		_fixedPoint = false;
 	}

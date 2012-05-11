@@ -31,6 +31,7 @@ std::wostream& operator<<(std::wostream& out, const Value& value)
 			out << L"“" << value.stringValue() << L"”";
 			break;
 		default:
+			wcerr << endl << L"Unimplemented type " << value.kind << endl;
 			throw "Unimplemented type";
 	}
 	return out;

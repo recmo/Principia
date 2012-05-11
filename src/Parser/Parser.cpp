@@ -8,6 +8,8 @@
 #include "IdentifierProperty.h"
 #include <Interpreter/Builtins.h>
 
+#define debug false
+
 std::wostream& operator<<(std::wostream& out, const Parser::Expression& expression)
 {
 	out << "(";
@@ -56,20 +58,22 @@ Parser& Parser::parse(const string& filename)
 	do {
 		lexer.receive(&_token);
 		
-		wcerr << endl << endl;
-		wcerr << L"Scope stack: " << _scopeStack << endl;
-		wcerr << L"Expression stack: " << _expressionStack << endl;
-		foreach(const Node* node, _dfg->nodes())
-			wcerr << node << " " << node->out() << " " << node->in() << endl; 
-		
-		// Debug print token
-		wcerr << filename << L" ";
-		wcerr << _token->line_number() << L":";
-		wcerr << _token->column_number() << L" ";
-		wcerr << decodeLocal(_token->type_id_name());
-		if(_token->type_id() == TokenIdentifier)
-			wcerr << L"\t"<<  _token->pretty_wchar_text();
-		wcerr << endl;
+		if(debug) {
+			wcerr << endl << endl;
+			wcerr << L"Scope stack: " << _scopeStack << endl;
+			wcerr << L"Expression stack: " << _expressionStack << endl;
+			foreach(const Node* node, _dfg->nodes())
+				wcerr << node << " " << node->out() << " " << node->in() << endl; 
+			
+			// Debug print token
+			wcerr << filename << L" ";
+			wcerr << _token->line_number() << L":";
+			wcerr << _token->column_number() << L" ";
+			wcerr << decodeLocal(_token->type_id_name());
+			if(_token->type_id() == TokenIdentifier)
+				wcerr << L"\t"<<  _token->pretty_wchar_text();
+			wcerr << endl;
+		}
 		
 		// Dispatch on token type
 		switch(_token->type_id()) {
@@ -378,10 +382,12 @@ Edge* Parser::finishNode()
 			to->set(from->get<SourceProperty>());
 		
 		// Replace in DFG
-		wcerr << "Replacing " << from << " with " << to << endl;
+		if(debug)
+			wcerr << "Replacing " << from << " with " << to << endl;
 		from->replaceWith(to);
-		foreach(const Node* node, _dfg->nodes())
-			wcerr << node << " " << node->out() << " " << node->in() << endl; 
+		if(debug)
+			foreach(const Node* node, _dfg->nodes())
+				wcerr << node << " " << node->out() << " " << node->in() << endl; 
 		
 		// Replace in scope as well
 		for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend(); ++scopei) {
@@ -412,7 +418,8 @@ Edge* Parser::finishNode()
 	else if(node->type() == NodeType::Closure && node->outArrity() >= 1 && node->out(0)->has<IdentifierProperty>())
 		node->set(IdentifierProperty(node->out(0)->get<IdentifierProperty>().value()));
 	
-	wcerr << node << node->in() << node->out() << endl;
+	if(debug)
+		wcerr << node << node->in() << node->out() << endl;
 	
 	return (node->outArrity() > 0) ? node->out(0) : 0;
 }

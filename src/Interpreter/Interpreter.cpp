@@ -4,20 +4,20 @@
 #include "DFG/DataFlowGraph.h"
 #include <Parser/ConstantProperty.h>
 #include "Passes/ClosureProperty.h"
+#include <Passes/OrderProperty.h>
 
-#define debug true
+#define debug false
 
-void Interpreter::evaluateFunction(const Node* closureNode, const Value* closure, int cl, const Value* arguments, int al, Value* returns, int rl)
+vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments)
 {
 	if(debug)
-		wcerr << closureNode << closure << arguments << endl;
+		wcerr << closureNode << " " << closure << " " << arguments << endl;
 	assert(closureNode);
 	assert(closureNode->type() == NodeType::Closure);
 	assert(closureNode->has<ClosureProperty>());
-	assert(closureNode->outArrity() - 1 == al);
-	assert(closureNode->inArrity() == rl);
+	assert(closureNode->outArrity() - 1 == arguments.size());
 	const ClosureProperty& cp = closureNode->get<ClosureProperty>();
-	assert(cp.edges().size() == cl);
+	assert(cp.edges().size() == closure.size());
 	
 	// Scope an interpreter
 	Interpreter interpreter;
@@ -31,9 +31,22 @@ void Interpreter::evaluateFunction(const Node* closureNode, const Value* closure
 	for(int i = 1; i < closureNode->outArrity(); ++i)
 		interpreter._context[closureNode->out(i)] = arguments[i - 1];
 	
+	vector<Value> returns;
+	
+	// Execute the function body in order
+	const vector<const Node*>& order = closureNode->get<OrderProperty>().nodes();
+	foreach(const Node* node, order) {
+		if(node->type() == NodeType::Call)
+			interpreter.evaluateFunction(node);
+		else
+			interpreter._context[node->out(0)] = Value(interpreter.makeClosure(node));
+	}
+	
 	// Evaluate the returns
 	for(int i = 0; i < closureNode->inArrity(); ++i)
-		returns[i] = interpreter.evaluateEdge(closureNode->in(i));
+		returns.push_back(interpreter.evaluateEdge(closureNode->in(i)));
+		
+	return returns;
 }
 
 Value Interpreter::evaluateEdge(const Edge* edge)
@@ -46,6 +59,15 @@ Value Interpreter::evaluateEdge(const Edge* edge)
 	Context::iterator contextValue = _context.find(edge);
 	if(contextValue != _context.end())
 		return contextValue->second;
+	
+	wcerr << edge << endl;
+	wcerr << "!!! Unordered evaluation !!!" << endl;
+	
+	wcerr << _context << endl;
+	wcerr << "source in: " << edge->source()->in() << endl;
+	if(edge->source()->has<ClosureProperty>())
+		wcerr << "source closure " << edge->source()->get<ClosureProperty>().edges() << endl;
+	assert(false);
 	
 	// Evaluate
 	Value result;
@@ -76,6 +98,8 @@ Value Interpreter::evaluateEdge(const Edge* edge)
 	
 	// Store the result
 	_context[edge] = result;
+	
+	assert(result.kind != Value::None);
 	return result;
 }
 
@@ -85,6 +109,8 @@ void Interpreter::evaluateFunction(const Node* callNode)
 	
 	// Evaluate the closure
 	Value value = evaluateEdge(callNode->in(0));
+	if(!(value.kind == Value::Builtin || value.kind == Value::Function))
+		wcerr << "Value " << value << " is not a function" << endl;
 	assert(value.kind == Value::Builtin || value.kind == Value::Function);
 	
 	// Evaluate the arguments
@@ -110,8 +136,7 @@ void Interpreter::evaluateFunction(const Node* callNode)
 			wcerr << value << closureContext << arguments << endl;
 		
 		// Evaluate the return values
-		returns.resize(closureNode->inArrity());
-		evaluateFunction(closureNode, closureContext.data(), closureContext.size(), arguments.data(), arguments.size(), returns.data(), returns.size());
+		returns = evaluateFunction(closureNode, closureContext, arguments);
 	}
 	
 	// Store the return values in the current context

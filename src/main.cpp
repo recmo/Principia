@@ -157,11 +157,14 @@ sint32 Main(const vector<string>& args)
 	DataFlowGraph* dfg = parser.dataFlowGraph();
 	wcerr << endl;
 	
+	/*
 	wcerr << endl << endl;
 	foreach(const Node* node, dfg->nodes())
 		wcerr << node << " " << node->out() << " " << node->in() << endl; 
 	wcerr << endl << endl;
+	*/
 	
+	/*
 	// Print structure
 	wcerr << L"Writing dot file…" << flush;
 	DotFileWriter dfw(L"test.dot");
@@ -169,6 +172,7 @@ sint32 Main(const vector<string>& args)
 	dfw.write(*dfg);
 	// make && ./debug Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
 	wcerr << endl;
+	*/
 	
 	// To validate
 	// - Take the DFG
@@ -203,6 +207,7 @@ sint32 Main(const vector<string>& args)
 	// Topological sort the bodies of functions
 	TopologicalSorter ts(dfg);
 	ts.sortClosures();
+	wcerr << endl;
 	
 	//
 	//  Parse the command line
@@ -245,9 +250,7 @@ sint32 Main(const vector<string>& args)
 		wcerr << "Calling with arguments: " << arguments << endl;
 		
 		// Call function
-		vector<Value> results;
-		results.resize(value.closure()->node()->inArrity());
-		Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context().data(), value.closure()->context().size(), arguments.data(), arguments.size(), results.data(), results.size());
+		vector<Value> results = Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
 		wcout << "Resulted in: " << results << endl;
 	}
 	

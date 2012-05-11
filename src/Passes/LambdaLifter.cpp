@@ -170,5 +170,3 @@ void LambdaLifter::recurseIn(Node* node, std::vector<Edge*>* edges)
 	for(int i = 0; i < node->inArrity(); ++i)
 		recurseIn(node->in(i), edges);
 }
-
-

@@ -5,72 +5,78 @@
 #include <DFG/Node.h>
 #include <Parser/ConstantProperty.h>
 
+#define debug false
+
 void TopologicalSorter::sortClosures()
 {
 	foreach(Node* node, _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
-		sortClosure(node);
+		
+		// Set the state
+		_closure = node;
+		_closed.clear();
+		_arguments.clear();
+		_order.clear();
+		
+		// Calculate the topological order 
+		sortClosure();
 	}
 }
 
-void TopologicalSorter::sortClosure(Node* closureNode)
+void TopologicalSorter::sortClosure()
 {
-	assert(closureNode->has<ClosureProperty>());
-	const vector<const Edge*>& closure = closureNode->get<ClosureProperty>().edges();
-	vector<const Edge*> returns = closureNode->in();
-	vector<const Edge*> args;
-	for(int i = 1; i < closureNode->outArrity(); ++i)
-		args.push_back(closureNode->out(i));
-	
-	vector<const Node*> ordered;
+	assert(_closure->has<ClosureProperty>());
+	_closed = _closure->get<ClosureProperty>().edges();
+	for(int i = 1; i < _closure->outArrity(); ++i)
+		_arguments.push_back(_closure->out(i));
 	
 	// Start from the returns
-	foreach(const Edge* edge, returns) {
+	foreach(const Edge* edge, _closure->in()) {
 		if(edge->has<ConstantProperty>())
 			continue;
-		if(contains(closure, edge))
+		if(contains(_closed, edge))
 			continue;
-		if(contains(args, edge))
+		if(contains(_arguments, edge))
 			continue;
-		const Node* source = edge->source();
-		if(contains(ordered, source))
-			continue;
-		ordered.push_back(source);
+		sortClosure(edge->source());
 	}
 	
-	// Now go backwards untill everything is added
-	bool fixedpoint;
-	do {
-		fixedpoint = true;
-		foreach(const Node* node, ordered) {
-			
-			// Find the sources for this node
-			vector<const Edge*> sources;
-			if(node->type() == NodeType::Call)
-				sources = node->in();
-			else
-				sources = node->get<ClosureProperty>().edges();
-			
-			// And go back from there
-			foreach(const Edge* edge, sources) {
-				if(edge->has<ConstantProperty>())
-					continue;
-				if(contains(closure, edge))
-					continue;
-				if(contains(args, edge))
-					continue;
-				const Node* source = edge->source();
-				if(contains(ordered, source))
-					continue;
-				ordered.push_back(source);
-				fixedpoint = false;
-			}
-		}
-	} while(!fixedpoint);
-	
-	// The reversed list is the evaluation order
-	std::reverse(ordered.begin(), ordered.end());
-	closureNode->set(OrderProperty(ordered));
+	// Add OrderProperty
+	_closure->set(OrderProperty(_order));
+	if(debug)
+		wcerr << _closure << " order " << _order << endl;
 }
+
+void TopologicalSorter::sortClosure(const Node* node)
+{
+	if(contains(_order, node))
+		return;
+	
+	// Find the nodes sources
+	vector<const Edge*> sources;
+	if(node->type() == NodeType::Call)
+		sources = node->in();
+	else
+		sources = node->get<ClosureProperty>().edges();
+	if(debug)
+		wcerr << node << " sources " << sources << endl;
+	
+	// Recurse on the sources
+	foreach(const Edge* edge, sources) {
+		if(edge->has<ConstantProperty>())
+			continue;
+		if(contains(_closed, edge))
+			continue;
+		if(contains(_arguments, edge))
+			continue;
+		sortClosure(edge->source());
+	}
+	
+	// Add the node after al its dependencies are evaluated
+	if(debug)
+		wcerr << "Adding " << node << endl;
+	_order.push_back(node);
+}
+
 

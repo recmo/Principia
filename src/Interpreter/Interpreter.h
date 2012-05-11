@@ -9,7 +9,7 @@ class Closure;
 class Interpreter
 {
 public:
-	static void evaluateFunction(const Node* closureNode, const Value* closure, int cl, const Value* arguments, int al, Value* returns, int rl);
+	static vector<Value> evaluateFunction(const Node* closureNode, const vector<Value>& closure, const vector<Value>& arguments);
 	
 	Interpreter() { }
 	~Interpreter() { }

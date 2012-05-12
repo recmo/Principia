@@ -14,6 +14,7 @@ public:
 	const static int Closure = 3;
 	const static int Order = 4;
 	const static int Stack = 5;
+	const static int ReturnStack = 6;
 	
 private:
 	int value;

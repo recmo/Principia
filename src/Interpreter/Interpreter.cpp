@@ -5,6 +5,8 @@
 #include <Parser/ConstantProperty.h>
 #include "Passes/ClosureProperty.h"
 #include <Passes/OrderProperty.h>
+#include <Passes/StackProperty.h>
+#include <Passes/ReturnStackProperty.h>
 
 #define debug false
 
@@ -14,16 +16,17 @@ vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vecto
 		wcerr << closureNode << " " << closure << " " << arguments << endl;
 	assert(closureNode);
 	assert(closureNode->type() == NodeType::Closure);
-	assert(closureNode->has<ClosureProperty>());
 	assert(closureNode->outArrity() - 1 == arguments.size());
-	const ClosureProperty& cp = closureNode->get<ClosureProperty>();
-	assert(cp.edges().size() == closure.size());
+	assert(closureNode->has<ClosureProperty>());
+	assert(closureNode->get<ClosureProperty>().edges().size() == closure.size());
+	assert(closureNode->has<OrderProperty>());
+	assert(closureNode->has<ReturnStackProperty>());
 	
 	// Scope an interpreter
 	Interpreter interpreter;
 	
 	// Load the closure
-	const vector<const Edge*>& closureEdges = cp.edges();
+	const vector<const Edge*>& closureEdges = closureNode->get<ClosureProperty>().edges();
 	for(int i = 0; i < closureEdges.size(); ++i)
 		interpreter._context[closureEdges[i]] = closure[i];
 	
@@ -45,7 +48,7 @@ vector<Value> Interpreter::evaluateFunction(const Node* closureNode, const vecto
 	// Evaluate the returns
 	for(int i = 0; i < closureNode->inArrity(); ++i)
 		returns.push_back(interpreter.evaluateEdge(closureNode->in(i)));
-		
+	
 	return returns;
 }
 

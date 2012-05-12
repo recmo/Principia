@@ -3,6 +3,7 @@
 #include "Interpreter/Interpreter.h"
 #include "Interpreter/Value.h"
 #include "Interpreter/Closure.h"
+#include "Interpreter/StackMachine.h"
 #include <fstream>
 #include "Passes/Validator.h"
 #include "Parser/Parser.h"
@@ -256,7 +257,7 @@ sint32 Main(const vector<string>& args)
 		wcerr << "Calling with arguments: " << arguments << endl;
 		
 		// Call function
-		vector<Value> results = Interpreter::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
+		vector<Value> results = StackMachine::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
 		wcout << "Resulted in: " << results << endl;
 	}
 	

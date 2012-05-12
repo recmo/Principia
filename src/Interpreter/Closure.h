@@ -10,6 +10,7 @@ class Closure
 {
 public:
 	Closure(const Node* closure);
+	Closure(const Node* closure, const std::vector<Value>& context);
 	
 	const Node* node() const { return _closure; }
 	const std::vector<Value>& context() const { return _context; }

@@ -2,9 +2,10 @@
 #include "OrderProperty.h"
 #include "ClosureProperty.h"
 #include "StackProperty.h"
+#include "ReturnStackProperty.h"
 #include <Parser/ConstantProperty.h>
 
-#define debug true
+#define debug false
 
 void StackAllocator::annotate()
 {
@@ -15,10 +16,10 @@ void StackAllocator::annotate()
 			continue;
 		
 		// Collect all values on a stack
-		vector<const Edge*> edges;
-		edges << node->get<ClosureProperty>().edges();
+		vector<const Edge*> stack;
+		stack << node->get<ClosureProperty>().edges();
 		for(int i = 1; i < node->outArrity(); ++i)
-			edges.push_back(node->out(i));
+			stack.push_back(node->out(i));
 		// Process the function body in evaluation order
 		vector<const Node*> body = node->get<OrderProperty>().nodes();
 		foreach(const Node* eval, body){
@@ -29,8 +30,8 @@ void StackAllocator::annotate()
 			for(int i = 0; i < sources.size(); ++i) {
 				if(sources[i]->has<ConstantProperty>())
 					continue;
-				for(int j = 0; j < edges.size(); ++j) {
-					if(sources[i] == edges[j]) {
+				for(int j = 0; j < stack.size(); ++j) {
+					if(sources[i] == stack[j]) {
 						stackPositions[i] = j;
 						break;
 					}
@@ -45,12 +46,29 @@ void StackAllocator::annotate()
 			
 			// Add the returns to the stack
 			if(eval->type() == NodeType::Call)
-				edges << eval->out();
+				stack << eval->out();
 			else
-				edges << eval->out(0);
+				stack << eval->out(0);
 		}
+		wcerr << node << " stack "  << stack << endl;
 		
-		wcerr << node << " stack "  << edges << endl;
-		
+		// Collect the return values from the stack
+		vector<int> returnIndices;
+		returnIndices.reserve(node->inArrity());
+		for(int i = 0; i < node->inArrity(); ++i) {
+			const Edge* returnValue = node->in(i);
+			if(returnValue->has<ConstantProperty>()) {
+				returnIndices << -1;
+				continue;
+			}
+			for(int j = 0; i < stack.size(); ++j) {
+				if(returnValue == stack[j]) {
+					returnIndices << j;
+					break;
+				}
+			}
+		}
+		node->set(ReturnStackProperty(returnIndices));
+		wcerr << node << " returns "  << returnIndices << endl;
 	}
 }

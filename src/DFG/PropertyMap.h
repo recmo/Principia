@@ -34,8 +34,10 @@ template<class T> bool PropertyMap::has() const
 template<class T> const T& PropertyMap::get() const
 {
 	const Property* prop = get(T::classType);
-	const T* propT = dynamic_cast<const T*>(prop);
-	if(propT == 0) throw L"Invalid propery map";
-	return *propT;
+	//const T* propT = dynamic_cast<const T*>(prop);
+	//if(propT == 0)
+	//	throw L"Invalid propery map";
+	//return *propT;
+	return *reinterpret_cast<const T*>(prop);
 }
 

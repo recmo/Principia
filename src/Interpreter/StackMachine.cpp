@@ -57,6 +57,7 @@ void StackMachine::evaluateCall(const Node* closure)
 				
 				// Call the builtin function
 				vector<Value> args;
+				args.reserve(stackPositions.size() - 1);
 				for(int i = 1; i < stackPositions.size(); ++i) {
 					if(stackPositions[i] == -1)
 						args << node->in(i)->get<ConstantProperty>().value();

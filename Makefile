@@ -20,6 +20,15 @@ compiler := ${compiler} -march=corei7 -O3
 linker := ${compiler}
 # linker := -fwhole-program
 
+libs :=
+
+# LLVM Support
+# compiler := ${compiler} $(shell llvm-config --cxxflags)
+compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
+finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
+linker := ${linker} $(shell llvm-config --ldflags)
+libs := ${libs} $(shell llvm-config --libs core analysis jit native)
+
 debug_flags := -ggdb
 profiling_flags := -fprofile-generate --coverage
 profiled_flags := -fprofile-use
@@ -96,15 +105,15 @@ build/profiled/%.o: %.cpp build/profiling/%.gcda
 
 build/debug/$(program): $(debug_objects)
 	@echo "Link  " $@
-	@$(linker) $(debug_flags) $^ -o $@
+	@$(linker) $(debug_flags) $^ $(libs) -o $@
 
 build/profiling/$(program): $(profiling_objects)
 	@echo "Link  " $@
-	@$(linker) $(profiling_flags) $^ -o $@
+	@$(linker) $(profiling_flags) $^ $(libs) -o $@
 
 build/profiled/$(program): $(profiled_objects)
 	@echo "Link  " $@
-	@$(linker) $(profiled_flags) $^ -o $@
+	@$(linker) $(profiled_flags) $^ $(libs) -o $@
 	@echo "Split " $@
 	@objcopy --only-keep-debug --compress-debug-sections $@ $@.dbg
 	@objcopy --strip-unneeded $@

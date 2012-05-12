@@ -28,8 +28,10 @@ bool PropertyMap::has(const PropertyType type) const
 const Property* PropertyMap::get(const PropertyType type) const
 {
 	auto it = _propertyMap.find(type);
-	if(it == _propertyMap.end())
-		throw L"Could not retrieve propert.";
+	if(it == _propertyMap.end()) {
+		wcerr << "Could not retrieve property " << type.toString() << endl;
+		throw L"Could not retrieve property.";
+	}
 	Property* prop = (*it).second;
 	return prop;
 }

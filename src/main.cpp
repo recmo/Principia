@@ -14,6 +14,7 @@
 #include "Passes/ConstantClosure.h"
 #include "Passes/TopologicalSorter.h"
 #include "Passes/StackAllocator.h"
+#include "Passes/LlvmCompiler.h"
 #include <cmath>
 
 // Boolean edges as truth values
@@ -211,10 +212,16 @@ sint32 Main(const vector<string>& args)
 	ts.sortClosures();
 	wcerr << endl;
 	
-	// Add stack allocator
+	// Add stack allocations
 	StackAllocator sa(dfg);
 	sa.annotate();
 	wcerr << endl;
+	
+	// Compile to LLVM !
+	LlvmCompiler lc(dfg);
+	lc.compile();
+	
+	return 0;
 	
 	//
 	//  Parse the command line

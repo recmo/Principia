@@ -7,6 +7,7 @@
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
 #include <Interpreter/Value.h>
+#include <Interpreter/Closure.h>
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 #include <stdint.h>
@@ -35,6 +36,15 @@ std::wostream& operator<<(std::wostream& out, const llvm::Twine& string)
 	return out;
 }
 
+extern "C" {
+
+void trace(uint64 val)
+{
+	wcerr << "TRACE: " << val << " " << std::hex << val << std::dec << endl;
+}
+}
+
+
 LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 : _dfg(dfg)
 , _context(llvm::getGlobalContext())
@@ -48,14 +58,24 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 void LlvmCompiler::compile()
 {
 	// Declare malloc
-	llvm::FunctionType* mallocType = llvm::FunctionType::get(_builder.getVoidTy()->getPointerTo(), _builder.getInt64Ty(), false);
+	llvm::FunctionType* mallocType = llvm::FunctionType::get(_builder.getInt8PtrTy(), _builder.getInt64Ty(), false);
 	_malloc = llvm::Function::Create(mallocType, llvm::GlobalValue::ExternalLinkage, "malloc", _module);
+	
+	// Declate trace
+	llvm::FunctionType* traceFuncType = llvm::FunctionType::get(_builder.getVoidTy(), _builder.getInt64Ty(), false);
+	_trace = llvm::Function::Create(traceFuncType, llvm::GlobalValue::ExternalLinkage, "trace", _module);
 	
 	// Declare the functions
 	foreach(const Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
-		buildFunction(closure);
+		
+		// Declare the functions
+		buildDeclareFunction(closure);
+		
+		// Build an empty default closure if we can
+		if(closure->get<ClosureProperty>().edges().empty())
+			buildDefaultClosure(closure);
 	}
 	
 	// Build the functions
@@ -65,10 +85,25 @@ void LlvmCompiler::compile()
 		buildFunctionBody(closure);
 	}
 	
+	// Build wrappers to call from C++
+	foreach(const Node* closure, _dfg->nodes()) {
+		if(closure->type() != NodeType::Closure)
+			continue;
+		buildWrapper(closure);
+	}
+	
 	// Print the result
+	wcerr << endl << endl << "==============================================================================" <<endl;
 	_module->dump();
 	
-	llvm::verifyModule(*_module);
+	wcerr << endl << endl << "==============================================================================" <<endl;
+	
+	if(llvm::verifyModule(*_module)) {
+		wcerr << "ERRORS!!!" << endl;
+		throw L"Errors in produced LLVM code";
+	} else {
+		wcerr << "Good, no errors found" << endl;
+	}
 	
 	// Construct the JIT
 	std::string error;
@@ -78,6 +113,9 @@ void LlvmCompiler::compile()
 		return;
 	}
 	
+	ee->addGlobalMapping(_trace, (void*)&trace);
+	
+	/*
 	// Optimize
 	llvm::FunctionPassManager fpm(_module);
 	fpm.add(new llvm::TargetData(*(ee->getTargetData())));
@@ -87,32 +125,29 @@ void LlvmCompiler::compile()
 	fpm.add(llvm::createGVNPass());
 	fpm.add(llvm::createCFGSimplificationPass());
 	fpm.doInitialization();
-	
-	llvm::Function* func = _module->getFunction("test");
-	
-	func->dump();
-	fpm.run(*func);
-	func->dump();
-	
+	*/
 	
 	wcerr << "EXEC = " << endl;
-	vector<llvm::GenericValue> args;
-	args.push_back(llvm::GenericValue((void*)1));
-	llvm::GenericValue r = ee->runFunction(_module->getFunction("test"), args);
+	typedef void (*FUNC)(int64_t*, int64_t*, int64_t*);
+	FUNC f1 = reinterpret_cast<FUNC>(ee->getPointerToFunction(_module->getFunction("fact_wrapper")));
+	std::vector<int64_t> closure;
+	std::vector<int64_t> inputs;
+	std::vector<int64_t> outputs;
 	
-	r.IntVal.dump();
-	wcerr << " s!!!" << endl;
+	outputs.resize(1);
+	inputs.push_back(1);
 	
-	//void* fp = ee->getPointerToFunction(_module->getFunction("test"));
-	//wcerr << fp << endl;
+	wcerr << "f1" << endl;
+	f1(closure.data(), inputs.data(), outputs.data());
+	wcerr << outputs << endl;
 	
-	_module->dump();
+	wcerr << "DONE!" << endl;
 }
 
-void LlvmCompiler::buildFunction(const Node* closureNode)
+void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 {
 	wcerr << endl << endl;
-	wcerr << "FUNC " << closureNode << endl;
+	wcerr << "DEC FUNC " << closureNode << endl;
 	
 	// Construct the function type
 	llvm::FunctionType* functionType = buildFunctionType(closureNode->outArrity() - 1, closureNode->inArrity());
@@ -129,12 +164,100 @@ void LlvmCompiler::buildFunction(const Node* closureNode)
 	// Use the fastest calling convention, required for tail calling
 	function->setCallingConv(llvm::CallingConv::Fast);
 	
+	// We do not use exceptions anywhere
+	function->setDoesNotThrow();
+	
 	// Store the declaration
 	_declarations[closureNode] = function;
 }
 
+void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
+{
+	// The closure is in this case a pointer to a structure
+	// containing only a pointer to the function all cast to
+	// int64's
+	wcerr << "DEFC " << closureNode << endl;
+	llvm::Constant* zero = llvm::ConstantExpr::getIntegerValue(_builder.getInt64Ty(), llvm::APInt(64, 0));
+	assert(closureNode->get<ClosureProperty>().edges().empty());
+	llvm::Function* func = _declarations[closureNode];
+	llvm::Constant* funcPtr = llvm::ConstantExpr::getGetElementPtr(func, zero);
+	llvm::Constant* funcPtrInt = llvm::ConstantExpr::getPtrToInt(funcPtr, _builder.getInt64Ty());
+	std::string name = "";
+	if(closureNode->has<IdentifierProperty>())
+		name = encodeUtf8(closureNode->get<IdentifierProperty>().value()) + "_closure";
+	llvm::GlobalVariable* closure = new llvm::GlobalVariable(*_module, _builder.getInt64Ty(), true, llvm::GlobalValue::InternalLinkage, funcPtrInt, name);
+	llvm::Value* closurePtr = _builder.CreateGEP(closure, _builder.getInt64(0));
+	llvm::Value* closurePtrInt = _builder.CreatePtrToInt(closurePtr, _builder.getInt64Ty());
+	_closures[closureNode] = closurePtrInt;
+}
+
+void LlvmCompiler::buildWrapper(const Node* closureNode)
+{
+	// Build a wrapper using safe calling conventions
+	// void function_wrapper(int64* closure, int64* inputs, int64* outputs);
+	wcerr << "WRAP " << closureNode << endl;
+	
+	// Give it a name
+	std::string name = "";
+	if(closureNode->has<IdentifierProperty>())
+		name = encodeUtf8(closureNode->get<IdentifierProperty>().value()) + "_wrapper";
+	
+	// Construct the function type
+	std::vector<llvm::Type*> argumentTypes;
+	argumentTypes.push_back(_builder.getInt64Ty()->getPointerTo());
+	argumentTypes.push_back(_builder.getInt64Ty()->getPointerTo());
+	argumentTypes.push_back(_builder.getInt64Ty()->getPointerTo());
+	llvm::FunctionType* functionType = llvm::FunctionType::get(_builder.getVoidTy(), argumentTypes, false);
+	
+	// Declare the function
+	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, _module);
+	function->setCallingConv(llvm::CallingConv::C);
+	function->setVisibility(llvm::GlobalValue::DefaultVisibility);
+	
+	// Construct the function body
+	llvm::BasicBlock *body = llvm::BasicBlock::Create(_context, "entry", function);
+	_builder.SetInsertPoint(body);
+	llvm::Function::arg_iterator ai = function->arg_begin();
+	llvm::Value* closure = ai++;
+	llvm::Value* inputs = ai++;
+	llvm::Value* outputs = ai;
+	closure->setName("closure");
+	inputs->setName("inputs");
+	outputs->setName("outputs");
+	
+	// Load the input variables
+	vector<llvm::Value*> inputValues;
+	inputValues.push_back(closure);
+	for(int i = 0; i < closureNode->outArrity() - 1; ++i) {
+		llvm::Value* ptr = _builder.CreateGEP(inputs, _builder.getInt64(i));
+		llvm::Value* value = _builder.CreateLoad(ptr);
+		inputValues.push_back(value);
+	}
+	
+	// Create the call to the native function
+	llvm::Function* native = _declarations[closureNode];
+	llvm::Value* result = _builder.CreateCall(native, inputValues);
+	
+	// Unpack the result value and store
+	if(closureNode->inArrity() == 1) {
+		llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(0));
+		_builder.CreateStore(result, ptr);
+	} else {
+		for(int i = 0; i < closureNode->inArrity(); ++i) {
+			llvm::Value* value = _builder.CreateExtractValue(result, i);
+			llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(i));
+			_builder.CreateStore(value, ptr);
+			inputValues.push_back(value);
+		}
+	}
+	
+	// Return
+	_builder.CreateRetVoid();
+}
+
 void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 {
+	wcerr << "FUNC " << endl;
 	llvm::Function* function = _declarations[closureNode];
 	
 	// Construct the body
@@ -163,23 +286,32 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	
 	// Construct the function body
 	foreach(const Node* node, closureNode->get<OrderProperty>().nodes()) {
+		wcerr << node << endl;
 		buildNode(node);
 	}
 	
 	// Construct the return value
 	wcerr << "RETURNS" << endl;
-	vector<llvm::Value*> results;
 	const vector<int>& resultStackpos = closureNode->get<ReturnStackProperty>().positions();
-	for(int i = 0; i < closureNode->inArrity(); ++i) {
-		if(resultStackpos[i] == -1)
-			results.push_back(buildConstant(closureNode->in(i)->get<ConstantProperty>().value()));
+	if(resultStackpos.size() == 1) {
+		if(resultStackpos[0] == -1)
+			_builder.CreateRet(buildConstant(closureNode->in(0)->get<ConstantProperty>().value()));
 		else {
-			assert(resultStackpos[i] < _stack.size());
-			results.push_back(_stack[resultStackpos[i]]);
+			assert(resultStackpos[0] < _stack.size());
+			_builder.CreateRet(_stack[resultStackpos[0]]);
 		}
-		
+	} else {
+		vector<llvm::Value*> results;
+		for(int i = 0; i < closureNode->inArrity(); ++i) {
+			if(resultStackpos[i] == -1)
+				results.push_back(buildConstant(closureNode->in(i)->get<ConstantProperty>().value()));
+			else {
+				assert(resultStackpos[i] < _stack.size());
+				results.push_back(_stack[resultStackpos[i]]);
+			}
+		}
+		_builder.CreateAggregateRet(results.data(), results.size());
 	}
-	_builder.CreateAggregateRet(results.data(), results.size());
 }
 
 void LlvmCompiler::buildNode(const Node* node)
@@ -213,19 +345,51 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	args[0] = _builder.CreateIntToPtr(args[0], _builder.getInt64Ty()->getPointerTo());
 	
 	// Fetch the function pointer
-	llvm::FunctionType* funcType = buildFunctionType(callNode->inArrity() - 1, callNode->outArrity());
-	llvm::Value* closurePtr = _builder.CreateBitCast(args[0], _builder.getInt64Ty()->getPointerTo());
-	llvm::Value* funcPtrIntPtr = _builder.CreateGEP(closurePtr, _builder.getInt64(0));
-	llvm::Value* funcPtrInt = _builder.CreateLoad(funcPtrIntPtr);
-	llvm::Value* funcPtr = _builder.CreateIntToPtr(funcPtrInt, funcType->getPointerTo());
+	llvm::Value* funcPtr;
+	if(callNode->in(0)->has<ConstantProperty>()) {
+		wcerr << "CONSTANT FUNC CALL" << endl;
+		const Node* closureNode = callNode->in(0)->get<ConstantProperty>().value().closure()->node();
+		funcPtr = _declarations[closureNode];
+	} else {
+		
+		// Fetch the function pointer
+		llvm::FunctionType* funcType = buildFunctionType(callNode->inArrity() - 1, callNode->outArrity());
+		buildTrace(__LINE__); buildTrace(args[0]);
+		llvm::Value* closurePtr = _builder.CreateBitCast(args[0], _builder.getInt64Ty()->getPointerTo());
+		buildTrace(__LINE__); buildTrace(closurePtr);
+		llvm::Value* funcPtrIntPtr = _builder.CreateGEP(closurePtr, _builder.getInt64(0));
+		buildTrace(__LINE__); buildTrace(funcPtrIntPtr);
+		llvm::Value* funcPtrInt = _builder.CreateLoad(funcPtrIntPtr);
+		buildTrace(__LINE__); buildTrace(funcPtrInt);
+		funcPtr = _builder.CreateIntToPtr(funcPtrInt, funcType->getPointerTo());
+		buildTrace(__LINE__); buildTrace(funcPtr);
+	}
+	
+	wcerr << "HMM " << endl;
+	funcPtr->dump();
+	funcPtr->getType()->dump();
+	wcerr << endl;
+	
+	buildTrace(_builder.CreatePtrToInt(funcPtr, _builder.getInt64Ty()));
 	
 	// Create the call
-	llvm::Value* result = _builder.CreateCall(funcPtr, args);
+	std::string name = "";
+	if(callNode->has<IdentifierProperty>())
+		name = encodeUtf8(callNode->get<IdentifierProperty>().value());
+	llvm::CallInst* result = _builder.CreateCall(funcPtr, args, name);
+	result->setCallingConv(llvm::CallingConv::Fast);
+	result->setOnlyReadsMemory();
+	result->setDoesNotThrow();
+	result->setTailCall();
 	
 	// Unpack the results to the stack
-	for(int i = 0; i < callNode->outArrity(); ++i) {
-		_stack.push_back(_builder.CreateExtractValue(result, i));
-	}
+	wcerr << callNode << " " << callNode->in() << " " << callNode->out() << endl;
+	if (callNode->outArrity() == 1) {
+		wcerr << "ASDF" << endl;
+		_stack.push_back(result);
+	} else
+		for(int i = 0; i < callNode->outArrity(); ++i)
+			_stack.push_back(_builder.CreateExtractValue(result, i));
 	
 	wcerr << " END CALL " << endl;
 }
@@ -249,13 +413,38 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 	
 	// Dispatch on the name
 	std::wstring name = callNode->in(0)->get<IdentifierProperty>().value();
-	if(name == L"add") {
+	if(name == L"if") {
+		wcerr << "ADD" << endl;
+		std::string name;
+		if(callNode->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		llvm::Value* condition = _builder.CreateICmpNE(args[0], _builder.getInt64(0), name + "_cond");
+		llvm::Value* result = _builder.CreateSelect(condition, args[1], args[2], name);
+		_stack.push_back(result);
+	} else  if(name == L"add") {
 		wcerr << "ADD" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateAdd(args[0], args[1], name);
 		_stack.push_back(result);
+	} else if(name == L"sub") {
+		wcerr << "SUB" << endl;
+		std::string name;
+		if(callNode->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		llvm::Value* result = _builder.CreateSub(args[0], args[1], name);
+		_stack.push_back(result);
+	} else if(name == L"mul") {
+		wcerr << "MUL" << endl;
+		std::string name;
+		if(callNode->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		llvm::Value* result = _builder.CreateMul(args[0], args[1], name);
+		_stack.push_back(result);
+	} else {
+		wcerr << "Do not know builtin " << name  << endl;
+		assert(false);
 	}
 }
 
@@ -265,9 +454,19 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 	
 	/// TODO: Return constant if the closure is empty
 	
-	// Construct the inputs
 	const vector<const Edge*>& inputs = closureNode->get<ClosureProperty>().edges();
 	wcerr << "closure edges = " <<  inputs << endl;
+	
+	// Return a constant when the closure is empty
+	if(inputs.empty()) {
+		wcerr << "RET DEFC!" << endl;
+		_closures[closureNode]->dump();
+		_stack.push_back(_closures[closureNode]);
+		buildTrace(__LINE__); buildTrace(_closures[closureNode]);
+		return;
+	}
+	
+	// Construct the inputs
 	const vector<int>& stackPositions = closureNode->get<StackProperty>().positions();
 	wcerr << stackPositions << endl;
 	wcerr << _stack << endl;
@@ -296,6 +495,7 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 	// Push the closure
 	llvm::Value* closurePtr = _builder.CreatePtrToInt(closure, _builder.getInt64Ty());
 	_stack.push_back(closurePtr);
+	buildTrace(__LINE__); buildTrace(closurePtr);
 }
 
 llvm::Value* LlvmCompiler::buildConstant(const Value& value)
@@ -304,8 +504,10 @@ llvm::Value* LlvmCompiler::buildConstant(const Value& value)
 	case Value::Integer:
 		return _builder.getInt64(value.integer());
 	case Value::Function: {
-		const Closure* closure = value.closure();
-		return _builder.getInt64(reinterpret_cast<uint64>(closure));
+		const Node* closureNode = value.closure()->node();
+		assert(closureNode->get<ClosureProperty>().edges().empty());
+		buildTrace(__LINE__); buildTrace(_closures[closureNode]);
+		return _closures[closureNode];
 	}
 	default:
 		wcerr << "Could not build constant " <<  value << endl;
@@ -323,21 +525,34 @@ llvm::FunctionType* LlvmCompiler::buildFunctionType(int inArrity, int outArrity)
 		params.push_back(_builder.getInt64Ty());
 
 	// Construct the return type
-	std::vector<llvm::Type*> returnTypes;
-	for(int i = 0; i < outArrity; ++i) {
-		llvm::Type* type = _builder.getInt64Ty();
-		returnTypes.push_back(type);
+	llvm::Type* returns = 0;
+	if(outArrity == 0) {
+		returns = _builder.getVoidTy();
+	} else if (outArrity == 1) {
+		returns = _builder.getInt64Ty();
+	} else {
+		std::vector<llvm::Type*> returnTypes;
+		for(int i = 0; i < outArrity; ++i) {
+			llvm::Type* type = _builder.getInt64Ty();
+			returnTypes.push_back(type);
+		}
+		returns = llvm::StructType::get(_context, returnTypes);
 	}
-	llvm::StructType* returns = llvm::StructType::create(_context, returnTypes);
 	
 	// Construct the function type
 	llvm::FunctionType* functionType = llvm::FunctionType::get(returns, params, false);
 	return functionType;
 }
 
+void LlvmCompiler::buildTrace(llvm::Value* value)
+{
+	if(value->getType()->isPointerTy())
+		value = _builder.CreatePtrToInt(value, _builder.getInt64Ty());
+	_builder.CreateCall(_trace, value);
+}
+
 llvm::Value* LlvmCompiler::buildMalloc(llvm::Type* type)
 {
-	
 	// Allocate the space
 	size_t size = (type->getScalarSizeInBits() + 7)/ 8;
 	llvm::Value* space = _builder.CreateCall(_malloc, _builder.getInt64(size), "space");

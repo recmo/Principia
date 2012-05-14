@@ -3,6 +3,7 @@
 #include "OrderProperty.h"
 #include "StackProperty.h"
 #include "ReturnStackProperty.h"
+#include "NativeProperty.h"
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
@@ -51,12 +52,14 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 , _module(new llvm::Module("Program", _context))
 , _builder(_context)
 , _stack()
+, _malloc(0)
+, _trace(0)
+, _declarations()
+, _wrappers()
+, _closures()
 {
 	llvm::InitializeNativeTarget();
-}
-
-void LlvmCompiler::compile()
-{
+	
 	// Declare malloc
 	llvm::FunctionType* mallocType = llvm::FunctionType::get(_builder.getInt8PtrTy(), _builder.getInt64Ty(), false);
 	_malloc = llvm::Function::Create(mallocType, llvm::GlobalValue::ExternalLinkage, "malloc", _module);
@@ -64,7 +67,10 @@ void LlvmCompiler::compile()
 	// Declate trace
 	llvm::FunctionType* traceFuncType = llvm::FunctionType::get(_builder.getVoidTy(), _builder.getInt64Ty(), false);
 	_trace = llvm::Function::Create(traceFuncType, llvm::GlobalValue::ExternalLinkage, "trace", _module);
-	
+}
+
+void LlvmCompiler::compile()
+{
 	// Declare the functions
 	foreach(const Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
@@ -95,9 +101,9 @@ void LlvmCompiler::compile()
 	// Print the result
 	wcerr << endl << endl << "==============================================================================" <<endl;
 	_module->dump();
-	
 	wcerr << endl << endl << "==============================================================================" <<endl;
 	
+	// Verify the code
 	if(llvm::verifyModule(*_module)) {
 		wcerr << "ERRORS!!!" << endl;
 		throw L"Errors in produced LLVM code";
@@ -127,20 +133,17 @@ void LlvmCompiler::compile()
 	fpm.doInitialization();
 	*/
 	
-	wcerr << "EXEC = " << endl;
-	typedef void (*FUNC)(int64_t*, int64_t*, int64_t*);
-	FUNC f1 = reinterpret_cast<FUNC>(ee->getPointerToFunction(_module->getFunction("fact_wrapper")));
-	std::vector<int64_t> closure;
-	std::vector<int64_t> inputs;
-	std::vector<int64_t> outputs;
 	
-	outputs.resize(1);
-	inputs.push_back(1);
-	
-	wcerr << "f1" << endl;
-	f1(closure.data(), inputs.data(), outputs.data());
-	wcerr << outputs << endl;
-	
+	// Compile to native!
+	wcerr << "Compile = " << endl;
+	foreach(Node* closure, _dfg->nodes()) {
+		if(closure->type() != NodeType::Closure)
+			continue;
+		void* voidPtr = ee->getPointerToFunction(_wrappers[closure]);
+		NativeProperty::Function funcPtr = reinterpret_cast<NativeProperty::Function>(voidPtr);
+		int numClosure = closure->get<ClosureProperty>().edges().size();
+		closure->set(NativeProperty(funcPtr, numClosure, closure->outArrity() - 1, closure->inArrity()));
+	}
 	wcerr << "DONE!" << endl;
 }
 
@@ -213,6 +216,7 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, _module);
 	function->setCallingConv(llvm::CallingConv::C);
 	function->setVisibility(llvm::GlobalValue::DefaultVisibility);
+	_wrappers[closureNode] = function;
 	
 	// Construct the function body
 	llvm::BasicBlock *body = llvm::BasicBlock::Create(_context, "entry", function);
@@ -271,7 +275,9 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	llvm::Argument* arg0 = function->arg_begin();
 	const vector<const Edge*> closureEdges = closureNode->get<ClosureProperty>().edges();
 	for(int i = 0; i < closureEdges.size(); ++i) {
-		llvm::Value* elementPtr = _builder.CreateGEP(arg0, _builder.getInt64(i));
+		// The first element of the closure is always the function pointer,
+		// the closure edges start at index 1
+		llvm::Value* elementPtr = _builder.CreateGEP(arg0, _builder.getInt64(i + 1));
 		_stack.push_back(_builder.CreateLoad(elementPtr));
 	}
 	function->arg_begin()->setName("closure");
@@ -347,30 +353,17 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	// Fetch the function pointer
 	llvm::Value* funcPtr;
 	if(callNode->in(0)->has<ConstantProperty>()) {
-		wcerr << "CONSTANT FUNC CALL" << endl;
 		const Node* closureNode = callNode->in(0)->get<ConstantProperty>().value().closure()->node();
 		funcPtr = _declarations[closureNode];
 	} else {
 		
 		// Fetch the function pointer
 		llvm::FunctionType* funcType = buildFunctionType(callNode->inArrity() - 1, callNode->outArrity());
-		buildTrace(__LINE__); buildTrace(args[0]);
 		llvm::Value* closurePtr = _builder.CreateBitCast(args[0], _builder.getInt64Ty()->getPointerTo());
-		buildTrace(__LINE__); buildTrace(closurePtr);
 		llvm::Value* funcPtrIntPtr = _builder.CreateGEP(closurePtr, _builder.getInt64(0));
-		buildTrace(__LINE__); buildTrace(funcPtrIntPtr);
 		llvm::Value* funcPtrInt = _builder.CreateLoad(funcPtrIntPtr);
-		buildTrace(__LINE__); buildTrace(funcPtrInt);
 		funcPtr = _builder.CreateIntToPtr(funcPtrInt, funcType->getPointerTo());
-		buildTrace(__LINE__); buildTrace(funcPtr);
 	}
-	
-	wcerr << "HMM " << endl;
-	funcPtr->dump();
-	funcPtr->getType()->dump();
-	wcerr << endl;
-	
-	buildTrace(_builder.CreatePtrToInt(funcPtr, _builder.getInt64Ty()));
 	
 	// Create the call
 	std::string name = "";
@@ -385,7 +378,6 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	// Unpack the results to the stack
 	wcerr << callNode << " " << callNode->in() << " " << callNode->out() << endl;
 	if (callNode->outArrity() == 1) {
-		wcerr << "ASDF" << endl;
 		_stack.push_back(result);
 	} else
 		for(int i = 0; i < callNode->outArrity(); ++i)
@@ -442,6 +434,15 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateMul(args[0], args[1], name);
 		_stack.push_back(result);
+	} else if(name == L"div") {
+		wcerr << "DIV" << endl;
+		std::string name;
+		if(callNode->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		llvm::Value* dividend = _builder.CreateSDiv(args[0], args[1], name);
+		llvm::Value* remainder = _builder.CreateSRem(args[0], args[1], name);
+		_stack.push_back(dividend);
+		_stack.push_back(remainder);
 	} else {
 		wcerr << "Do not know builtin " << name  << endl;
 		assert(false);
@@ -452,17 +453,13 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 {
 	wcerr << "CLOSURE " << closureNode << endl;
 	
-	/// TODO: Return constant if the closure is empty
-	
 	const vector<const Edge*>& inputs = closureNode->get<ClosureProperty>().edges();
 	wcerr << "closure edges = " <<  inputs << endl;
 	
 	// Return a constant when the closure is empty
 	if(inputs.empty()) {
-		wcerr << "RET DEFC!" << endl;
 		_closures[closureNode]->dump();
 		_stack.push_back(_closures[closureNode]);
-		buildTrace(__LINE__); buildTrace(_closures[closureNode]);
 		return;
 	}
 	
@@ -481,7 +478,7 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 	
 	// Construct the closure
 	int closureSize = args.size() + 1;
-	llvm::Value* closure = buildMalloc(_builder.getInt64Ty());
+	llvm::Value* closure = buildMalloc(closureSize);
 	
 	// Store the function pointer
 	llvm::Function* func = _declarations[closureNode];
@@ -495,7 +492,6 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 	// Push the closure
 	llvm::Value* closurePtr = _builder.CreatePtrToInt(closure, _builder.getInt64Ty());
 	_stack.push_back(closurePtr);
-	buildTrace(__LINE__); buildTrace(closurePtr);
 }
 
 llvm::Value* LlvmCompiler::buildConstant(const Value& value)
@@ -506,7 +502,6 @@ llvm::Value* LlvmCompiler::buildConstant(const Value& value)
 	case Value::Function: {
 		const Node* closureNode = value.closure()->node();
 		assert(closureNode->get<ClosureProperty>().edges().empty());
-		buildTrace(__LINE__); buildTrace(_closures[closureNode]);
 		return _closures[closureNode];
 	}
 	default:
@@ -523,7 +518,7 @@ llvm::FunctionType* LlvmCompiler::buildFunctionType(int inArrity, int outArrity)
 	params.push_back(_builder.getInt64Ty()->getPointerTo()); // Pointer to closure
 	for(int i = 0; i < inArrity; ++i)
 		params.push_back(_builder.getInt64Ty());
-
+	
 	// Construct the return type
 	llvm::Type* returns = 0;
 	if(outArrity == 0) {
@@ -551,15 +546,11 @@ void LlvmCompiler::buildTrace(llvm::Value* value)
 	_builder.CreateCall(_trace, value);
 }
 
-llvm::Value* LlvmCompiler::buildMalloc(llvm::Type* type)
+llvm::Value* LlvmCompiler::buildMalloc(int size)
 {
 	// Allocate the space
-	size_t size = (type->getScalarSizeInBits() + 7)/ 8;
-	llvm::Value* space = _builder.CreateCall(_malloc, _builder.getInt64(size), "space");
+	llvm::Value* space = _builder.CreateCall(_malloc, _builder.getInt64(size * 8) , "space");
 	assert(llvm::isMalloc(space));
-	
-	llvm::Value* pointer = _builder.CreateBitCast(space, type->getPointerTo());
-	
-	pointer->dump();
+	llvm::Value* pointer = _builder.CreateBitCast(space, _builder.getInt64Ty()->getPointerTo());
 	return pointer;
 }

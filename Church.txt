@@ -6,14 +6,13 @@ false then else ↦ else
 
 section ↦ “Church lists”
 section ↦ “Church numerals”
-
 c0 f ↦ (x ↦ x)
 c1 f ↦ (x ↦ (≔ f x))
 c2 f ↦ (x ↦ (≔ f (≔ f x)))
 
 succ n ↦ (≔ plus n c1)
 plus m n ↦ (f ↦ (x ↦ (≔ (≔ m f) (≔ (≔ n f) x))))
-mult m n ↦ (f ↦ (≔ m (≔ n f)) )
+mult m n ↦ (f ↦ (≔ m (≔ n f)))
 exp m n ↦ (≔ n m)
 
 
@@ -39,6 +38,8 @@ church n ↦ (≔(≔ if n (↦ (≔ succ (≔ church (≔ sub n 1)))) (↦ c0) 
 
 unchurch n ↦ (≔ (≔ n (n ↦ (≔ add n 1))) 0)
 
+
+testc tca ↦ (≔ unchurch (≔ church tca))
 
 testf a ↦ (≔ unchurch (≔ fact (≔ church a)))
 

@@ -15,6 +15,7 @@ public:
 	const static int Order = 4;
 	const static int Stack = 5;
 	const static int ReturnStack = 6;
+	const static int Native = 7;
 	
 private:
 	int value;

@@ -10,6 +10,7 @@ string PropertyType::toString() const
 		case PropertyType::Order: return L"Order";
 		case PropertyType::Stack: return L"Stack";
 		case PropertyType::ReturnStack: return L"ReturnStack";
+		case PropertyType::Native: return L"Native";
 		default: return L"Illegal value";
 	}
 }

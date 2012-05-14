@@ -1,10 +1,6 @@
 #include "fixups.h"
 #include "Parser/Parser.h"
-#include "Interpreter/Interpreter.h"
 #include "Interpreter/Value.h"
-#include "Interpreter/Closure.h"
-#include "Interpreter/StackMachine.h"
-#include <fstream>
 #include "Passes/Validator.h"
 #include "Parser/Parser.h"
 #include "DFG/DataFlowGraph.h"
@@ -15,6 +11,8 @@
 #include "Passes/TopologicalSorter.h"
 #include "Passes/StackAllocator.h"
 #include "Passes/LlvmCompiler.h"
+#include "Passes/NativeProperty.h"
+#include <fstream>
 #include <cmath>
 
 // Boolean edges as truth values
@@ -221,8 +219,6 @@ sint32 Main(const vector<string>& args)
 	LlvmCompiler lc(dfg);
 	lc.compile();
 	
-	return 0;
-	
 	//
 	//  Parse the command line
 	//
@@ -246,27 +242,21 @@ sint32 Main(const vector<string>& args)
 	}
 	wcerr << "Evaluating edge " << edge << endl;
 	
-	// Evaluate edge
-	Interpreter interpreter;
-	Value value = interpreter.evaluateEdge(edge);
-	wcerr << "Result is " << value << endl;
-	
-	if(value.kind == Value::Function) {
-	
-		// Parse arguments
-		vector<Value> arguments;
-		for(int i = 3; i < args.size(); ++i) {
-			std::wstringstream ss(args[i]);
-			sint64 value;
-			ss >> value;
-			arguments.push_back(Value(value));
-		}
-		wcerr << "Calling with arguments: " << arguments << endl;
-		
-		// Call function
-		vector<Value> results = StackMachine::evaluateFunction(value.closure()->node(), value.closure()->context(), arguments);
-		wcout << "Resulted in: " << results << endl;
+	// Parse arguments
+	vector<Value> arguments;
+	for(int i = 3; i < args.size(); ++i) {
+		std::wstringstream ss(args[i]);
+		sint64 value;
+		ss >> value;
+		arguments.push_back(Value(value));
 	}
+	wcerr << "Calling with arguments: " << arguments << endl;
+	
+	// Execute edge
+	const Node* closure = edge->source();
+	assert(closure->has<NativeProperty>());
+	vector<Value> results = closure->get<NativeProperty>().call(arguments);
+	wcout << "Resulted in: " << results << endl;
 	
 	return 0;
 }

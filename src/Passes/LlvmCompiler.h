@@ -23,6 +23,7 @@ private:
 	llvm::Function* _trace;
 	std::vector<llvm::Value*> _stack;
 	std::map<const Node*, llvm::Function*> _declarations;
+	std::map<const Node*, llvm::Function*> _wrappers;
 	std::map<const Node*, llvm::Value*> _closures;
 	
 	void buildDeclareFunction(const Node* closureNode);
@@ -38,5 +39,5 @@ private:
 	void buildTrace(uint64 value) { buildTrace(_builder.getInt64(value)); }
 	void buildTrace(llvm::Value* value);
 	
-	llvm::Value* buildMalloc(llvm::Type* type); 
+	llvm::Value* buildMalloc(int size); 
 };

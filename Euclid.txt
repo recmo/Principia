@@ -2,4 +2,4 @@ Euclid a b ↦ gcd x y
 	d r ≔ div a b
 	gcd x y ≔ (≔ if r (↦ (rx ry ≔ Euclid b r) ry (≔ sub rx (≔ mul ry d))) (↦ b 0 1))
 
-gcd a b ↦ (c d ≔ Euclid a b)
+gcd ad bd ↦ (cd dd ≔ Euclid ad bd)

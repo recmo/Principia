@@ -28,6 +28,8 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/IPO.h>
 
+#define debug false
+
 std::wostream& operator<<(std::wostream& out, const llvm::StringRef& string)
 {
 	out << string.data();
@@ -41,11 +43,10 @@ std::wostream& operator<<(std::wostream& out, const llvm::Twine& string)
 }
 
 extern "C" {
-
-void trace(uint64 val)
-{
-	wcerr << "TRACE: " << val << " " << std::hex << val << std::dec << endl;
-}
+	void trace(uint64 val)
+	{
+		wcerr << "TRACE: " << val << " " << std::hex << val << std::dec << endl;
+	}
 }
 
 
@@ -103,36 +104,32 @@ void LlvmCompiler::compile()
 		buildWrapper(closure);
 	}
 	
-	// Print the result
-	wcerr << endl << endl << "==============================================================================" <<endl;
-	_module->dump();
-	wcerr << endl << endl << "==============================================================================" <<endl;
+	if(debug) {
+		// Print the result
+		wcerr << endl << endl << "==============================================================================" << endl;
+		_module->dump();
+		wcerr << endl << endl << "==============================================================================" << endl;
+	}
 	
 	// Verify the code
 	if(llvm::verifyModule(*_module)) {
 		wcerr << "ERRORS!!!" << endl;
 		throw L"Errors in produced LLVM code";
-	} else {
-		wcerr << "Good, no errors found" << endl;
 	}
 	
 	// Optimize
 	llvm::PassManagerBuilder pmb;
 	llvm::PassManager mpm;
-	llvm::FPPassManager fpm;
-	//mpm.add(&fpm);
-	mpm.add(llvm::createInstructionSimplifierPass());
-	mpm.add(llvm::createInstructionCombiningPass());
-	mpm.add(llvm::createAlwaysInlinerPass());
 	pmb.OptLevel = 3;
-	//pmb.populateFunctionPassManager(fpm);
-	//pmb.populateModulePassManager(mpm);
+	pmb.populateModulePassManager(mpm);
 	mpm.run(*_module);
 	
-	// Print the result
-	wcerr << endl << endl << "==============================================================================" <<endl;
-	_module->dump();
-	wcerr << endl << endl << "==============================================================================" <<endl;
+	if(debug) {
+		// Print the result
+		wcerr << endl << endl << "==============================================================================" << endl;
+		_module->dump();
+		wcerr << endl << endl << "==============================================================================" << endl;
+	}
 	
 	// Construct the JIT
 	std::string error;
@@ -141,10 +138,22 @@ void LlvmCompiler::compile()
 		wcerr << "ERROR " << error.data() << endl;
 		return;
 	}
-	// ee->addGlobalMapping(_trace, (void*)&trace);
+	
+	/*
+	// Link the trace function if it is not optimized away
+	llvm::Function* trace = _module->getFunction("trace");
+	if(trace)
+		ee->addGlobalMapping(trace, (void*)&trace);
+	
+	// Link the malloc function if it is not optimized away
+	llvm::Function* malloc = _module->getFunction("malloc");
+	if(malloc)
+		ee->addGlobalMapping(malloc, (void*)&malloc);
+	*/
 	
 	// Compile to native!
-	wcerr << "Compile = " << endl;
+	if(debug)
+		wcerr << "Compiling to native" << endl;
 	foreach(Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
@@ -159,13 +168,14 @@ void LlvmCompiler::compile()
 		int numClosure = closure->get<ClosureProperty>().edges().size();
 		closure->set(NativeProperty(funcPtr, numClosure, closure->outArrity() - 1, closure->inArrity()));
 	}
-	wcerr << "DONE!" << endl;
+	if(debug)
+		wcerr << "DONE!" << endl;
 }
 
 void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 {
-	wcerr << endl << endl;
-	wcerr << "DEC FUNC " << closureNode << endl;
+	if(debug)
+		wcerr << "DEC FUNC " << closureNode << endl;
 	
 	// Construct the function type
 	llvm::FunctionType* functionType = buildFunctionType(closureNode->outArrity() - 1, closureNode->inArrity());
@@ -194,7 +204,8 @@ void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
 	// The closure is in this case a pointer to a structure
 	// containing only a pointer to the function all cast to
 	// int64's
-	wcerr << "DEFC " << closureNode << endl;
+	if(debug)
+		wcerr << "DEFC " << closureNode << endl;
 	llvm::Constant* zero = llvm::ConstantExpr::getIntegerValue(_builder.getInt64Ty(), llvm::APInt(64, 0));
 	assert(closureNode->get<ClosureProperty>().edges().empty());
 	llvm::Function* func = _declarations[closureNode];
@@ -213,7 +224,8 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 {
 	// Build a wrapper using safe calling conventions
 	// void function_wrapper(int64* closure, int64* inputs, int64* outputs);
-	wcerr << "WRAP " << closureNode << endl;
+	if(debug)
+		wcerr << "WRAP " << closureNode << endl;
 	
 	// Give it a name
 	std::string name = "";
@@ -280,7 +292,8 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 
 void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 {
-	wcerr << "FUNC " << endl;
+	if(debug)
+		wcerr << "FUNC " << endl;
 	llvm::Function* function = _declarations[closureNode];
 	
 	// Construct the body
@@ -310,13 +323,12 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	}
 	
 	// Construct the function body
-	foreach(const Node* node, closureNode->get<OrderProperty>().nodes()) {
-		wcerr << node << endl;
+	foreach(const Node* node, closureNode->get<OrderProperty>().nodes())
 		buildNode(node);
-	}
 	
 	// Construct the return value
-	wcerr << "RETURNS" << endl;
+	if(debug)
+		wcerr << "RETURNS" << endl;
 	const vector<int>& resultStackpos = closureNode->get<ReturnStackProperty>().positions();
 	if(resultStackpos.size() == 1) {
 		if(resultStackpos[0] == -1)
@@ -341,7 +353,8 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 
 void LlvmCompiler::buildNode(const Node* node)
 {
-	wcerr << "NODE " << node << endl;
+	if(debug)
+		wcerr << "NODE " << node << endl;
 	if(node->type() == NodeType::Call) {
 		if(node->in(0)->has<ConstantProperty>() && node->in(0)->get<ConstantProperty>().value().kind == Value::Builtin)
 			buildBuiltin(node);
@@ -353,7 +366,8 @@ void LlvmCompiler::buildNode(const Node* node)
 
 void LlvmCompiler::buildCall(const Node* callNode)
 {
-	wcerr << "CALL " << callNode << endl;
+	if(debug)
+		wcerr << "CALL " << callNode << endl;
 	
 	// Fetch the argument values
 	vector<const Edge*> inputs = callNode->in();
@@ -395,25 +409,24 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	result->setTailCall();
 	
 	// Unpack the results to the stack
-	wcerr << callNode << " " << callNode->in() << " " << callNode->out() << endl;
 	if (callNode->outArrity() == 1) {
 		_stack.push_back(result);
 	} else
 		for(int i = 0; i < callNode->outArrity(); ++i)
 			_stack.push_back(_builder.CreateExtractValue(result, i));
 	
-	wcerr << " END CALL " << endl;
+	if(debug)
+		wcerr << " END CALL " << endl;
 }
 
 void LlvmCompiler::buildBuiltin(const Node* callNode)
 {
-	wcerr << "BUILTIN " << callNode << endl;
+	if(debug)
+		wcerr << "BUILTIN " << callNode << endl;
 	
 	// Construct the arguments
 	vector<const Edge*> inputs = callNode->in();
-	wcerr << inputs << endl;
 	const vector<int>& stackPositions = callNode->get<StackProperty>().positions();
-	wcerr << stackPositions << endl;
 	vector<llvm::Value*> args;
 	for(int i = 1; i < stackPositions.size(); ++i) {
 		if(stackPositions[i] == -1)
@@ -425,7 +438,6 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 	// Dispatch on the name
 	std::wstring name = callNode->in(0)->get<IdentifierProperty>().value();
 	if(name == L"if") {
-		wcerr << "ADD" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
@@ -433,28 +445,24 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 		llvm::Value* result = _builder.CreateSelect(condition, args[1], args[2], name);
 		_stack.push_back(result);
 	} else  if(name == L"add") {
-		wcerr << "ADD" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateAdd(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"sub") {
-		wcerr << "SUB" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateSub(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"mul") {
-		wcerr << "MUL" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateMul(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"div") {
-		wcerr << "DIV" << endl;
 		std::string name;
 		if(callNode->out(0)->has<IdentifierProperty>())
 			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
@@ -470,10 +478,12 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 
 void LlvmCompiler::buildClosure(const Node* closureNode)
 {
-	wcerr << "CLOSURE " << closureNode << endl;
+	if(debug)
+		wcerr << "CLOSURE " << closureNode << endl;
 	
 	const vector<const Edge*>& inputs = closureNode->get<ClosureProperty>().edges();
-	wcerr << "closure edges = " <<  inputs << endl;
+	if(debug)
+		wcerr << "closure edges = " <<  inputs << endl;
 	
 	// Return a constant when the closure is empty
 	if(inputs.empty()) {
@@ -484,11 +494,8 @@ void LlvmCompiler::buildClosure(const Node* closureNode)
 	
 	// Construct the inputs
 	const vector<int>& stackPositions = closureNode->get<StackProperty>().positions();
-	wcerr << stackPositions << endl;
-	wcerr << _stack << endl;
 	vector<llvm::Value*> args;
 	for(int i = 0; i < stackPositions.size(); ++i) {
-		wcerr << inputs[i] << " to " << stackPositions[i] << endl;
 		if(stackPositions[i] == -1)
 			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
 		else

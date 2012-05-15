@@ -15,6 +15,55 @@
 #include <fstream>
 #include <cmath>
 
+/// TODO: Fix parser issues
+/// TODO: Add mutual recursion to llvm compiler
+/// TODO: Add proof language
+
+/*
+
+ C O B L U E
+
+ C o b l u e
+
+ Coblue
+
+*/
+
+/*
+
+Hoare Logic:
+
+f a ↦ b
+	Theorems A(a) about a
+	Derivations / proofs
+	Theorems B(b) about b
+
+Theorems Y(y) about y
+x ≔ f y
+	Verify A(y) ⊆ Y(y)
+	Therefore B(x)
+
+How do we do derivations?
+
+IDEA: We can use abstract functions, i.e. functions without implementations
+ to represent (non-constructive) theorems.
+This function should generally return just the input variables,
+however, it may return new values. This would be an existence proof!
+
+How do we do axioms?
+
+IDEA: We omit the derivations from the function.
+
+This gives four kinds of functions
+
+- Without implementation and without derivation. (no-op)
+- With implementation and without derivation. (unproven construction)
+- Without implementation and with derivation. (abstract/pure/nonconstructive proof)
+- With implementation and with derivation. (plain function with proof)
+
+*/
+
+
 // Boolean edges as truth values
 // Theorems as 
 
@@ -26,7 +75,6 @@
 // a ≔ condition then else
 
 // IDEA: False = the non-halting function, true = everything else
-
 
 
 /*
@@ -50,10 +98,6 @@ Simmilarly, one can define a namespace:
 f ↦
 	x …
 	y …
-
-
-TODO: Annotation mechanism, attach metadata to a symbol
-
 
 TODO: importing namespaces:
 
@@ -84,10 +128,6 @@ rets ≔ eval f args
 doc eval “Execute f with arguments args and return the results in rets.”
 
 
-
-
-
-
 TODO: Multiple implementations (algorithms) of the same function
 
 May not differ in the function specification. Must contain full proofs. May differ in runtime resource usage.
@@ -99,12 +139,10 @@ Alternative: Functions have a unique implementation, but one can proof equivalen
 Suppose we have two functions, safediv and unsafediv, where the later is faster, but has the additional precondition that m ≠ 0. If the compiler can deduce statically or runtime that always m ≠ 0, then it may move to the unsafediv.
 
 
-
 TODO: Types‽ What do we mean we we say “pre n : integer”?
 That there exists functions +, -, ×, |·|, =, ≠, <, ≤, >, ≥, etc… doing the ‘expected’ thing.
 
 They can be implemented as unspecified propositions: IsInteger(n). Dependent types can be implemented as more complex variants: IsMatrix(A, ℂ, 2, 4) to state that A is a complex valued 2 × 4 matrix.
-
 
 
 TODO: Performance characteristics:
@@ -112,8 +150,6 @@ TODO: Performance characteristics:
 slowdiv n m ↦ q r
 	complexity.time slowdiv log(n) + log(m) 
 	complexity.memory slowdiv 2 * m
-
-
 
 
 TODO: Compiler hints
@@ -136,7 +172,7 @@ Parser:
 
 
 [parse rule:  #1 + #2 ↦ (. ≔ plus #1 #2) ]
-[parse rule:  if #1 then #2 else #3  ↦ ( . ≔  if(#1, λ(#2), λ(#3)() ) ]
+[parse rule:  if #1 then #2 else #3  ↦ (≔(≔if #1 (↦ #2) (↦#3))) ]
 [parse rule:  /#1/ ↦ ( . ≔  regexp_parse("#3") ) ]
 etc…
 

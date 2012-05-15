@@ -50,7 +50,8 @@ void StackAllocator::annotate()
 			else
 				stack << eval->out(0);
 		}
-		wcerr << node << " stack "  << stack << endl;
+		if(debug)
+			wcerr << node << " stack "  << stack << endl;
 		
 		// Collect the return values from the stack
 		vector<int> returnIndices;
@@ -69,6 +70,7 @@ void StackAllocator::annotate()
 			}
 		}
 		node->set(ReturnStackProperty(returnIndices));
-		wcerr << node << " returns "  << returnIndices << endl;
+		if(debug)
+			wcerr << node << " returns "  << returnIndices << endl;
 	}
 }

@@ -15,7 +15,6 @@ plus m n ↦ (f ↦ (x ↦ (≔ (≔ m f) (≔ (≔ n f) x))))
 mult m n ↦ (f ↦ (≔ m (≔ n f)))
 exp m n ↦ (≔ n m)
 
-
 pred_initial ↦ c0 c0
 
 pred_next pred_val ↦ (↦ b (≔ succ b))
@@ -24,9 +23,7 @@ pred_next pred_val ↦ (↦ b (≔ succ b))
 pred n ↦ first
 	first second ≔ (≔ (≔ n pred_next) pred_initial)
 
-
 isZero n ↦ (≔(≔ n (x ↦ false)) true)
-
 csub m n ↦ (≔ (≔ n pred) m)
 
 
@@ -35,34 +32,13 @@ fact n ↦ r
 
 
 church n ↦ (≔(≔ if n (↦ (≔ succ (≔ church (≔ sub n 1)))) (↦ c0) ))
-
 unchurch n ↦ (≔ (≔ n (n ↦ (≔ add n 1))) 0)
 
 
 testc tca ↦ (≔ unchurch (≔ church tca))
-
 testf a ↦ (≔ unchurch (≔ fact (≔ church a)))
-
 tests a b ↦ (≔ unchurch (≔ mult (≔ church a) (≔ church b)))
 
 
+TODO ↦ “Ackermann and Goodstein implementation”
 
-
-
-comment ↦ “
-
-TODO ↦ “Factorial, Ackermann, Goodstein implementation”
-
-Y f ↦ Yr
-	Yr ≔ Yf Yf
-	Yf x ↦ (≔ f (≔ x x))
-
-fact f ↦ (n ↦ (≔ if (≔ isZero n) (1) (≔ mult n (≔ f (≔ pred n) )) ))
-
-fact ≔ Y fact
-
-
-
-r n ↦ (≔ decode (≔ pred (≔ encode n) ))
-
-”

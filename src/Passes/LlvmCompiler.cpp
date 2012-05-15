@@ -22,8 +22,11 @@
 #include <llvm/Target/TargetData.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/PassManager.h>
+#include <llvm/PassManagers.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/Transforms/IPO.h>
 
 std::wostream& operator<<(std::wostream& out, const llvm::StringRef& string)
 {
@@ -95,6 +98,8 @@ void LlvmCompiler::compile()
 	foreach(const Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
+		if(!closure->has<IdentifierProperty>())
+			continue;
 		buildWrapper(closure);
 	}
 	
@@ -111,6 +116,24 @@ void LlvmCompiler::compile()
 		wcerr << "Good, no errors found" << endl;
 	}
 	
+	// Optimize
+	llvm::PassManagerBuilder pmb;
+	llvm::PassManager mpm;
+	llvm::FPPassManager fpm;
+	//mpm.add(&fpm);
+	mpm.add(llvm::createInstructionSimplifierPass());
+	mpm.add(llvm::createInstructionCombiningPass());
+	mpm.add(llvm::createAlwaysInlinerPass());
+	pmb.OptLevel = 3;
+	//pmb.populateFunctionPassManager(fpm);
+	//pmb.populateModulePassManager(mpm);
+	mpm.run(*_module);
+	
+	// Print the result
+	wcerr << endl << endl << "==============================================================================" <<endl;
+	_module->dump();
+	wcerr << endl << endl << "==============================================================================" <<endl;
+	
 	// Construct the JIT
 	std::string error;
 	llvm::ExecutionEngine* ee = llvm::EngineBuilder(_module).setErrorStr(&error).create();
@@ -118,28 +141,20 @@ void LlvmCompiler::compile()
 		wcerr << "ERROR " << error.data() << endl;
 		return;
 	}
-	
-	ee->addGlobalMapping(_trace, (void*)&trace);
-	
-	/*
-	// Optimize
-	llvm::FunctionPassManager fpm(_module);
-	fpm.add(new llvm::TargetData(*(ee->getTargetData())));
-	fpm.add(llvm::createBasicAliasAnalysisPass());
-	fpm.add(llvm::createInstructionCombiningPass());
-	fpm.add(llvm::createReassociatePass());
-	fpm.add(llvm::createGVNPass());
-	fpm.add(llvm::createCFGSimplificationPass());
-	fpm.doInitialization();
-	*/
-	
+	// ee->addGlobalMapping(_trace, (void*)&trace);
 	
 	// Compile to native!
 	wcerr << "Compile = " << endl;
 	foreach(Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
+		if(!closure->has<IdentifierProperty>())
+			continue;
 		void* voidPtr = ee->getPointerToFunction(_wrappers[closure]);
+		if(voidPtr == 0) {
+			wcerr << "Closure " << closure << " got optimized away!" << endl;
+			continue;
+		}
 		NativeProperty::Function funcPtr = reinterpret_cast<NativeProperty::Function>(voidPtr);
 		int numClosure = closure->get<ClosureProperty>().edges().size();
 		closure->set(NativeProperty(funcPtr, numClosure, closure->outArrity() - 1, closure->inArrity()));
@@ -159,7 +174,7 @@ void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 	std::string name = "";
 	if(closureNode->out(0)->has<IdentifierProperty>())
 		name = encodeUtf8(closureNode->out(0)->get<IdentifierProperty>().value());
-	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::ExternalLinkage, name, _module);
+	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::PrivateLinkage, name, _module);
 	
 	// All functions are pure
 	function->addFnAttr(llvm::Attribute::ReadOnly);
@@ -188,7 +203,7 @@ void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
 	std::string name = "";
 	if(closureNode->has<IdentifierProperty>())
 		name = encodeUtf8(closureNode->get<IdentifierProperty>().value()) + "_closure";
-	llvm::GlobalVariable* closure = new llvm::GlobalVariable(*_module, _builder.getInt64Ty(), true, llvm::GlobalValue::InternalLinkage, funcPtrInt, name);
+	llvm::GlobalVariable* closure = new llvm::GlobalVariable(*_module, _builder.getInt64Ty(), true, llvm::GlobalValue::PrivateLinkage, funcPtrInt, name);
 	llvm::Value* closurePtr = _builder.CreateGEP(closure, _builder.getInt64(0));
 	llvm::Value* closurePtrInt = _builder.CreatePtrToInt(closurePtr, _builder.getInt64Ty());
 	_closures[closureNode] = closurePtrInt;
@@ -240,7 +255,11 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	
 	// Create the call to the native function
 	llvm::Function* native = _declarations[closureNode];
-	llvm::Value* result = _builder.CreateCall(native, inputValues);
+	llvm::CallInst* result = _builder.CreateCall(native, inputValues);
+	result->setCallingConv(llvm::CallingConv::Fast);
+	result->setOnlyReadsMemory();
+	result->setDoesNotThrow();
+	result->setTailCall();
 	
 	// Unpack the result value and store
 	if(closureNode->inArrity() == 1) {

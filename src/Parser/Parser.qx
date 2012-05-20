@@ -28,6 +28,7 @@ define {
 	QuoteClose   "”"
 	BracketOpen  "("
 	BracketClose ")"
+	BracketValue "·"
 }
 
 token {
@@ -41,6 +42,7 @@ token {
 	BlockEnd;
 	BracketOpen;
 	BracketClose;
+	BracketValue;
 	Failure;
 	EndOfStream;
 }
@@ -64,6 +66,7 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
 	{Closure}        => TokenClosure;
 	{BracketOpen}    => TokenBracketOpen;
 	{BracketClose}   => TokenBracketClose;
+	{BracketValue}   => TokenBracketValue;
 	{Identifier}     => TokenIdentifier(Lexeme);
 	{Number}         => TokenNumber(Lexeme);
 	{QuoteOpen}      => GOSUB(Quotation);

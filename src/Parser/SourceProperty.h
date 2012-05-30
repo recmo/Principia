@@ -6,6 +6,7 @@
 class SourceProperty: public Property
 {
 public:
+	SourceProperty(): _filename(), _fromLine(0), _toLine(0), _fromColumn(0), _toColumn(0) { }
 	SourceProperty(const SourceProperty& copy);
 	SourceProperty(const string& file, int fromLine, int fromColumn, int toLine , int toColumn);
 	virtual ~SourceProperty();

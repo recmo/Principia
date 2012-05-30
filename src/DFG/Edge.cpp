@@ -59,8 +59,9 @@ void Edge::print(std::wostream& out) const
 		out << L"<" << sp.fromLine();
 		out << L":" << sp.fromColumn();
 		out << L">";
-	} else
-		out << L"<anonymous>";
+	} else {
+		out << L"<" << uint64(this) << ">";
+	}
 }
 
 bool Edge::isFunction() const

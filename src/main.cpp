@@ -5,6 +5,8 @@
 #include "Parser/Parser.h"
 #include "DFG/DataFlowGraph.h"
 #include "Parser/IdentifierProperty.h"
+#include "Parser/IdentifierBinder.h"
+#include "Parser/DataFlowGraphCompiler.h"
 #include "Passes/DotFileWriter.h"
 #include "Passes/LambdaLifter.h"
 #include "Passes/ConstantClosure.h"
@@ -15,7 +17,6 @@
 #include <fstream>
 #include <cmath>
 
-/// TODO: Fix parser issues
 /// TODO: Add mutual recursion to llvm compiler
 /// TODO: Add proof language
 
@@ -191,16 +192,24 @@ sint32 Main(const vector<string>& args)
 	wcerr << L"Parsing file…" << flush;
 	Parser parser;
 	parser.parse(args[1]);
-	DataFlowGraph* dfg = parser.dataFlowGraph();
 	wcerr << endl;
 	
-	/*
-	wcerr << endl << endl;
-	foreach(const Node* node, dfg->nodes())
-		wcerr << node << " " << node->out() << " " << node->in() << endl; 
-	wcerr << endl << endl;
-	*/
+	// Fetch the parse tree
+	ParseTree* tree = parser.tree();
 	
+	// Bind the identifiers
+	wcerr << L"Binding identifiers…" << flush;
+	IdentifierBinder ib(tree);
+	ib.bind();
+	wcerr << endl;
+	
+	// Compile to a data flow graph
+	wcerr << L"Compiling data flow graph…" << flush;
+	DataFlowGraphCompiler dfgc(tree);
+	dfgc.compile();
+	DataFlowGraph* dfg = dfgc.dataFlowGraph();
+	wcerr << endl;
+
 	/*
 	// Print structure
 	wcerr << L"Writing dot file…" << flush;
@@ -221,8 +230,8 @@ sint32 Main(const vector<string>& args)
 	//   - Verify that all cycles go through the closure
 	//   - Contract the strongly connected component to  
 	
-	/*
 	// Validate
+	/*
 	wcerr << L"Validating structure…" << flush;
 	Validator validator(dfg);
 	validator.validate();
@@ -236,30 +245,48 @@ sint32 Main(const vector<string>& args)
 	LambdaLifter ll(dfg);
 	ConstantClosure cc(dfg);
 	do {
+		wcerr << L"Lambda lifting…" << flush;
 		ll.anotateClosures();
+		wcerr << endl;
+		
+		wcerr << L"Constant closure creation…" << flush;
 		cc.anotateClosures();
+		wcerr << endl;
 	} while (!(ll.fixedPoint() && cc.fixedPoint()));
 	
-	
 	// Topological sort the bodies of functions
+	wcerr << L"Sorting closure bodies topologically…" << flush;
 	TopologicalSorter ts(dfg);
 	ts.sortClosures();
 	wcerr << endl;
 	
 	// Add stack allocations
+	wcerr << L"Assigning stack positions to edges…" << flush;
 	StackAllocator sa(dfg);
 	sa.annotate();
 	wcerr << endl;
 	
 	// Compile to LLVM !
+	wcerr << L"Compiling to native code using LLVM…" << flush;
 	LlvmCompiler lc(dfg);
 	lc.compile();
+	wcerr << endl;
+	
+	/*
+	wcerr << endl << endl;
+	foreach(const Node* node, dfg->nodes()) {
+		wcerr << node << " " << node->out() << " " << node->in() << endl; 
+		node->printProperties(wcerr);
+	}
+	wcerr << endl << endl;
+	*/
 	
 	//
 	//  Parse the command line
 	//
 	
 	// Get the edge
+	wcerr << L"Finding function to call…" << flush;
 	Edge* edge = 0;
 	foreach(Node* node, dfg->nodes()) {
 		for(int i = 0; i < node->outArrity(); ++i) {
@@ -276,9 +303,10 @@ sint32 Main(const vector<string>& args)
 		wcerr << L"Error could not edge function " << args[2] << endl;
 		return -1;
 	}
-	wcerr << "Evaluating edge " << edge << endl;
+	wcerr << endl;
 	
 	// Parse arguments
+	wcerr << "Parsing arguments…" << flush;
 	vector<Value> arguments;
 	for(int i = 3; i < args.size(); ++i) {
 		std::wstringstream ss(args[i]);
@@ -286,13 +314,15 @@ sint32 Main(const vector<string>& args)
 		ss >> value;
 		arguments.push_back(Value(value));
 	}
-	wcerr << "Calling with arguments: " << arguments << endl;
+	wcerr << endl;
 	
 	// Execute edge
+	wcerr << "Calling " << edge << " with arguments " << arguments << L"…" << flush;
 	const Node* closure = edge->source();
 	assert(closure->has<NativeProperty>());
 	vector<Value> results = closure->get<NativeProperty>().call(arguments);
-	wcout << "Resulted in: " << results << endl;
+	wcerr << endl;
+	wcout << "Resulted is: " << results << endl;
 	
 	return 0;
 }

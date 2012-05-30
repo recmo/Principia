@@ -15,6 +15,26 @@ void ParseTree::print(std::wostream& out)
 	_topLevel->print(out);
 }
 
+
+ParseTree::StatementOrScope* ParseTree::StatementOrScope::nextSibbling()
+{
+	if(!_parent)
+		return 0;
+	int max = _parent->children().size() - 1;
+	if(_index >= max)
+		return 0;
+	return _parent->children()[_index + 1];
+}
+
+ParseTree::StatementOrScope* ParseTree::StatementOrScope::prevSibbling()
+{
+	if(!_parent)
+		return 0;
+	if(_index <= 0)
+		return 0;
+	return _parent->children()[_index - 1];
+}
+
 ParseTree::Scope::Scope()
 : _children()
 {
@@ -36,7 +56,6 @@ void ParseTree::Scope::print(std::wostream& out, int indentation)
 			out << endl;
 	}
 }
-
 
 ParseTree::Statement::Statement()
 : _type(-1)
@@ -64,6 +83,64 @@ void ParseTree::Statement::print(std::wostream& out, int indentation)
 		child->print(out);
 		if(child != _in.back())
 			out << L" ";
+	}
+}
+
+ParseTree::Expression* ParseTree::Statement::first()
+{
+	if(!_out.empty())
+		return _out.front();
+	if(!_in.empty())
+		return _in.front();
+	return 0;
+}
+
+ParseTree::Expression* ParseTree::Statement::last()
+{
+	if(!_in.empty())
+		return _in.back();
+	if(!_out.empty())
+		return _out.back();
+	return 0;
+}
+
+ParseTree::Expression* ParseTree::Expression::nextSibbling()
+{
+	if(!_parent)
+		return 0;
+	if(isOutbound()) {
+		int index = - _index - 1;
+		int max = _parent->out().size() - 1;
+		if(index >= max) {
+			if(!_parent->in().empty())
+				return _parent->in().front();
+			return 0;
+		}
+		return _parent->out()[index + 1];
+	} else {
+		int max = _parent->in().size() - 1;
+		if(_index >= max)
+			return 0;
+		return _parent->in()[_index + 1];
+	}
+}
+
+ParseTree::Expression* ParseTree::Expression::prevSibbling()
+{
+	if(!_parent)
+		return 0;
+	if(isOutbound()) {
+		int index = - _index - 1;
+		if(index <= 0)
+			return 0;
+		return _parent->out()[index - 1];
+	} else {
+		if(_index <= 0) {
+			if(!_parent->out().empty())
+				return _parent->out().back();
+			return 0;
+		}
+		return _parent->in()[_index - 1];
 	}
 }
 

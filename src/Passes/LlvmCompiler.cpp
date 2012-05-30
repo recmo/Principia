@@ -99,7 +99,7 @@ void LlvmCompiler::compile()
 	foreach(const Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
-		if(!closure->has<IdentifierProperty>())
+		if(!closure->out(0)->has<IdentifierProperty>())
 			continue;
 		buildWrapper(closure);
 	}
@@ -157,7 +157,7 @@ void LlvmCompiler::compile()
 	foreach(Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
-		if(!closure->has<IdentifierProperty>())
+		if(!closure->out(0)->has<IdentifierProperty>())
 			continue;
 		void* voidPtr = ee->getPointerToFunction(_wrappers[closure]);
 		if(voidPtr == 0) {
@@ -212,8 +212,8 @@ void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
 	llvm::Constant* funcPtr = llvm::ConstantExpr::getGetElementPtr(func, zero);
 	llvm::Constant* funcPtrInt = llvm::ConstantExpr::getPtrToInt(funcPtr, _builder.getInt64Ty());
 	std::string name = "";
-	if(closureNode->has<IdentifierProperty>())
-		name = encodeUtf8(closureNode->get<IdentifierProperty>().value()) + "_closure";
+	if(closureNode->out(0)->has<IdentifierProperty>())
+		name = encodeUtf8(closureNode->out(0)->get<IdentifierProperty>().value()) + "_closure";
 	llvm::GlobalVariable* closure = new llvm::GlobalVariable(*_module, _builder.getInt64Ty(), true, llvm::GlobalValue::PrivateLinkage, funcPtrInt, name);
 	llvm::Value* closurePtr = _builder.CreateGEP(closure, _builder.getInt64(0));
 	llvm::Value* closurePtrInt = _builder.CreatePtrToInt(closurePtr, _builder.getInt64Ty());
@@ -229,8 +229,8 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	
 	// Give it a name
 	std::string name = "";
-	if(closureNode->has<IdentifierProperty>())
-		name = encodeUtf8(closureNode->get<IdentifierProperty>().value()) + "_wrapper";
+	if(closureNode->out(0)->has<IdentifierProperty>())
+		name = encodeUtf8(closureNode->out(0)->get<IdentifierProperty>().value()) + "_wrapper";
 	
 	// Construct the function type
 	std::vector<llvm::Type*> argumentTypes;
@@ -400,8 +400,8 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	
 	// Create the call
 	std::string name = "";
-	if(callNode->has<IdentifierProperty>())
-		name = encodeUtf8(callNode->get<IdentifierProperty>().value());
+	if(callNode->in(0)->has<IdentifierProperty>())
+		name = encodeUtf8(callNode->in(0)->get<IdentifierProperty>().value());
 	llvm::CallInst* result = _builder.CreateCall(funcPtr, args, name);
 	result->setCallingConv(llvm::CallingConv::Fast);
 	result->setOnlyReadsMemory();

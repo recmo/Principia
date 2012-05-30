@@ -80,8 +80,14 @@ void Node::print(std::wostream& out) const
 		out << L"<" << sp.fromLine();
 		out << L":" << sp.fromColumn();
 		out << L">";
-	} else
-		out << L"<anonymous>";
+	} else {
+		if(type() == NodeType::Call && inArrity() > 0 && in(0)->has<IdentifierProperty>())
+			out << L"<" << in(0)->get<IdentifierProperty>().value() << L">";
+		else if(type() == NodeType::Closure && outArrity() > 0 && _outgoing[0].has<IdentifierProperty>())
+			out << L"<" << _outgoing[0].get<IdentifierProperty>().value() << L">";
+		else 
+			out << L"<anonymous>";
+	}
 	if(type() == NodeType::Closure)
 		out << L"↦";
 }

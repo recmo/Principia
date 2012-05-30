@@ -1,102 +1,58 @@
 #include "Parser/Parser.h"
 #include "Parser/Parser.qx.h"
-#include "DFG/DataFlowGraph.h"
-#include "DFG/Node.h"
-#include "DFG/Edge.h"
 #include "SourceProperty.h"
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
-#include <Interpreter/Builtins.h>
 
 #define debug false
 
-std::wostream& operator<<(std::wostream& out, const Parser::Expression& expression)
-{
-	out << "(";
-	out << expression.out;
-	if(expression.type == Parser::closure)
-		out << " ↦ ";
-	else if(expression.type == Parser::call)
-		out << L" ≔ ";
-	else
-		out << L" ? ";
-	out << expression.in;
-	out << ")";
-	return out;
-}
-
-Parser::Expression::Expression()
-: type(Parser::undetermined)
-, in()
-, out()
-{
-}
-
 Parser::Parser()
-: _dfg(new DataFlowGraph)
-, _scopeStack()
-, _token(0)
-, _expressionStack(1)
+: _token(0)
+, _unread(false)
 {
-	pushScope();
-}
-
-Parser::Parser(DataFlowGraph* dfg)
-: _dfg(dfg)
-, _scopeStack()
-, _token(0)
-, _expressionStack(1)
-{
-	assert(dfg != null);
-	pushScope();
 }
 
 Parser& Parser::parse(const string& filename)
 {
 	_filename = filename;
-	quex::Parser lexer(encodeLocal(_filename));
-	do {
-		lexer.receive(&_token);
-		
-		if(debug) {
-			wcerr << endl << endl;
-			wcerr << L"Scope stack: " << _scopeStack << endl;
-			wcerr << L"Expression stack: " << _expressionStack << endl;
-			foreach(const Node* node, _dfg->nodes())
-				wcerr << node << " " << node->out() << " " << node->in() << endl; 
-			
-			// Debug print token
-			wcerr << filename << L" ";
-			wcerr << _token->line_number() << L":";
-			wcerr << _token->column_number() << L" ";
-			wcerr << decodeLocal(_token->type_id_name());
-			if(_token->type_id() == TokenIdentifier)
-				wcerr << L"\t"<<  _token->pretty_wchar_text();
-			wcerr << endl;
-		}
-		
-		// Dispatch on token type
-		switch(_token->type_id()) {
-			case TokenIdentifier: parseIdentifier(); break;
-			case TokenQuotation: parseQuotation(); break;
-			case TokenNumber: parseNumber(); break;
-			case TokenAssignment: parseCall(); break;
-			case TokenClosure: parseClosure(); break;
-			case TokenStatementSeparator: parseStatementSeparator(); break;
-			case TokenBlockBegin: parseBlockBegin(); break;
-			case TokenBlockEnd: parseBlockEnd(); break;
-			case TokenBracketOpen: parseBracketOpen(); break;
-			case TokenBracketClose: parseBracketClose(); break;
-			case TokenFailure: parseFailure(); break;
-			case TokenEndOfStream: break;
-			default:
-				wcerr << L"Unknown token id " <<  _token->type_id();
-				wcerr << L"(" << decodeUtf8(_token->type_id_name()) << L")" << endl;
-				throw L"Unknown token.";
-		}
-	} while (_token->type_id() != TokenEndOfStream);
-	
+	_parser = new quex::Parser(encodeLocal(_filename));
+	readNext();
+	_tree = parseFile();
+	delete _parser;
 	return *this;
+}
+
+void Parser::readNext()
+{
+	if(_unread) {
+		_unread = false;
+		return;
+	}
+	_parser->receive(&_token);
+	
+	if(debug) {
+		// Debug print token
+		wcerr << endl;
+		wcerr << "TOKEN: ";
+		wcerr << decodeLocal(_token->type_id_name());
+		wcerr << " at ";
+		wcerr << _token->line_number() << L":";
+		wcerr << _token->column_number();
+		if(_token->type_id() == TokenIdentifier)
+			wcerr << L"\t"<<  _token->pretty_wchar_text();
+		wcerr << endl;
+	}
+}
+
+void Parser::unread()
+{
+	assert(_unread == false);
+	_unread = true;
+}
+
+uint32 Parser::token()
+{
+	return _token->type_id();
 }
 
 string Parser::lexeme()
@@ -114,88 +70,121 @@ SourceProperty Parser::source(bool hasLexeme)
 	return SourceProperty(_filename, fromLine, fromColumn, toLine, toColumn);
 }
 
-void Parser::pushScope()
+void Parser::parseFailure(string location)
 {
-	Scope scope;
-	_scopeStack.push_back(scope);
-}
-
-void Parser::popScope()
-{
-	_scopeStack.pop_back();
-}
-
-void Parser::parseIdentifier()
-{
-	// Scoping rules different for call and closure:
-	// In a closure the out values may appear in the in expression:
-	// f a b c ↦ expr(f, a, b, c)
-	//
-	// In a call this is illegal:
-	// f a b c ≔ expr(f, a, b, c)
-	//
-	string id = lexeme();
-	bool isDefinition = true;
-	
-	Edge* edge = 0;
-	// Search scope
-	for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend() && edge == 0; ++scopei) {
-		Scope& scope = *scopei;
-		for(auto symboli = scope.begin(); symboli != scope.end() && edge == 0; ++symboli) {
-			if((*symboli).first == id) {
-				if(_expressionStack.back().type != undetermined || (*symboli).second->source() == 0)
-					edge = (*symboli).second;
-			}
-		}
-	}
-	if(edge == 0) {
-		// Declare new symbol
-		edge = new Edge();
-		edge->set(IdentifierProperty(id));
-		edge->set(source());
-		if(builtins.find(id) != builtins.end())
-			edge->set(ConstantProperty(builtins[id]));
-		_scopeStack.back()[id] = edge;
-	}
-	if(_expressionStack.back().type == undetermined)
-		_expressionStack.back().out.push_back(edge);
+	SourceProperty s = source();
+	if(location.empty())
+		wcerr << endl << s << L": Syntax error." << endl;
 	else
-		_expressionStack.back().in.push_back(edge);
+		wcerr << endl << s << L": Syntax error in " << location << "." << endl;
+	s.printCaret(wcerr);
+	throw L"Syntax error.";
 }
 
-void Parser::parseQuotation()
+ParseTree* Parser::parseFile()
 {
-	assert(_expressionStack.back().type != undetermined);
-	string contents = lexeme();
+	ParseTree* tree = new ParseTree;
+	for(;;readNext()) switch(token()) {
+	case TokenStatementSeparator: continue;
+	case TokenBlockBegin: tree->topLevel()->add(parseScope()); continue;
+	case TokenIdentifier: tree->topLevel()->add(parseStatement()); continue;
+	case TokenEndOfStream: return tree;
+	default: parseFailure(L"file"); delete tree; return 0;
+	}
+}
+
+ParseTree::Scope* Parser::parseScope()
+{
+	// Eat the block begin
+	assert(token() == TokenBlockBegin);
+	readNext();
 	
-	// Count line and column number
-	int num_lines = 0;
-	int toColumn = 1;
-	for(int i = 0; i != contents.size(); ++i) {
-		if(contents[i] == (L'\n')) {
-			++num_lines;
-			toColumn = 1;
-		} else {
-			++toColumn;
-		}
+	// Parse the scope
+	ParseTree::Scope* scope = new ParseTree::Scope;
+	for(;;readNext()) switch(token()) {
+	case TokenStatementSeparator: continue;
+	case TokenBlockBegin: scope->add(parseScope()); continue;
+	case TokenIdentifier: scope->add(parseStatement()); continue;
+	case TokenBlockEnd: return scope;
+	default: parseFailure(L"scope"); delete scope; return 0;
+	}
+}
+
+ParseTree::Statement* Parser::parseStatement()
+{
+	ParseTree::Statement* statement = new ParseTree::Statement;
+	
+	// Parse the out identifiers
+	while(token() == TokenIdentifier) {
+		statement->addOut(parseIdentifier());
+		readNext();
 	}
 	
-	/// TODO: Fix line and col number
-	int fromLine = _token->line_number();
-	int fromColumn = _token->column_number();
-	int toLine = fromLine;
-	fromLine -= num_lines;
-	SourceProperty location(_filename, fromLine, fromColumn, toLine, toColumn);
+	// Parse the statement type
+	switch(token()) {
+	case TokenAssignment: statement->type(NodeType::Call); break;
+	case TokenClosure: statement->type(NodeType::Closure); break;
+	default: parseFailure(L"statement type"); delete statement; return 0;
+	}
+	readNext();
 	
-	Edge* constantEdge = new Edge;
-	constantEdge->set(location);
-	constantEdge->set(ConstantProperty(contents));
-	_expressionStack.back().in.push_back(constantEdge);
+	// Parse the in expressions
+	for(;;readNext()) switch(token()) {
+	case TokenIdentifier: statement->addIn(parseIdentifier()); continue;
+	case TokenBracketOpen: statement->addIn(parseInlineStatement()); continue;
+	case TokenNumber: statement->addIn(parseNumber()); continue;
+	case TokenQuotation: statement->addIn(parseQuotation()); continue;
+	case TokenBlockBegin:
+	case TokenBlockEnd: unread();
+	case TokenStatementSeparator: return statement;
+	default: parseFailure(L"statement inputs"); delete statement; return 0;
+	}
 }
 
-void Parser::parseNumber()
+ParseTree::InlineStatement* Parser::parseInlineStatement()
 {
-	assert(_expressionStack.back().type  != undetermined);
+	ParseTree::InlineStatement* statement = new ParseTree::InlineStatement;
+	
+	// Eat the bracker open
+	assert(token() == TokenBracketOpen);
+	readNext();
+	
+	// Parse the out identifiers
+	while(token() == TokenIdentifier || token() == TokenBracketValue) {
+		// parseIdentifier will work on TokenBracketValue as well
+		statement->addOut(parseIdentifier());
+		readNext();
+	}
+	
+	// Parse the statement type
+	switch(token()) {
+	case TokenAssignment: statement->type(NodeType::Call); break;
+	case TokenClosure: statement->type(NodeType::Closure); break;
+	default: parseFailure(L"inline statement type"); delete statement; return 0;
+	}
+	readNext();
+	
+	// Parse the in expressions
+	for(;;readNext()) switch(token()) {
+	case TokenIdentifier: statement->addIn(parseIdentifier()); continue;
+	case TokenBracketOpen: statement->addIn(parseInlineStatement()); continue;
+	case TokenNumber: statement->addIn(parseNumber()); continue;
+	case TokenQuotation: statement->addIn(parseQuotation()); continue;
+	case TokenBracketClose: return statement;
+	default: parseFailure(L"inline statement inputs"); delete statement; return 0;
+	}
+}
+
+ParseTree::Identifier* Parser::parseIdentifier()
+{
+	ParseTree::Identifier* id = new ParseTree::Identifier;
+	id->name(lexeme());
+	id->soureProperty(source(true));
+	return id;
+}
+
+ParseTree::Constant* Parser::parseNumber()
+{
 	const string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	const wchar_t separator = L'\u2009';
 	const wchar_t radixPoint = L'.';
@@ -278,7 +267,7 @@ void Parser::parseNumber()
 	constantEdge->set(source());
 	if(seenPoint) {
 		double value = mantissa * pow(base, exponent);
-		constantEdge->set(ConstantProperty(value));
+		return new ParseTree::Constant(value);
 	} else {
 		sint64 value = mantissa;
 		uint64 squares = base;
@@ -289,138 +278,33 @@ void Parser::parseNumber()
 			squares *= squares;
 			exponent >>= 1;
 		}
-		constantEdge->set(ConstantProperty(value));
+		return new ParseTree::Constant(value);
 	}
-	_expressionStack.back().in.push_back(constantEdge);
 }
 
-void Parser::parseCall()
+ParseTree::Constant* Parser::parseQuotation()
 {
-	assert(_expressionStack.back().type == undetermined);
-	_expressionStack.back().type = call;
-}
-
-void Parser::parseClosure()
-{
-	assert(_expressionStack.back().type == undetermined);
-	_expressionStack.back().type = closure;
-}
-
-void Parser::parseBlockBegin()
-{
-	parseStatementSeparator();
-}
-
-void Parser::parseBlockEnd()
-{
-	parseStatementSeparator();
-}
-
-void Parser::parseStatementSeparator()
-{
-	if(_expressionStack.size() == 1 && _expressionStack.back().type == undetermined)
-		return;
-	finishNode();
-}
-
-void Parser::parseBracketOpen()
-{
-	Edge* edge = new Edge;
-	edge->set(source(false));
-	_expressionStack.push_back(Expression());
-	_expressionStack.back().out.push_back(edge);
-}
-
-void Parser::parseBracketClose()
-{
-	finishNode();
-	int i = _expressionStack.size() - 1;
-	assert(i >= 1);
-	Edge* group = _expressionStack.back().out[0];
-	SourceProperty start = group->get<SourceProperty>();
-	SourceProperty end = source(false);
-	SourceProperty source(_filename, start.fromLine(), start.fromColumn(), end.toLine(), end.toColumn());
-	group->set(source);
-	_expressionStack[i - 1].in.push_back(group);
-	_expressionStack.pop_back();
-}
-
-void Parser::parseFailure()
-{
-	SourceProperty s = source();
-	wcerr << endl << s << L": Syntax error." << endl;
-	s.printCaret(wcerr);
-	throw L"Syntax error.";
-}
-
-Edge* Parser::finishNode()
-{
-	assert(_expressionStack.back().type != undetermined);
+	string contents = lexeme();
 	
-	// Construct the new node of the correct type and size
-	NodeType type = (_expressionStack.back().type == call) ? NodeType::Call : NodeType::Closure;
-	Node* node = new Node(type,_expressionStack.back().in.size(), _expressionStack.back().out.size());
-	
-	// Constuct the output nodes
-	for(int i = 0; i != _expressionStack.back().out.size(); ++i) {
-		Edge* from = _expressionStack.back().out[i];
-		Edge* to = node->out(i);
-		
-		// Replace in in
-		for(int j = 0; j < _expressionStack.back().in.size(); ++j) {
-			if(_expressionStack.back().in[j] == from)
-				_expressionStack.back().in[j] = to;
-		}
-		
-		// Replace in stack
-		_expressionStack.back().out[i] = to;
-		
-		// Copy info
-		if(from->has<IdentifierProperty>() && !to->has<IdentifierProperty>())
-			to->set(from->get<IdentifierProperty>());
-		if(from->has<SourceProperty>() && !to->has<SourceProperty>())
-			to->set(from->get<SourceProperty>());
-		
-		// Replace in DFG
-		if(debug)
-			wcerr << "Replacing " << from << " with " << to << endl;
-		from->replaceWith(to);
-		if(debug)
-			foreach(const Node* node, _dfg->nodes())
-				wcerr << node << " " << node->out() << " " << node->in() << endl; 
-		
-		// Replace in scope as well
-		for(auto scopei = _scopeStack.rbegin(); scopei != _scopeStack.rend(); ++scopei) {
-			Scope& scope = *scopei;
-			for(auto symboli = scope.begin(); symboli != scope.end(); ++symboli) {
-				if((*symboli).second == from) {
-					scope[(*symboli).first] = to;
-				}
-			}
+	// Count line and column number
+	int num_lines = 0;
+	int toColumn = 1;
+	for(int i = 0; i != contents.size(); ++i) {
+		if(contents[i] == (L'\n')) {
+			++num_lines;
+			toColumn = 1;
+		} else {
+			++toColumn;
 		}
 	}
 	
-	// Add to the DFG
-	_dfg->nodes().push_back(node);
+	/// TODO: Fix line and col number
+	int fromLine = _token->line_number();
+	int fromColumn = _token->column_number();
+	int toLine = fromLine;
+	fromLine -= num_lines;
+	SourceProperty location(_filename, fromLine, fromColumn, toLine, toColumn);
 	
-	// Set the new node's inputs
-	for(int i = 0; i != _expressionStack.back().in.size(); ++i)
-		node->connect(i, _expressionStack.back().in[i]);
-	
-	// Clear the intem in the expression stack
-	_expressionStack.back().type = undetermined;
-	_expressionStack.back().out.clear();
-	_expressionStack.back().in.clear();
-	
-	// Add an identifier for printing purposes
-	if(node->type() == NodeType::Call && node->inArrity() >= 1 && node->in(0)->has<IdentifierProperty>())
-		node->set(IdentifierProperty(node->in(0)->get<IdentifierProperty>().value()));
-	else if(node->type() == NodeType::Closure && node->outArrity() >= 1 && node->out(0)->has<IdentifierProperty>())
-		node->set(IdentifierProperty(node->out(0)->get<IdentifierProperty>().value()));
-	
-	if(debug)
-		wcerr << node << node->in() << node->out() << endl;
-	
-	return (node->outArrity() > 0) ? node->out(0) : 0;
+	return new ParseTree::Constant(contents);
 }
 

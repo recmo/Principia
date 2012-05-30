@@ -1,59 +1,40 @@
 #pragma once
 #include <fixups.h>
-class DataFlowGraph;
-class Edge;
-class SourceProperty;
-namespace quex { class Token; }
+#include <Parser/SourceProperty.h>
+#include "ParseTree.h"
+namespace quex { class Parser; class Token; }
 
 class Parser
 {
 public:
 	Parser();
-	Parser(DataFlowGraph* ir);
-	
-	const DataFlowGraph* dataFlowGraph() const { return _dfg; }
-	DataFlowGraph* dataFlowGraph() { return _dfg; }
 	
 	Parser& parse(const string& filename);
-	Parser& parse(std::wifstream input);
 	
-	void pushScope();
-	void popScope();
+	ParseTree* tree() { return _tree; }
 	
-	
-	enum Type {
-		undetermined,
-		call,
-		closure
-	};
-	struct Expression {
-		Expression();
-		Type type;
-		vector<Edge*> out;
-		vector<Edge*> in;
-	};
 private:
 	typedef quex::Token Token;
-	typedef map<string, Edge*> Scope;
-	DataFlowGraph* _dfg;
-	vector<Scope> _scopeStack;
 	string _filename;
-	Token* _token;
+	quex::Parser* _parser;
+	quex::Token* _token;
+	ParseTree* _tree;
+	ParseTree::Statement* _statement;
+	bool _unread;
 	
-	vector<Expression> _expressionStack;
-	
+	void readNext();
+	void unread();
+	uint32 token();
 	string lexeme();
 	SourceProperty source(bool hasLexeme = true);
-	void parseIdentifier();
-	void parseQuotation();
-	void parseNumber();
-	void parseCall();
-	void parseClosure();
-	void parseStatementSeparator();
-	void parseBlockBegin();
-	void parseBlockEnd();
-	void parseBracketOpen();
-	void parseBracketClose();
-	void parseFailure();
-	Edge* finishNode();
+	
+	ParseTree* parseFile();
+	ParseTree::Statement* parseStatement();
+	ParseTree::InlineStatement* parseInlineStatement();
+	ParseTree::Scope* parseScope();
+	ParseTree::Identifier* parseIdentifier();
+	ParseTree::Constant* parseNumber();
+	ParseTree::Constant* parseQuotation();
+	
+	void parseFailure(string location = string());
 };

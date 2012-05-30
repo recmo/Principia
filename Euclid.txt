@@ -1,15 +1,5 @@
 Euclid a b ↦ gcd x y
 	d r ≔ div a b
-	gcd x y ≔ (≔ if r (↦ (rx ry ≔ Euclid b r) ry (≔ sub rx (≔ mul ry d))) (↦ b 0 1))
+	gcd x y ≔ (≔ if r (↦ (x y ≔ Euclid b r) y (≔ sub x (≔ mul y d))) (↦ b 0 1))
 
-gcd ad bd ↦ (cd dd ≔ Euclid ad bd)
-
-
-haskell ↦ “
-
-extendedEuclid a b = recurse a b 1 0 0 1
-  where recurse a 0 x0 y0 x1 y1 = (x0, y0)
-        recurse a b x0 y0 x1 y1 = let q = a `div` b in 
-                                  let r = a `mod` b in
-                                  recurse b r x1 y1 (x0 - q * x1) (y0 - q * y1)
-”
+gcd a b ↦ (⏚ ⏚ ≔ Euclid a b)

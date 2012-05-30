@@ -9,8 +9,8 @@ public:
 	DataFlowGraph();
 	~DataFlowGraph();
 	
+	void addNode(Node* node) { _nodes.push_back(node); }
 	Node* addClosure(int numArgs, int numRets);
-
 	Node* addCall(int numArgs, int numRets);
 	Node* addCall(Node* closure);
 	

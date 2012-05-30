@@ -17,4 +17,5 @@ public:
 protected:
 	DataFlowGraph* _dfg;
 	bool _fixedPoint;
+	bool isRecursiveClosure(std::vector<Node*>& seen, Node* current);
 };

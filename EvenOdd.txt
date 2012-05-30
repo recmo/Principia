@@ -1,18 +1,5 @@
 comment ↦ “Demonstrates mutual recursion”
 
-even en ↦ evenen
-	true ↦ 1
-	ask_odd ↦ oddpen
-		pen ≔ sub en 1
-		oddpen ≔ odd pen
-	evenenf ≔ if en ask_odd true
-	evenen ≔ evenenf
+even n ↦ (≔(≔ if n (↦ (≔ odd (≔ sub n 1))) (↦ 1)))
 
-odd on ↦ oddon
-	false ↦ 0
-	ask_even ↦ evenpon
-		pon ≔ sub on 1
-		evenpon ≔ even pon
-	oddonf ≔ if on ask_even false
-	oddon ≔ oddonf
-
+odd n ↦ (≔(≔ if n (↦ (≔ even (≔ sub n 1))) (↦ 0)))

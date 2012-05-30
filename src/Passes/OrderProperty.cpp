@@ -1,4 +1,5 @@
 #include "Passes/OrderProperty.h"
+#include <DFG/Node.h>
 
 PropertyType OrderProperty::classType = PropertyType::Order;
 

@@ -266,20 +266,23 @@ sint32 Main(const vector<string>& args)
 	sa.annotate();
 	wcerr << endl;
 	
+	wcerr << endl << endl;
+	foreach(const Node* node, dfg->nodes()) {
+		wcerr << node << " " << node->out() << " " << node->in() << endl;
+		node->printProperties(wcerr);
+		foreach(const Edge* edge, node->out()) {
+			wcerr << "    " << edge << endl;
+			edge->printProperties(wcerr);
+		}
+		wcerr << endl;
+	}
+	wcerr << endl << endl;
+	
 	// Compile to LLVM !
 	wcerr << L"Compiling to native code using LLVM…" << flush;
 	LlvmCompiler lc(dfg);
 	lc.compile();
 	wcerr << endl;
-	
-	/*
-	wcerr << endl << endl;
-	foreach(const Node* node, dfg->nodes()) {
-		wcerr << node << " " << node->out() << " " << node->in() << endl; 
-		node->printProperties(wcerr);
-	}
-	wcerr << endl << endl;
-	*/
 	
 	//
 	//  Parse the command line

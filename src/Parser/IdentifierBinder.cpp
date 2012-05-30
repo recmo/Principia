@@ -5,7 +5,6 @@
 void IdentifierBinder::bind()
 {
 	/// TODO: Global builtin identifiers
-	/// TODO: Annotate bindings
 	crawl(_parseTree->topLevel());
 }
 
@@ -32,7 +31,7 @@ void IdentifierBinder::crawl(ParseTree::Statement* statement)
 			}
 			ParseTree::Identifier* bindingSite = search(id);
 			if(bindingSite) {
-				if(debug) {
+				if(debug || 1) {
 					wcerr << "Resolved to " << bindingSite->name() << " from ";
 					bindingSite->parent()->print(wcerr);
 					wcerr << endl;

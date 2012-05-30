@@ -20,5 +20,5 @@ StackProperty::~StackProperty()
 
 void StackProperty::print(std::wostream& out) const
 {
-	out << _positions << endl;
+	out << _positions;
 }

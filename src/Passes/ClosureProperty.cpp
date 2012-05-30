@@ -1,4 +1,5 @@
 #include "Passes/ClosureProperty.h"
+#include <DFG/Edge.h>
 
 PropertyType ClosureProperty::classType = PropertyType::Closure;
 
@@ -18,5 +19,6 @@ ClosureProperty::~ClosureProperty()
 
 void ClosureProperty::print(std::wostream& out) const
 {
+	out << _edges;
 }
 

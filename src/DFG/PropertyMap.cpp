@@ -38,7 +38,6 @@ const Property* PropertyMap::get(const PropertyType type) const
 
 void PropertyMap::printProperties(std::wostream& out) const
 {
-	out << endl;
 	for(auto it = _propertyMap.begin(); it != _propertyMap.end(); ++it)
 		out << L"\t" << *((*it).second) << endl;
 }

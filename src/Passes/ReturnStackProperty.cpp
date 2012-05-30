@@ -20,5 +20,5 @@ ReturnStackProperty::~ReturnStackProperty()
 
 void ReturnStackProperty::print(std::wostream& out) const
 {
-	out << _positions << endl;
+	out << _positions;
 }

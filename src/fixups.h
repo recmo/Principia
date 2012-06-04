@@ -130,6 +130,17 @@ bool contains(const std::map<Key, Value>& map, const Key& key)
 	return map.find(key) != map.end();
 }
 
+
+template<class T>
+int indexOf(const std::vector<T>& list, const T& item)
+{
+	auto i = std::find(list.begin(), list.end(), item);
+	if(i == list.end())
+		throw L"Could not find index of item.";
+	return std::distance(list.begin(), i);
+}
+
+
 template<class Key, class Value>
 bool tryGet(const std::map<Key, Value>& map, const Key& key, Value& value)
 {

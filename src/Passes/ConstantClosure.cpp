@@ -5,9 +5,7 @@
 #include <Parser/ConstantProperty.h>
 #include <Interpreter/Closure.h>
 
-#define debug true
-
-/// TODO: Recognize mutual recursion to be constant
+#define debug false
 
 void ConstantClosure::anotateClosures()
 {

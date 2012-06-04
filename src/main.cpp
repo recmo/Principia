@@ -18,17 +18,19 @@
 #include <cmath>
 
 /// TODO: Add mutual recursion to llvm compiler
+/// TODO: Find a contrived example where the validity of the mutual recursion depends on an unsolved problem.
+///       f x ↦ (≔(≔ if (↦(≔ complicated_function_1 x)) (↦(≔ g x)) (↦x))
+///       g x ↦ (≔(≔ if (↦(≔ complicated_function_2 x)) (↦(≔ f x)) (↦x))
+/// Then add a variable to force the closure to be dynamic.
+/// TODO: Find a contrived example where a partially filled closure might still be executed.
+/// TODO: Proof that finding an executable closure storing order is equivalent to the halting problem.
+
+/// TODO: McCarthy 91 function
+
+// M n ↦ (≔(≔ if (≔ greater n 100) (↦(≔ sub n 10)) (↦(≔ M (≔ M (≔ add n 11))))))
+
+
 /// TODO: Add proof language
-
-/*
-
- C O B L U E
-
- C o b l u e
-
- Coblue
-
-*/
 
 /*
 
@@ -254,16 +256,22 @@ sint32 Main(const vector<string>& args)
 		wcerr << endl;
 	} while (!(ll.fixedPoint() && cc.fixedPoint()));
 	
+	wcerr << endl << endl;
+	foreach(const Node* node, dfg->nodes()) {
+		wcerr << node << " " << node->out() << " " << node->in() << endl;
+		node->printProperties(wcerr);
+		foreach(const Edge* edge, node->out()) {
+			wcerr << "    " << edge << endl;
+			edge->printProperties(wcerr);
+		}
+		wcerr << endl;
+	}
+	wcerr << endl << endl;
+	
 	// Topological sort the bodies of functions
 	wcerr << L"Sorting closure bodies topologically…" << flush;
 	TopologicalSorter ts(dfg);
 	ts.sortClosures();
-	wcerr << endl;
-	
-	// Add stack allocations
-	wcerr << L"Assigning stack positions to edges…" << flush;
-	StackAllocator sa(dfg);
-	sa.annotate();
 	wcerr << endl;
 	
 	wcerr << endl << endl;

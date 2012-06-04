@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <Passes/StackVMProperty.h>
 
 class Node;
 class Edge;
@@ -9,7 +10,7 @@ class Node;
 class TopologicalSorter
 {
 public:
-	TopologicalSorter(DataFlowGraph* dfg): _dfg(dfg), _closure(0), _closed(), _arguments(), _order() { }
+	TopologicalSorter(DataFlowGraph* dfg): _dfg(dfg), _closure(0), _stack(), _order() { }
 	~TopologicalSorter() { }
 	
 	void sortClosures();
@@ -17,9 +18,8 @@ public:
 private:
 	DataFlowGraph* _dfg;
 	Node* _closure;
-	std::vector<const Edge*> _closed;
-	std::vector<const Edge*> _arguments;
-	std::vector<const Node*> _order;
+	std::vector<const Edge*> _stack;
+	std::vector<StackVMProperty::Instruction*> _order;
 	
 	void sortClosure();
 	void sortClosure(const Node* node);

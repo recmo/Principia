@@ -5,7 +5,7 @@
 #include "ReturnStackProperty.h"
 #include <Parser/ConstantProperty.h>
 
-#define debug false
+#define debug true
 
 void StackAllocator::annotate()
 {

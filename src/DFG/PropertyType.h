@@ -16,6 +16,7 @@ public:
 	const static int Stack = 5;
 	const static int ReturnStack = 6;
 	const static int Native = 7;
+	const static int StackVM = 8;
 	
 private:
 	int value;

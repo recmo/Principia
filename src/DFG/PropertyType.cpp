@@ -11,6 +11,7 @@ string PropertyType::toString() const
 		case PropertyType::Stack: return L"Stack";
 		case PropertyType::ReturnStack: return L"ReturnStack";
 		case PropertyType::Native: return L"Native";
+		case PropertyType::StackVM: return L"StackVM";
 		default: return L"Illegal value";
 	}
 }

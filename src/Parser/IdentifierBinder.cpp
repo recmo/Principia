@@ -31,7 +31,7 @@ void IdentifierBinder::crawl(ParseTree::Statement* statement)
 			}
 			ParseTree::Identifier* bindingSite = search(id);
 			if(bindingSite) {
-				if(debug || 1) {
+				if(debug) {
 					wcerr << "Resolved to " << bindingSite->name() << " from ";
 					bindingSite->parent()->print(wcerr);
 					wcerr << endl;

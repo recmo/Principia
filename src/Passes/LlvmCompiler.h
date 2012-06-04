@@ -5,6 +5,8 @@
 #include <llvm/Module.h>
 #include <llvm/Support/IRBuilder.h>
 #include <llvm/Value.h>
+#include "Passes/StackVMProperty.h"
+
 
 class LlvmCompiler
 {
@@ -28,12 +30,15 @@ private:
 	
 	void buildDeclareFunction(const Node* closureNode);
 	void buildFunctionBody(const Node* closureNode);
+	void buildInstruction(const StackVMProperty::Instruction* instruction);
+	void buildCall(const StackVMProperty::CallInstruction* call);
+	void buildAlloc(const StackVMProperty::AllocateInstruction* alloc);
+	void buildStore(const StackVMProperty::StoreInstruction* store);
+	void buildRet(const StackVMProperty::ReturnInstruction* ret);
+	void buildBuiltin(const StackVMProperty::CallInstruction* call);
+	
 	void buildDefaultClosure(const Node* closureNode);
 	void buildWrapper(const Node* closureNode);
-	void buildNode(const Node* node);
-	void buildBuiltin(const Node* node);
-	void buildCall(const Node* callNode);
-	void buildClosure(const Node* closureNode);
 	llvm::Value* buildConstant(const Value& value);
 	llvm::FunctionType* buildFunctionType(int inArrity, int outArrity);
 	void buildTrace(uint64 value) { buildTrace(_builder.getInt64(value)); }

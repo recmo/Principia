@@ -87,35 +87,38 @@ private:
 class StackVMProperty::StoreInstruction: public StackVMProperty::Instruction
 {
 public:
-	StoreInstruction(int closure, int index, int value): _closure(closure), _index(index), _value(value) { }
-	StoreInstruction(const StoreInstruction& other) : _closure(other._closure), _index(other._index), _value(other._value) { }
+	StoreInstruction(int closure, int index, int value): _closure(closure), _slot(index), _value(value) { }
+	StoreInstruction(const StoreInstruction& other) : _closure(other._closure), _slot(other._slot), _value(other._value) { }
 	virtual ~StoreInstruction() { }
 	virtual StoreInstruction* clone() const { return new StoreInstruction(*this); }
 	virtual void print(std::wostream& out) const;
 	
 	int closure() const { return _closure; }
-	int index() const { return _index; }
+	int slot() const { return _slot; }
 	int value() const { return _value; }
 	
 private:
 	int _closure;
-	int _index;
+	int _slot;
 	int _value;
 };
 
 class StackVMProperty::ReturnInstruction: public StackVMProperty::Instruction
 {
 public:
-	ReturnInstruction(): _returns() { }
-	ReturnInstruction(const ReturnInstruction& other): _returns(other._returns) { }
+	ReturnInstruction(const Node* closure): _closure(closure), _returns() { }
+	ReturnInstruction(const ReturnInstruction& other): _closure(other._closure), _returns(other._returns) { }
 	virtual ~ReturnInstruction() { }
 	virtual ReturnInstruction* clone() const { return new ReturnInstruction(*this); }
 	virtual void print(std::wostream& out) const;
+	
+	const Node* closure() const { return _closure; }
 	
 	void addReturnValue(int value) { _returns.push_back(value); }
 	const std::vector<int>& returns() const { return _returns; }
 	
 private:
+	const Node* _closure;
 	std::vector<int> _returns;
 };
 

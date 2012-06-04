@@ -37,7 +37,7 @@ void StackVMProperty::AllocateInstruction::print(std::wostream& out) const
 
 void StackVMProperty::StoreInstruction::print(std::wostream& out) const
 {
-	out << L"\t\tStore " << _closure << " " << _index << " " << _value << endl;
+	out << L"\t\tStore " << _closure << " " << _slot << " " << _value << endl;
 }
 
 void StackVMProperty::ReturnInstruction::print(std::wostream& out) const

@@ -43,7 +43,7 @@ void TopologicalSorter::sortClosure()
 		_stack.push_back(_closure->out(i));
 	
 	// Start from the returns
-	StackVMProperty::ReturnInstruction* returnInst = new StackVMProperty::ReturnInstruction;
+	StackVMProperty::ReturnInstruction* returnInst = new StackVMProperty::ReturnInstruction(_closure);
 	foreach(const Edge* edge, _closure->in()) {
 		if(edge->has<ConstantProperty>()) {
 			returnInst->addReturnValue(-1);

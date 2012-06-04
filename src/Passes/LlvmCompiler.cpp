@@ -1,8 +1,5 @@
 #include "LlvmCompiler.h"
 #include "ClosureProperty.h"
-#include "OrderProperty.h"
-#include "StackProperty.h"
-#include "ReturnStackProperty.h"
 #include "NativeProperty.h"
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
@@ -28,7 +25,7 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/IPO.h>
 
-#define debug false
+#define debug true
 
 std::wostream& operator<<(std::wostream& out, const llvm::StringRef& string)
 {
@@ -323,55 +320,39 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	}
 	
 	// Construct the function body
-	foreach(const Node* node, closureNode->get<OrderProperty>().nodes())
-		buildNode(node);
-	
-	// Construct the return value
-	if(debug)
-		wcerr << "RETURNS" << endl;
-	const vector<int>& resultStackpos = closureNode->get<ReturnStackProperty>().positions();
-	if(resultStackpos.size() == 1) {
-		if(resultStackpos[0] == -1)
-			_builder.CreateRet(buildConstant(closureNode->in(0)->get<ConstantProperty>().value()));
-		else {
-			assert(resultStackpos[0] < _stack.size());
-			_builder.CreateRet(_stack[resultStackpos[0]]);
-		}
-	} else {
-		vector<llvm::Value*> results;
-		for(int i = 0; i < closureNode->inArrity(); ++i) {
-			if(resultStackpos[i] == -1)
-				results.push_back(buildConstant(closureNode->in(i)->get<ConstantProperty>().value()));
-			else {
-				assert(resultStackpos[i] < _stack.size());
-				results.push_back(_stack[resultStackpos[i]]);
-			}
-		}
-		_builder.CreateAggregateRet(results.data(), results.size());
+	foreach(const StackVMProperty::Instruction* instruction, closureNode->get<StackVMProperty>().instructions())
+		buildInstruction(instruction);
+}
+
+void LlvmCompiler::buildInstruction(const StackVMProperty::Instruction* instruction)
+{
+	const StackVMProperty::CallInstruction* call = dynamic_cast<const StackVMProperty::CallInstruction*>(instruction);
+	if(call)
+		buildCall(call);
+	const StackVMProperty::AllocateInstruction* alloc = dynamic_cast<const StackVMProperty::AllocateInstruction*>(instruction);
+	if(alloc)
+		buildAlloc(alloc);
+	const StackVMProperty::StoreInstruction* store = dynamic_cast<const StackVMProperty::StoreInstruction*>(instruction);
+	if(store)
+		buildStore(store);
+	const StackVMProperty::ReturnInstruction* ret = dynamic_cast<const StackVMProperty::ReturnInstruction*>(instruction);
+	if(ret)
+		buildRet(ret);
+}
+
+void LlvmCompiler::buildCall(const StackVMProperty::CallInstruction* call)
+{
+	if(call->node()->in(0)->has<ConstantProperty>() && call->node()->in(0)->get<ConstantProperty>().value().kind == Value::Builtin) {
+		buildBuiltin(call);
+		return;
 	}
-}
-
-void LlvmCompiler::buildNode(const Node* node)
-{
+	
 	if(debug)
-		wcerr << "NODE " << node << endl;
-	if(node->type() == NodeType::Call) {
-		if(node->in(0)->has<ConstantProperty>() && node->in(0)->get<ConstantProperty>().value().kind == Value::Builtin)
-			buildBuiltin(node);
-		else
-			buildCall(node);
-	} else
-		buildClosure(node);
-}
-
-void LlvmCompiler::buildCall(const Node* callNode)
-{
-	if(debug)
-		wcerr << "CALL " << callNode << endl;
+		wcerr << "CALL " << call->node() << endl;
 	
 	// Fetch the argument values
-	vector<const Edge*> inputs = callNode->in();
-	const vector<int>& stackPositions = callNode->get<StackProperty>().positions();
+	vector<const Edge*> inputs = call->node()->in();
+	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(int i = 0; i < stackPositions.size(); ++i) {
 		if(stackPositions[i] == -1)
@@ -385,13 +366,13 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	
 	// Fetch the function pointer
 	llvm::Value* funcPtr;
-	if(callNode->in(0)->has<ConstantProperty>()) {
-		const Node* closureNode = callNode->in(0)->get<ConstantProperty>().value().closure()->node();
+	if(call->node()->in(0)->has<ConstantProperty>()) {
+		const Node* closureNode = call->node()->in(0)->get<ConstantProperty>().value().closure()->node();
 		funcPtr = _declarations[closureNode];
 	} else {
 		
 		// Fetch the function pointer
-		llvm::FunctionType* funcType = buildFunctionType(callNode->inArrity() - 1, callNode->outArrity());
+		llvm::FunctionType* funcType = buildFunctionType(call->node()->inArrity() - 1, call->node()->outArrity());
 		llvm::Value* closurePtr = _builder.CreateBitCast(args[0], _builder.getInt64Ty()->getPointerTo());
 		llvm::Value* funcPtrIntPtr = _builder.CreateGEP(closurePtr, _builder.getInt64(0));
 		llvm::Value* funcPtrInt = _builder.CreateLoad(funcPtrIntPtr);
@@ -400,8 +381,8 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	
 	// Create the call
 	std::string name = "";
-	if(callNode->in(0)->has<IdentifierProperty>())
-		name = encodeUtf8(callNode->in(0)->get<IdentifierProperty>().value());
+	if(call->node()->in(0)->has<IdentifierProperty>())
+		name = encodeUtf8(call->node()->in(0)->get<IdentifierProperty>().value());
 	llvm::CallInst* result = _builder.CreateCall(funcPtr, args, name);
 	result->setCallingConv(llvm::CallingConv::Fast);
 	result->setOnlyReadsMemory();
@@ -409,24 +390,90 @@ void LlvmCompiler::buildCall(const Node* callNode)
 	result->setTailCall();
 	
 	// Unpack the results to the stack
-	if (callNode->outArrity() == 1) {
+	if (call->numReturns() == 1) {
 		_stack.push_back(result);
 	} else
-		for(int i = 0; i < callNode->outArrity(); ++i)
+		for(int i = 0; i < call->numReturns(); ++i)
 			_stack.push_back(_builder.CreateExtractValue(result, i));
 	
 	if(debug)
 		wcerr << " END CALL " << endl;
 }
 
-void LlvmCompiler::buildBuiltin(const Node* callNode)
+void LlvmCompiler::buildAlloc(const StackVMProperty::AllocateInstruction* alloc)
 {
 	if(debug)
-		wcerr << "BUILTIN " << callNode << endl;
+		wcerr << "CLOSURE " << alloc->closure() << endl;
+	
+	const vector<const Edge*>& inputs = alloc->closure()->get<ClosureProperty>().edges();
+	if(debug)
+		wcerr << "closure edges = " <<  inputs << endl;
+	
+	// Return a constant when the closure is empty
+	if(inputs.empty()) {
+		_closures[alloc->closure()]->dump();
+		_stack.push_back(_closures[alloc->closure()]);
+		return;
+	}
+	
+	// Construct the closure
+	int closureSize = alloc->closure()->get<ClosureProperty>().edges().size() + 1;
+	llvm::Value* closure = buildMalloc(closureSize);
+	
+	// Push the closure
+	llvm::Value* closurePtr = _builder.CreatePtrToInt(closure, _builder.getInt64Ty());
+	_stack.push_back(closurePtr);
+	
+	// Store the function pointer
+	llvm::Function* func = _declarations[alloc->closure()];
+	llvm::Value* funcPtr = _builder.CreatePtrToInt(func, _builder.getInt64Ty());
+	_builder.CreateStore(funcPtr, _builder.CreateGEP(closure, _builder.getInt64(0)));
+}
+
+void LlvmCompiler::buildStore(const StackVMProperty::StoreInstruction* store)
+{
+	llvm::Value* closure = _builder.CreateIntToPtr(_stack[store->closure()], _builder.getInt64Ty()->getPointerTo());
+	llvm::Value* value = _stack[store->value()];
+	int slot = store->slot() + 1;
+	llvm::Value* pointer = _builder.CreateGEP(closure, _builder.getInt64(slot));
+	_builder.CreateStore(value, pointer);
+}
+
+void LlvmCompiler::buildRet(const StackVMProperty::ReturnInstruction* ret)
+{
+	// Construct the return value
+	if(debug)
+		wcerr << "RETURNS" << endl;
+	const vector<int>& resultStackpos = ret->returns();
+	if(resultStackpos.size() == 1) {
+		if(resultStackpos[0] == -1)
+			_builder.CreateRet(buildConstant(ret->closure()->in(0)->get<ConstantProperty>().value()));
+		else {
+			assert(resultStackpos[0] < _stack.size());
+			_builder.CreateRet(_stack[resultStackpos[0]]);
+		}
+	} else {
+		vector<llvm::Value*> results;
+		for(int i = 0; i < ret->closure()->inArrity(); ++i) {
+			if(resultStackpos[i] == -1)
+				results.push_back(buildConstant(ret->closure()->in(i)->get<ConstantProperty>().value()));
+			else {
+				assert(resultStackpos[i] < _stack.size());
+				results.push_back(_stack[resultStackpos[i]]);
+			}
+		}
+		_builder.CreateAggregateRet(results.data(), results.size());
+	}
+}
+
+void LlvmCompiler::buildBuiltin(const StackVMProperty::CallInstruction* call)
+{
+	if(debug)
+		wcerr << "BUILTIN " << call->node() << endl;
 	
 	// Construct the arguments
-	vector<const Edge*> inputs = callNode->in();
-	const vector<int>& stackPositions = callNode->get<StackProperty>().positions();
+	vector<const Edge*> inputs = call->node()->in();
+	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(int i = 1; i < stackPositions.size(); ++i) {
 		if(stackPositions[i] == -1)
@@ -436,36 +483,36 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 	}
 	
 	// Dispatch on the name
-	std::wstring name = callNode->in(0)->get<IdentifierProperty>().value();
+	std::wstring name = call->node()->in(0)->get<IdentifierProperty>().value();
 	if(name == L"if") {
 		std::string name;
-		if(callNode->out(0)->has<IdentifierProperty>())
-			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		if(call->node()->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(call->node()->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* condition = _builder.CreateICmpNE(args[0], _builder.getInt64(0), name + "_cond");
 		llvm::Value* result = _builder.CreateSelect(condition, args[1], args[2], name);
 		_stack.push_back(result);
 	} else  if(name == L"add") {
 		std::string name;
-		if(callNode->out(0)->has<IdentifierProperty>())
-			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		if(call->node()->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(call->node()->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateAdd(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"sub") {
 		std::string name;
-		if(callNode->out(0)->has<IdentifierProperty>())
-			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		if(call->node()->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(call->node()->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateSub(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"mul") {
 		std::string name;
-		if(callNode->out(0)->has<IdentifierProperty>())
-			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		if(call->node()->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(call->node()->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* result = _builder.CreateMul(args[0], args[1], name);
 		_stack.push_back(result);
 	} else if(name == L"div") {
 		std::string name;
-		if(callNode->out(0)->has<IdentifierProperty>())
-			name = encodeUtf8(callNode->out(0)->get<IdentifierProperty>().value());
+		if(call->node()->out(0)->has<IdentifierProperty>())
+			name = encodeUtf8(call->node()->out(0)->get<IdentifierProperty>().value());
 		llvm::Value* dividend = _builder.CreateSDiv(args[0], args[1], name);
 		llvm::Value* remainder = _builder.CreateSRem(args[0], args[1], name);
 		_stack.push_back(dividend);
@@ -474,50 +521,6 @@ void LlvmCompiler::buildBuiltin(const Node* callNode)
 		wcerr << "Do not know builtin " << name  << endl;
 		assert(false);
 	}
-}
-
-void LlvmCompiler::buildClosure(const Node* closureNode)
-{
-	if(debug)
-		wcerr << "CLOSURE " << closureNode << endl;
-	
-	const vector<const Edge*>& inputs = closureNode->get<ClosureProperty>().edges();
-	if(debug)
-		wcerr << "closure edges = " <<  inputs << endl;
-	
-	// Return a constant when the closure is empty
-	if(inputs.empty()) {
-		_closures[closureNode]->dump();
-		_stack.push_back(_closures[closureNode]);
-		return;
-	}
-	
-	// Construct the inputs
-	const vector<int>& stackPositions = closureNode->get<StackProperty>().positions();
-	vector<llvm::Value*> args;
-	for(int i = 0; i < stackPositions.size(); ++i) {
-		if(stackPositions[i] == -1)
-			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
-		else
-			args.push_back(_stack[stackPositions[i]]);
-	}
-	
-	// Construct the closure
-	int closureSize = args.size() + 1;
-	llvm::Value* closure = buildMalloc(closureSize);
-	
-	// Store the function pointer
-	llvm::Function* func = _declarations[closureNode];
-	llvm::Value* funcPtr = _builder.CreatePtrToInt(func, _builder.getInt64Ty());
-	_builder.CreateStore(funcPtr, _builder.CreateGEP(closure, _builder.getInt64(0)));
-	
-	// Store the rest of the closure
-	for(int i = 0; i < args.size(); ++i)
-		_builder.CreateStore(args[i], _builder.CreateGEP(closure, _builder.getInt64(i + 1)));
-	
-	// Push the closure
-	llvm::Value* closurePtr = _builder.CreatePtrToInt(closure, _builder.getInt64Ty());
-	_stack.push_back(closurePtr);
 }
 
 llvm::Value* LlvmCompiler::buildConstant(const Value& value)

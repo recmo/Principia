@@ -4,7 +4,7 @@
 class Edge;
 class Node;
 
-class StackVMProperty: public Property
+class StackMachineProperty: public Property
 {
 public:
 	class Instruction;
@@ -13,14 +13,14 @@ public:
 	class StoreInstruction;
 	class ReturnInstruction;
 	
-	StackVMProperty(): Property(), _stack(), _instructions() { }
-	StackVMProperty(const std::vector<const Edge*>& stack, const std::vector<Instruction*>& order): Property(), _stack(stack), _instructions(order) { }
-	StackVMProperty(const StackVMProperty& copy);
-	virtual ~StackVMProperty();
+	StackMachineProperty(): Property(), _stack(), _instructions() { }
+	StackMachineProperty(const std::vector<const Edge*>& stack, const std::vector<Instruction*>& order): Property(), _stack(stack), _instructions(order) { }
+	StackMachineProperty(const StackMachineProperty& copy);
+	virtual ~StackMachineProperty();
 	
 	static PropertyType classType;
 	virtual PropertyType type() const { return classType; }
-	virtual StackVMProperty* clone() const { return new StackVMProperty(*this); }
+	virtual StackMachineProperty* clone() const { return new StackMachineProperty(*this); }
 	
 	virtual void print(std::wostream& out) const;
 	
@@ -37,7 +37,7 @@ private:
 	std::vector<Instruction*> _instructions;
 };
 
-class StackVMProperty::Instruction
+class StackMachineProperty::Instruction
 {
 public:
 	Instruction() { }
@@ -46,7 +46,7 @@ public:
 	virtual void print(std::wostream& out) const = 0;
 };
 
-class StackVMProperty::CallInstruction: public StackVMProperty::Instruction
+class StackMachineProperty::CallInstruction: public StackMachineProperty::Instruction
 {
 public:
 	CallInstruction(const Node* node): _node(node), _arguments() { }
@@ -69,7 +69,7 @@ private:
 	int _numReturns;
 };
 
-class StackVMProperty::AllocateInstruction: public StackVMProperty::Instruction
+class StackMachineProperty::AllocateInstruction: public StackMachineProperty::Instruction
 {
 public:
 	AllocateInstruction(const Node* closure): _closure(closure) { }
@@ -84,7 +84,7 @@ private:
 	const Node* _closure;
 };
 
-class StackVMProperty::StoreInstruction: public StackVMProperty::Instruction
+class StackMachineProperty::StoreInstruction: public StackMachineProperty::Instruction
 {
 public:
 	StoreInstruction(int closure, int index, int value): _closure(closure), _slot(index), _value(value) { }
@@ -103,7 +103,7 @@ private:
 	int _value;
 };
 
-class StackVMProperty::ReturnInstruction: public StackVMProperty::Instruction
+class StackMachineProperty::ReturnInstruction: public StackMachineProperty::Instruction
 {
 public:
 	ReturnInstruction(const Node* closure): _closure(closure), _returns() { }

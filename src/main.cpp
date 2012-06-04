@@ -1,6 +1,6 @@
 #include "fixups.h"
 #include "Parser/Parser.h"
-#include "Interpreter/Value.h"
+#include "Passes/Value.h"
 #include "Passes/Validator.h"
 #include "Parser/Parser.h"
 #include "DFG/DataFlowGraph.h"
@@ -10,14 +10,12 @@
 #include "Passes/DotFileWriter.h"
 #include "Passes/LambdaLifter.h"
 #include "Passes/ConstantClosure.h"
-#include "Passes/TopologicalSorter.h"
-#include "Passes/StackAllocator.h"
+#include "Passes/StackCompiler.h"
 #include "Passes/LlvmCompiler.h"
 #include "Passes/NativeProperty.h"
 #include <fstream>
 #include <cmath>
 
-/// TODO: Add mutual recursion to llvm compiler
 /// TODO: Find a contrived example where the validity of the mutual recursion depends on an unsolved problem.
 ///       f x ↦ (≔(≔ if (↦(≔ complicated_function_1 x)) (↦(≔ g x)) (↦x))
 ///       g x ↦ (≔(≔ if (↦(≔ complicated_function_2 x)) (↦(≔ f x)) (↦x))
@@ -270,7 +268,7 @@ sint32 Main(const vector<string>& args)
 	
 	// Topological sort the bodies of functions
 	wcerr << L"Sorting closure bodies topologically…" << flush;
-	TopologicalSorter ts(dfg);
+	StackCompiler ts(dfg);
 	ts.sortClosures();
 	wcerr << endl;
 	

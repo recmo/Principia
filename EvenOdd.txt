@@ -1,10 +1,8 @@
 title ↦ “Demonstrates mutual recursion”
 
-
 section ↦ “Simple mutual recursion, the closures are compile time constant”
 even n ↦ (≔(≔ if n (↦ (≔ odd (≔ sub n 1))) (↦ 1)))
 odd n ↦ (≔(≔ if n (↦ (≔ even (≔ sub n 1))) (↦ 0)))
-
 
 section ↦ “True mutual recursion, the resulting closures are cyclic”
 comment ↦ “Actually, the cyclic part is still constant. Can we exploit this?”

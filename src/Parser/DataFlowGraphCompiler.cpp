@@ -5,7 +5,7 @@
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
-#include <Interpreter/Builtins.h>
+#include <Passes/Builtins.h>
 
 #define debug false
 

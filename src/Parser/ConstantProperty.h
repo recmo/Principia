@@ -2,7 +2,7 @@
 #include "fixups.h"
 #include "DFG/PropertyType.h"
 #include "DFG/Property.h"
-#include "Interpreter/Value.h"
+#include "Passes/Value.h"
 
 class ConstantProperty: public Property
 {

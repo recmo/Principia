@@ -1,4 +1,4 @@
-#include <Passes/TopologicalSorter.h>
+#include <Passes/StackCompiler.h>
 #include "ClosureProperty.h"
 #include "OrderProperty.h"
 #include <DFG/DataFlowGraph.h>
@@ -16,7 +16,7 @@
 /// ALLOC(closure)
 /// STORE(closure, index, input)
 
-void TopologicalSorter::sortClosures()
+void StackCompiler::sortClosures()
 {
 	foreach(Node* node, _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
@@ -32,7 +32,7 @@ void TopologicalSorter::sortClosures()
 	}
 }
 
-void TopologicalSorter::sortClosure()
+void StackCompiler::sortClosure()
 {
 	wcerr << endl << L"Sorting " << _closure << endl;
 	
@@ -43,7 +43,7 @@ void TopologicalSorter::sortClosure()
 		_stack.push_back(_closure->out(i));
 	
 	// Start from the returns
-	StackVMProperty::ReturnInstruction* returnInst = new StackVMProperty::ReturnInstruction(_closure);
+	StackMachineProperty::ReturnInstruction* returnInst = new StackMachineProperty::ReturnInstruction(_closure);
 	foreach(const Edge* edge, _closure->in()) {
 		if(edge->has<ConstantProperty>()) {
 			returnInst->addReturnValue(-1);
@@ -62,21 +62,21 @@ void TopologicalSorter::sortClosure()
 		wcerr << _closure << " stack " << _stack << endl;
 		wcerr << _closure << " order " << _order << endl;
 	}
-	StackVMProperty svmp(_stack, _order);
+	StackMachineProperty svmp(_stack, _order);
 	wcerr << svmp << endl;
 	_closure->set(svmp);
 }
 
-void TopologicalSorter::sortClosure(const Node* node)
+void StackCompiler::sortClosure(const Node* node)
 {
 	int closureIndex = -1;
 	vector<const Edge*> sources;
-	StackVMProperty::CallInstruction* call;
+	StackMachineProperty::CallInstruction* call;
 	if(node->type() == NodeType::Closure) {
 		// Add the closure node before its dependencies are evaluated
 		if(debug)
 			wcerr << "Alloc " << node << endl;
-		_order.push_back(new StackVMProperty::AllocateInstruction(node));
+		_order.push_back(new StackMachineProperty::AllocateInstruction(node));
 		closureIndex = _stack.size();
 		_stack.push_back(node->out(0));
 		
@@ -84,7 +84,7 @@ void TopologicalSorter::sortClosure(const Node* node)
 		sources = node->get<ClosureProperty>().edges();
 	} else {
 		// Allocate a call instruction
-		call = new StackVMProperty::CallInstruction(node);
+		call = new StackMachineProperty::CallInstruction(node);
 		call->numReturns(node->outArrity());
 		
 		// Find the nodes sources
@@ -105,7 +105,7 @@ void TopologicalSorter::sortClosure(const Node* node)
 		if(node->type() == NodeType::Closure) {
 			if(debug)
 				wcerr << "Store " << node << " " << i << " " << edge << endl;
-			_order.push_back(new StackVMProperty::StoreInstruction(closureIndex, i, valueIndex));
+			_order.push_back(new StackMachineProperty::StoreInstruction(closureIndex, i, valueIndex));
 		} else {
 			call->addArgument(valueIndex);
 		}

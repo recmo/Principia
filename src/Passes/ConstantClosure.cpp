@@ -3,7 +3,7 @@
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <Parser/ConstantProperty.h>
-#include <Interpreter/Closure.h>
+#include <Passes/Closure.h>
 
 #define debug false
 

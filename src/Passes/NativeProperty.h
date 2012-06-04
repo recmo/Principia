@@ -1,6 +1,6 @@
 #include <DFG/Property.h>
 #include <fixups.h>
-#include <Interpreter/Value.h>
+#include <Passes/Value.h>
 
 class NativeProperty: public Property
 {

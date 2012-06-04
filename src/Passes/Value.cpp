@@ -1,6 +1,6 @@
 #include "Value.h"
 #include "DFG/Node.h"
-#include "Interpreter/Builtins.h"
+#include "Passes/Builtins.h"
 #include "Closure.h"
 
 std::wostream& operator<<(std::wostream& out, const Value& value)

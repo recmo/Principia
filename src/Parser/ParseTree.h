@@ -2,7 +2,7 @@
 #include <DFG/NodeType.h>
 #include <DFG/Node.h>
 #include "SourceProperty.h"
-#include <Interpreter/Value.h>
+#include <Passes/Value.h>
 
 class ParseTree
 {

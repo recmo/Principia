@@ -1,11 +1,11 @@
 #pragma once
 #include <DFG/DataFlowGraph.h>
-#include <Interpreter/Value.h>
+#include <Passes/Value.h>
+#include <Passes/StackMachineProperty.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/Module.h>
 #include <llvm/Support/IRBuilder.h>
 #include <llvm/Value.h>
-#include "Passes/StackVMProperty.h"
 
 
 class LlvmCompiler
@@ -30,12 +30,12 @@ private:
 	
 	void buildDeclareFunction(const Node* closureNode);
 	void buildFunctionBody(const Node* closureNode);
-	void buildInstruction(const StackVMProperty::Instruction* instruction);
-	void buildCall(const StackVMProperty::CallInstruction* call);
-	void buildAlloc(const StackVMProperty::AllocateInstruction* alloc);
-	void buildStore(const StackVMProperty::StoreInstruction* store);
-	void buildRet(const StackVMProperty::ReturnInstruction* ret);
-	void buildBuiltin(const StackVMProperty::CallInstruction* call);
+	void buildInstruction(const StackMachineProperty::Instruction* instruction);
+	void buildCall(const StackMachineProperty::CallInstruction* call);
+	void buildAlloc(const StackMachineProperty::AllocateInstruction* alloc);
+	void buildStore(const StackMachineProperty::StoreInstruction* store);
+	void buildRet(const StackMachineProperty::ReturnInstruction* ret);
+	void buildBuiltin(const StackMachineProperty::CallInstruction* call);
 	
 	void buildDefaultClosure(const Node* closureNode);
 	void buildWrapper(const Node* closureNode);

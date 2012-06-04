@@ -1,6 +1,6 @@
 #pragma once
 #include "fixups.h"
-#include "Interpreter/Value.h"
+#include "Passes/Value.h"
 
 class Node;
 class Edge;

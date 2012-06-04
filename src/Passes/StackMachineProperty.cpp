@@ -1,10 +1,10 @@
-#include "Passes/StackVMProperty.h"
+#include <Passes/StackMachineProperty.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
 
-PropertyType StackVMProperty::classType = PropertyType::StackVM;
+PropertyType StackMachineProperty::classType = PropertyType::StackVM;
 
-StackVMProperty::StackVMProperty(const StackVMProperty& copy)
+StackMachineProperty::StackMachineProperty(const StackMachineProperty& copy)
 : Property()
 , _instructions()
 {
@@ -12,35 +12,35 @@ StackVMProperty::StackVMProperty(const StackVMProperty& copy)
 		_instructions.push_back(instruction->clone());
 }
 
-StackVMProperty::~StackVMProperty()
+StackMachineProperty::~StackMachineProperty()
 {
 	foreach(Instruction* instruction, _instructions)
 		delete instruction;
 }
 
-void StackVMProperty::print(std::wostream& out) const
+void StackMachineProperty::print(std::wostream& out) const
 {
 	out << L"Stack: " << _stack << endl;
 	foreach(Instruction* instruction, _instructions)
 		instruction->print(out);
 }
 
-void StackVMProperty::CallInstruction::print(std::wostream& out) const
+void StackMachineProperty::CallInstruction::print(std::wostream& out) const
 {
 	out << L"\t\tCall " << _node << L" " << _arguments << L" → " << _numReturns << endl;
 }
 
-void StackVMProperty::AllocateInstruction::print(std::wostream& out) const
+void StackMachineProperty::AllocateInstruction::print(std::wostream& out) const
 {
 	out << L"\t\tAlloc " << _closure << endl;
 }
 
-void StackVMProperty::StoreInstruction::print(std::wostream& out) const
+void StackMachineProperty::StoreInstruction::print(std::wostream& out) const
 {
 	out << L"\t\tStore " << _closure << " " << _slot << " " << _value << endl;
 }
 
-void StackVMProperty::ReturnInstruction::print(std::wostream& out) const
+void StackMachineProperty::ReturnInstruction::print(std::wostream& out) const
 {
 	out << L"\t\tReturn " << _returns << endl;
 }

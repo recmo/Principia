@@ -4,8 +4,8 @@
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
-#include <Interpreter/Value.h>
-#include <Interpreter/Closure.h>
+#include <Passes/Value.h>
+#include <Passes/Closure.h>
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 #include <stdint.h>
@@ -320,27 +320,27 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	}
 	
 	// Construct the function body
-	foreach(const StackVMProperty::Instruction* instruction, closureNode->get<StackVMProperty>().instructions())
+	foreach(const StackMachineProperty::Instruction* instruction, closureNode->get<StackMachineProperty>().instructions())
 		buildInstruction(instruction);
 }
 
-void LlvmCompiler::buildInstruction(const StackVMProperty::Instruction* instruction)
+void LlvmCompiler::buildInstruction(const StackMachineProperty::Instruction* instruction)
 {
-	const StackVMProperty::CallInstruction* call = dynamic_cast<const StackVMProperty::CallInstruction*>(instruction);
+	const StackMachineProperty::CallInstruction* call = dynamic_cast<const StackMachineProperty::CallInstruction*>(instruction);
 	if(call)
 		buildCall(call);
-	const StackVMProperty::AllocateInstruction* alloc = dynamic_cast<const StackVMProperty::AllocateInstruction*>(instruction);
+	const StackMachineProperty::AllocateInstruction* alloc = dynamic_cast<const StackMachineProperty::AllocateInstruction*>(instruction);
 	if(alloc)
 		buildAlloc(alloc);
-	const StackVMProperty::StoreInstruction* store = dynamic_cast<const StackVMProperty::StoreInstruction*>(instruction);
+	const StackMachineProperty::StoreInstruction* store = dynamic_cast<const StackMachineProperty::StoreInstruction*>(instruction);
 	if(store)
 		buildStore(store);
-	const StackVMProperty::ReturnInstruction* ret = dynamic_cast<const StackVMProperty::ReturnInstruction*>(instruction);
+	const StackMachineProperty::ReturnInstruction* ret = dynamic_cast<const StackMachineProperty::ReturnInstruction*>(instruction);
 	if(ret)
 		buildRet(ret);
 }
 
-void LlvmCompiler::buildCall(const StackVMProperty::CallInstruction* call)
+void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 {
 	if(call->node()->in(0)->has<ConstantProperty>() && call->node()->in(0)->get<ConstantProperty>().value().kind == Value::Builtin) {
 		buildBuiltin(call);
@@ -400,7 +400,7 @@ void LlvmCompiler::buildCall(const StackVMProperty::CallInstruction* call)
 		wcerr << " END CALL " << endl;
 }
 
-void LlvmCompiler::buildAlloc(const StackVMProperty::AllocateInstruction* alloc)
+void LlvmCompiler::buildAlloc(const StackMachineProperty::AllocateInstruction* alloc)
 {
 	if(debug)
 		wcerr << "CLOSURE " << alloc->closure() << endl;
@@ -430,7 +430,7 @@ void LlvmCompiler::buildAlloc(const StackVMProperty::AllocateInstruction* alloc)
 	_builder.CreateStore(funcPtr, _builder.CreateGEP(closure, _builder.getInt64(0)));
 }
 
-void LlvmCompiler::buildStore(const StackVMProperty::StoreInstruction* store)
+void LlvmCompiler::buildStore(const StackMachineProperty::StoreInstruction* store)
 {
 	llvm::Value* closure = _builder.CreateIntToPtr(_stack[store->closure()], _builder.getInt64Ty()->getPointerTo());
 	llvm::Value* value = _stack[store->value()];
@@ -439,7 +439,7 @@ void LlvmCompiler::buildStore(const StackVMProperty::StoreInstruction* store)
 	_builder.CreateStore(value, pointer);
 }
 
-void LlvmCompiler::buildRet(const StackVMProperty::ReturnInstruction* ret)
+void LlvmCompiler::buildRet(const StackMachineProperty::ReturnInstruction* ret)
 {
 	// Construct the return value
 	if(debug)
@@ -466,7 +466,7 @@ void LlvmCompiler::buildRet(const StackVMProperty::ReturnInstruction* ret)
 	}
 }
 
-void LlvmCompiler::buildBuiltin(const StackVMProperty::CallInstruction* call)
+void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* call)
 {
 	if(debug)
 		wcerr << "BUILTIN " << call->node() << endl;

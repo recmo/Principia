@@ -6,6 +6,7 @@ PropertyType StackMachineProperty::classType = PropertyType::StackVM;
 
 StackMachineProperty::StackMachineProperty(const StackMachineProperty& copy)
 : Property()
+, _stack(copy._stack)
 , _instructions()
 {
 	foreach(Instruction* instruction, copy._instructions)

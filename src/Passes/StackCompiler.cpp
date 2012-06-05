@@ -5,16 +5,7 @@
 #include <DFG/Node.h>
 #include <Parser/ConstantProperty.h>
 
-#define debug true
-
-/// TODO: Separate closure allocation and closure completion into two different phases
-
-/// TODO: Store instruction: STORE edge IN closureEdge
-
-/// Instructions:
-/// CALL(closure, inputs, outputs)
-/// ALLOC(closure)
-/// STORE(closure, index, input)
+#define debug false
 
 void StackCompiler::sortClosures()
 {
@@ -34,7 +25,8 @@ void StackCompiler::sortClosures()
 
 void StackCompiler::sortClosure()
 {
-	wcerr << endl << L"Sorting " << _closure << endl;
+	if(debug)
+		wcerr << endl << L"Sorting " << _closure << endl;
 	
 	// Initialize the stack with the closure and the arguments
 	foreach(const Edge* edge, _closure->get<ClosureProperty>().edges())
@@ -63,11 +55,12 @@ void StackCompiler::sortClosure()
 		wcerr << _closure << " order " << _order << endl;
 	}
 	StackMachineProperty svmp(_stack, _order);
-	wcerr << svmp << endl;
+	if(debug)
+		wcerr << svmp << endl;
 	_closure->set(svmp);
 }
 
-void StackCompiler::sortClosure(const Node* node)
+void StackCompiler::sortClosure(Node* node)
 {
 	int closureIndex = -1;
 	vector<const Edge*> sources;

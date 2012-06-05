@@ -13,8 +13,11 @@
 #include "Passes/StackCompiler.h"
 #include "Passes/LlvmCompiler.h"
 #include "Passes/NativeProperty.h"
+#include "Passes/EscapeAnalysis.h"
 #include <fstream>
 #include <cmath>
+
+/// TODO: Use alloca when we can
 
 /// TODO: Find a contrived example where the validity of the mutual recursion depends on an unsolved problem.
 ///       f x ↦ (≔(≔ if (↦(≔ complicated_function_1 x)) (↦(≔ g x)) (↦x))
@@ -254,22 +257,16 @@ sint32 Main(const vector<string>& args)
 		wcerr << endl;
 	} while (!(ll.fixedPoint() && cc.fixedPoint()));
 	
-	wcerr << endl << endl;
-	foreach(const Node* node, dfg->nodes()) {
-		wcerr << node << " " << node->out() << " " << node->in() << endl;
-		node->printProperties(wcerr);
-		foreach(const Edge* edge, node->out()) {
-			wcerr << "    " << edge << endl;
-			edge->printProperties(wcerr);
-		}
-		wcerr << endl;
-	}
-	wcerr << endl << endl;
-	
 	// Topological sort the bodies of functions
 	wcerr << L"Sorting closure bodies topologically…" << flush;
 	StackCompiler ts(dfg);
 	ts.sortClosures();
+	wcerr << endl;
+	
+	// Escape analyisis
+	wcerr << L"Escape analysis…" << flush;
+	EscapeAnalysis ea(dfg);
+	ea.analyse();
 	wcerr << endl;
 	
 	wcerr << endl << endl;

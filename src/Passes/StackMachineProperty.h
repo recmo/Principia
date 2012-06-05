@@ -46,6 +46,21 @@ public:
 	virtual void print(std::wostream& out) const = 0;
 };
 
+std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction& inst)
+{
+	inst.print(out);
+	return out;
+}
+
+std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction* inst)
+{
+	if(inst)
+		inst->print(out);
+	else
+		out << L"null";
+	return out;
+}
+
 class StackMachineProperty::CallInstruction: public StackMachineProperty::Instruction
 {
 public:
@@ -72,16 +87,16 @@ private:
 class StackMachineProperty::AllocateInstruction: public StackMachineProperty::Instruction
 {
 public:
-	AllocateInstruction(const Node* closure): _closure(closure) { }
+	AllocateInstruction(Node* closure): _closure(closure) { }
 	AllocateInstruction(const AllocateInstruction& other): _closure(other._closure) { }
 	virtual ~AllocateInstruction() { }
 	virtual AllocateInstruction* clone() const { return new AllocateInstruction(*this); }
 	virtual void print(std::wostream& out) const;
 	
-	const Node* closure() const { return _closure; }
+	Node* closure() const { return _closure; }
 	
 private:
-	const Node* _closure;
+	Node* _closure;
 };
 
 class StackMachineProperty::StoreInstruction: public StackMachineProperty::Instruction

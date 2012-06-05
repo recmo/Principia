@@ -17,6 +17,7 @@ public:
 	const static int ReturnStack = 6;
 	const static int Native = 7;
 	const static int StackVM = 8;
+	const static int Escape = 9;
 	
 private:
 	int value;

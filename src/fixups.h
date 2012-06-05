@@ -131,7 +131,7 @@ bool contains(const std::map<Key, Value>& map, const Key& key)
 }
 
 
-template<class T>
+template<typename T>
 int indexOf(const std::vector<T>& list, const T& item)
 {
 	auto i = std::find(list.begin(), list.end(), item);

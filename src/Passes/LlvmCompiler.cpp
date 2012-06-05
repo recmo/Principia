@@ -6,6 +6,7 @@
 #include <DFG/Edge.h>
 #include <Passes/Value.h>
 #include <Passes/Closure.h>
+#include "EscapeProperty.h"
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 #include <stdint.h>
@@ -17,15 +18,20 @@
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/Target/TargetData.h>
-#include <llvm/Transforms/Scalar.h>
 #include <llvm/PassManager.h>
 #include <llvm/PassManagers.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/Transforms/IPO/PassManagerBuilder.h>
-#include <llvm/Transforms/IPO.h>
 
-#define debug true
+// Passes
+#include <llvm/Analysis/Passes.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/CodeGen/Passes.h>
+#include <Passes/LlvmPtrtointInttoptrCombine.h>
+#include <Passes/LlvmStoreLoadCombine.h>
+
+#define debug false
 
 std::wostream& operator<<(std::wostream& out, const llvm::StringRef& string)
 {
@@ -115,10 +121,21 @@ void LlvmCompiler::compile()
 	}
 	
 	// Optimize
-	llvm::PassManagerBuilder pmb;
 	llvm::PassManager mpm;
-	pmb.OptLevel = 3;
-	pmb.populateModulePassManager(mpm);
+	mpm.add(llvm::createEarlyCSEPass());
+	mpm.add(new LlvmPtrtointInttoptrCombine);
+	mpm.add(new LlvmStoreLoadCombine);
+	mpm.add(llvm::createInstructionSimplifierPass());
+	mpm.add(llvm::createFunctionInliningPass());
+	mpm.add(llvm::createEarlyCSEPass());
+	mpm.add(llvm::createDeadStoreEliminationPass());
+	mpm.add(llvm::createInstructionCombiningPass());
+	
+	// mpm.add(llvm::createPromoteMemoryToRegisterPass());
+	// mpm.add(llvm::createReassociatePass());
+	// mpm.add(llvm::createScalarReplAggregatesPass());
+	// mpm.add(llvm::createFunctionInliningPass());
+	// mpm.add(llvm::createTailCallEliminationPass());
 	mpm.run(*_module);
 	
 	if(debug) {
@@ -130,7 +147,12 @@ void LlvmCompiler::compile()
 	
 	// Construct the JIT
 	std::string error;
-	llvm::ExecutionEngine* ee = llvm::EngineBuilder(_module).setErrorStr(&error).create();
+	llvm::ExecutionEngine* ee = llvm::EngineBuilder(_module)
+	.setErrorStr(&error)
+	.setEngineKind(llvm::EngineKind::JIT)
+	.setOptLevel(llvm::CodeGenOpt::Aggressive)
+	.create();
+	
 	if(!ee) {
 		wcerr << "ERROR " << error.data() << endl;
 		return;
@@ -416,9 +438,16 @@ void LlvmCompiler::buildAlloc(const StackMachineProperty::AllocateInstruction* a
 		return;
 	}
 	
-	// Construct the closure
+	// Allocate the closure
 	int closureSize = alloc->closure()->get<ClosureProperty>().edges().size() + 1;
-	llvm::Value* closure = buildMalloc(closureSize);
+	llvm::Value* closure = 0;
+	if(alloc->closure()->has<EscapeProperty>() && !alloc->closure()->get<EscapeProperty>().escapes()) {
+		// Stack allocat the closure
+		closure = _builder.CreateAlloca(_builder.getInt64Ty(), _builder.getInt64(closureSize));
+	} else {
+		// Heap allocat the closure
+		closure = buildMalloc(closureSize);
+	}
 	
 	// Push the closure
 	llvm::Value* closurePtr = _builder.CreatePtrToInt(closure, _builder.getInt64Ty());
@@ -517,6 +546,9 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 		llvm::Value* remainder = _builder.CreateSRem(args[0], args[1], name);
 		_stack.push_back(dividend);
 		_stack.push_back(remainder);
+	} else if(name == L"head") {
+		
+		
 	} else {
 		wcerr << "Do not know builtin " << name  << endl;
 		assert(false);

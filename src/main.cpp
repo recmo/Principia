@@ -7,6 +7,7 @@
 #include "Parser/IdentifierProperty.h"
 #include "Parser/IdentifierBinder.h"
 #include "Parser/DataFlowGraphCompiler.h"
+#include "Parser/MetaMath/MetaMathParser.h"
 #include "Passes/DotFileWriter.h"
 #include "Passes/LambdaLifter.h"
 #include "Passes/ConstantClosure.h"
@@ -18,6 +19,9 @@
 #include <cmath>
 
 /// TODO: Use alloca when we can
+
+/// TODO: Background thread to analyse the performance oprofile style
+/// TODO: Background thread to dynamically optimize code
 
 /// TODO: Find a contrived example where the validity of the mutual recursion depends on an unsolved problem.
 ///       f x ↦ (≔(≔ if (↦(≔ complicated_function_1 x)) (↦(≔ g x)) (↦x))
@@ -184,6 +188,10 @@ etc…
 
 sint32 Main(const vector<string>& args)
 {
+	MetaMathParser mmp(args[1]);
+	mmp.parse();
+	return 0;
+	
 	wcerr << L"Simple C++ interpreter for the Principia language" << endl;
 	wcerr << endl;
 	if(args.size() < 3) {

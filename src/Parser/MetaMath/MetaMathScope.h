@@ -26,7 +26,7 @@ public:
 	
 	SymbolKind resolveSymbolKind(const string& symbolName) const;
 	StatementKind resolveStatementKind(const string& statementLabel) const;
-	   const MetaMathStatement* resolveStatement(const string& statementLabel) const;
+	const MetaMathStatement* resolveStatement(const string& statementLabel) const;
 	
 	void addVariable(const string& symbol);
 	void addConstant(const string& symbol);

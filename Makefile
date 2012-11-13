@@ -8,7 +8,7 @@ parsers := $(shell find -wholename './src/*.qx')
 finddeps := g++ -Isrc -MM -MP
 
 compiler := g++ -pipe
-compiler := ${compiler} -std=c++0x -Wall -Wextra
+compiler := ${compiler} -std=c++11 -Wall -Wextra
 compiler := ${compiler} -I. -Isrc -Ibuild/resources
 # compiler := ${compiler} -fgraphite -flto
 compiler := ${compiler} -march=corei7 -O3
@@ -26,8 +26,7 @@ libs :=
 # compiler := ${compiler} $(shell llvm-config --cxxflags)
 compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
-linker := ${linker} $(shell llvm-config --ldflags)
-libs := ${libs} $(shell llvm-config --libs all core analysis jit native)
+libs := ${libs} $(shell llvm-config --libs all core analysis jit native) $(shell llvm-config --ldflags)
 
 debug_flags := -ggdb
 profiling_flags := -fprofile-generate --coverage

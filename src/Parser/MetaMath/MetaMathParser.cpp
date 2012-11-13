@@ -26,6 +26,7 @@ void MetaMathParser::parse()
 	vector<string> proof;
 	while(in.good()) {
 		in >> token;
+		token = improveToken(token);
 		
 		// Commensts $( ... $)
 		if(token == L"$(") {
@@ -138,3 +139,56 @@ void MetaMathParser::handleStatement(const string& label, const string& operatio
 		
 	}
 }
+string MetaMathParser::improveToken(const string& token)
+{
+	if(token == L"->") return L"→";
+	if(token == L"-.") return L"¬";
+	if(token == L"|-") return L"⊢";
+	if(token == L"ps") return L"ψ";
+	if(token == L"ph") return L"φ";
+	if(token == L"ch") return L"χ";
+	if(token == L"th") return L"θ";
+	if(token == L"ta") return L"τ";
+	if(token == L"<->") return L"↔";
+	if(token == L"\\/") return L"∨";
+	if(token == L"/\\") return L"∧";
+	if(token == L"A.") return L"∀";
+	if(token == L"E.") return L"∃";
+	if(token == L"E!") return L"∃!";
+	if(token == L"=/=") return L"≠";
+	if(token == L"e.") return L"∊";
+	if(token == L"C_") return L"⊆";
+	if(token == L"C.") return L"⊂";
+	if(token == L"<.") return L"⟨";
+	if(token == L">.") return L"⟩";
+	if(token == L"...") return L"…";
+	if(token == L"-->") return L"—→";
+	if(token == L"~~>") return L"⇝";
+	if(token == L"~~>m") return L"⇝m";
+	if(token == L"~~>v") return L"⇝v";
+	if(token == L"~~>t") return L"⇝t";
+	if(token == L"ZZ") return L"ℤ";
+	if(token == L"ZZ>=") return L"ℤ>=";
+	if(token == L"NN") return L"ℕ";
+	if(token == L"NN0") return L"ℕ⁰";
+	if(token == L"QQ") return L"ℚ";
+	if(token == L"RR") return L"ℝ";
+	if(token == L"RR+") return L"ℝ⁺";
+	if(token == L"RR*") return L"ℝ*";
+	if(token == L"CC") return L"ℂ";
+	if(token == L"i^i") return L"∩";
+	if(token == L"|^|") return L"⋂";
+	if(token == L"u.") return L"∪";
+	if(token == L"U.") return L"⋃";
+	if(token == L">_") return L"≥";
+	if(token == L"<_") return L"≤";
+	if(token == L"x.") return L"·";
+	if(token == L"sum_") return L"Σ";
+	if(token == L"~~") return L"≈";
+	if(token == L"o.") return L"◦";
+	if(token == L"^m") return L"↑m";
+	if(token == L"^pm") return L"↑pm";
+	if(token == L"|->") return L"↦";
+	return token;
+}
+

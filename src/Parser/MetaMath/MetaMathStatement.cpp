@@ -1,7 +1,14 @@
 #include "MetaMathStatement.h"
 
+uint MetaMathStatement::declarationCounter()
+{
+	static uint counter = 0;
+	return counter++;
+}
+
 MetaMathStatement::MetaMathStatement(MetaMathScope* parent)
 : _parent(parent)
+, _declarationOrder(declarationCounter())
 , _kind(MetaMathScope::UnknownStatement)
 , _essentialHypothesis()
 , _label()
@@ -34,8 +41,14 @@ vector<const MetaMathStatement*> MetaMathStatement::frame() const
 	process(this);
 	
 	// Add the corresponding floating hypothesis to the frame
+	/// @todo sort by declaration order!!!
 	for(const string& variable: variables)
 		result.push_back(_parent->floatingHypothesis(variable));
+	
+	// Sort floating hypothesis by declaration order
+	std::sort(result.begin(), result.end(), [] (const MetaMathStatement* a, const MetaMathStatement* b) {
+		return a->_declarationOrder < b->_declarationOrder;
+	});
 	
 	// Add all the essential hypothesis to the frame
 	for(MetaMathStatement* statement: _essentialHypothesis)
@@ -47,34 +60,79 @@ vector<const MetaMathStatement*> MetaMathStatement::frame() const
 
 void MetaMathStatement::verify() const
 {
+	wcout << _label << "\t";
+	for(const string& symbol: symbols())
+		wcout << " " << symbol;
+	wcout << endl;
+	
+	
 	assert(_kind == MetaMathScope::Derived);
 	vector<vector<string>> stack;
 	for(const string& label: _proof) {
 		const MetaMathStatement* statement = _parent->resolveStatement(label);
+		if(!statement)
+			wcerr << L"Could not find " << label << endl;
 		assert(statement);
 		if(statement->kind() == MetaMathScope::FloatingHypothesis || statement->kind() == MetaMathScope::EssentialHypothesis) {
 			stack.push_back(statement->symbols());
 		} else if(statement->kind() == MetaMathScope::Axiom || statement->kind() == MetaMathScope::Derived) {
 			
+			// wcout << "Applying theorem " << statement->label() << " " << statement->symbols() << endl;
 			vector<const MetaMathStatement*> frame = statement->frame();
+			// wcout << frame << endl;
 			assert(stack.size() >= frame.size());
 			map<string, vector<string>> substitution;
-			/// @todo generate the mapping and assert the correctness!
+			
+			// generate the mapping
+			for(int i = 0; i < frame.size(); ++i) {
+				const MetaMathStatement* frameStatement = frame[i];
+				vector<string> stackStatement = stack[stack.size() - frame.size() + i];
+				if(frameStatement->kind() == MetaMathScope::FloatingHypothesis) {
+					// wcout << "Match " << frameStatement << " to " << stackStatement << endl;
+					assert(frameStatement->symbols()[0] == stackStatement[0]);
+					vector<string> substitute;
+					for(int i = 1; i < stackStatement.size(); ++i)
+						substitute.push_back(stackStatement[i]);
+					substitution[frameStatement->symbols()[1]] = substitute;
+				} else if (frameStatement->kind() == MetaMathScope::EssentialHypothesis) {
+					vector<string> transformedFrame;
+					for(const string& symbol: frameStatement->symbols()) {
+						if(substitution.find(symbol) == substitution.end())
+							transformedFrame.push_back(symbol);
+						else for(const string& substituteSymbol: substitution[symbol])
+							transformedFrame.push_back(substituteSymbol);
+					}
+					//wcout << "Check " << frameStatement->symbols() << " as " << transformedFrame << " to " << stackStatement << endl;
+					if(transformedFrame != stackStatement)
+						wcout << "Error " << transformedFrame << "  =/=   " << stackStatement << endl;
+					assert(transformedFrame == stackStatement);
+				}
+			}
 			
 			/// @todo Check distinct variables
 			
+			// Pop the hypothesis off the stack
 			for(int i = 0; i < frame.size(); ++i)
 				stack.pop_back();
 			
+			// Push the theorem on the stack
 			vector<string> result;
-			for(const string& symbol: statement->symbols())
-				for(const string& subtitutedSymbol: substitution[symbol])
-					result.push_back(subtitutedSymbol);
+			for(const string& symbol: statement->symbols()) {
+				if(substitution.find(symbol) != substitution.end())
+					for(const string& subtitutedSymbol: substitution[symbol])
+						result.push_back(subtitutedSymbol);
+				else
+					result.push_back(symbol);
+			}
 			stack.push_back(result);
 		}
 		
-		wcout << stack << endl;
+		// wcout << stack << endl;
 	}
+	
+// 	// Verify that the proof stack now only contains our theorem
+	assert(stack.size() == 1);
+	assert(stack[0] == symbols());
 }
 
 std::wostream& operator<<(std::wostream& out, const MetaMathStatement* statement)

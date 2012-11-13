@@ -117,7 +117,12 @@ void MetaMathScope::axiom(const string& label, const vector<string>& symbols)
 	statement->essentialHypothesis(essentialHypothesis());
 	statement->symbols(symbols);
 	_statements.push_back(statement);
-	statement->frame();
+	
+	// Axioms also go in the global scope
+	MetaMathScope* top = this;
+	while(top->_parent)
+		top = top->_parent;
+	top->_statements.push_back(statement);
 }
 
 void MetaMathScope::derived(const string& label, const vector<string>& symbols, const vector<string>& proof)
@@ -131,7 +136,12 @@ void MetaMathScope::derived(const string& label, const vector<string>& symbols, 
 	statement->symbols(symbols);
 	statement->proof(proof);
 	_statements.push_back(statement);
-	statement->frame();
+	
+	// Derivations also go in the global scope
+	MetaMathScope* top = this;
+	while(top->_parent)
+		top = top->_parent;
+	top->_statements.push_back(statement);
 	
 	// Verify proof!
 	statement->verify();

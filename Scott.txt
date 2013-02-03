@@ -1,8 +1,27 @@
+title ↦ “Scott encoding”
+
+c↦“
+C₁ x₁ x₂ ↦ (c₁ c₂ ↦ (≔ c₁ x₁ x₂))
+C₂ ↦ (c₁ c₂ ↦ (≔ c₂))
+...
+”
+
+section ↦ “Scott booleans”
+
+True ↦ (t f ↦ (≔ t))
+False ↦ (t f ↦ (≔ f))
+
+true ≔ True
+false ≔ False
+
+section ↦ “Scott numerals”
+
 Z ↦ (z s ↦ (≔ z))
 S x ↦ (z s ↦ (≔ s x))
 
 c0 ≔ Z
 c1 ≔ S c0
+c2 ≔ S c1
 
 sadd x y ↦ (≔ x (↦ y) (px ↦ (≔ sadd px (≔ S y))))
 ssub x y ↦ (≔ x Z (px ↦ (≔ y (↦ x) (py ↦ (≔ ssub px py)))))

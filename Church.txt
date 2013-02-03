@@ -4,6 +4,15 @@ section ↦ “Church booleans”
 true then else ↦ then
 false then else ↦ else
 
+comment ↦ “Now we can implement:”
+if condition value_if_true value_if_false ↦ result
+	result ≔ condition value_if_true value_if_false
+
+not a ↦ (t f ↦ (≔ a f t))
+and a b ↦ (t f ↦ (≔ a (≔ b t f) f))
+or a b ↦ (t f ↦ (≔ a t (≔ b t f)))
+xor a b ↦ (t f ↦ (≔ a (≔ b f t) (≔ b t f)))
+
 section ↦ “Church lists”
 section ↦ “Church numerals”
 c0 f ↦ (x ↦ x)

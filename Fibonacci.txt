@@ -6,16 +6,17 @@ Optimizer should transform this from exponential time to linear time and constan
 like this: http://webdocs.cs.ualberta.ca/~holte/T26/efficient-rec.html
 ”
 
-Fib n ↦ r
-	rec ≔ add (≔ fib (≔ sub n 1)) (≔ fib (≔ sub n 2))
-	r ≔ (≔ if (≔ < n 2) (↦1) (↦rec))
-
+c↦“
+fib n ↦ (≔(≔ if n (↦ (≔ if (≔ sub n 1) (↦ otherwise) (↦ if_one) )) (↦ if_zero)))
+	if_zero ≔ 1
+	if_one ≔ 1
+	otherwise ≔ (≔ add (≔ fib (≔ sub n 1)) (≔ fib (≔ sub n 2)))
+”
 
 target ↦ “This is the desired tail recursive form:”
 
-Fib2 n u v ↦ (≔(≔ if (≔ = n 0) (↦u) (↦ Fib2 (≔ sub n 1) (≔ add u v) u )) 
-Fib1 n ↦ (≔ Fib2 n 1 0)
 
+fib2 n u v ↦ (≔(≔ if n (↦ fib2 (≔ sub n 1) (≔ add u v) u )) (↦u))
 
-
+fib1 n ↦ (≔ fib2 n 1 0)
 

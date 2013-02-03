@@ -1,13 +1,8 @@
-diff f δ ↦ df
-	df x ↦ dfx
-		x' ≔ addr x δ
-		fx' ≔ f x'
-		fx ≔ f x
-		Δf ≔ subr fx' fx
-		dfx ≔ divr Δf δ
+numericDiff f δ ↦ g
+	g x ↦ (≔ div (≔ sub (≔ f (≔ add x δ) (≔ f x)) δ)
 
-sqr s ↦ ss
-	ss ≔ mulr s s
 
-dsqr ≔ diff sqr 0.001
+symbolicDiff f ↦ g
+	if head(f) == add ⇉ symbolicDiff( in(f, 1)) + symbolicDiff( in(f, 2))
+
 

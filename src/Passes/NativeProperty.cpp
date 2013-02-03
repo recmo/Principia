@@ -29,6 +29,8 @@ vector<Value> NativeProperty::call(const vector<Value>& inputs) const
 
 vector<Value> NativeProperty::call(const vector<Value>& closure, const vector<Value>& inputs) const
 {
+	if(closure.size() != _numClosure || inputs.size() != _numInputs)
+		wcerr << endl << *this << L" = " << closure.size() << " " << inputs.size() << " " << _numOutputs << endl;
 	assert(closure.size() == _numClosure);
 	assert(inputs.size() == _numInputs);
 	vector<int64_t> closureVec;

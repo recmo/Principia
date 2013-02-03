@@ -2,7 +2,7 @@
 #include <Passes/StackMachineProperty.h>
 #include <Passes/EscapeProperty.h>
 
-#define debug true
+#define debug false
 
 void EscapeAnalysis::analyse()
 {

@@ -9,11 +9,13 @@
 #include "Parser/DataFlowGraphCompiler.h"
 #include "Parser/MetaMath/MetaMathParser.h"
 #include "Passes/DotFileWriter.h"
-#include "Passes/LambdaLifter.h"
+#include "Passes/ClosureCloser.h"
 #include "Passes/ConstantClosure.h"
+#include "Passes/ConstantCall.h"
 #include "Passes/StackCompiler.h"
 #include "Passes/LlvmCompiler.h"
 #include "Passes/NativeProperty.h"
+#include "Passes/ClosureProperty.h"
 #include "Passes/EscapeAnalysis.h"
 #include <fstream>
 #include <cmath>
@@ -188,9 +190,9 @@ etc…
 
 sint32 Main(const vector<string>& args)
 {
-	MetaMathParser mmp(args[1]);
-	mmp.parse();
-	return 0;
+	//MetaMathParser mmp(args[1]);
+	//mmp.parse();
+	//return 0;
 	
 	wcerr << L"Simple C++ interpreter for the Principia language" << endl;
 	wcerr << endl;
@@ -253,17 +255,23 @@ sint32 Main(const vector<string>& args)
 	// Close over closures
 	// Create constant closures
 	// Repeat untill fixed point
-	LambdaLifter ll(dfg);
-	ConstantClosure cc(dfg);
+	ClosureCloser ll(dfg);
+	ConstantClosure cclosure(dfg);
+	ConstantCall ccall(dfg);
 	do {
-		wcerr << L"Lambda lifting…" << flush;
+		wcerr << L"Determining closures…" << flush;
 		ll.anotateClosures();
 		wcerr << endl;
 		
-		wcerr << L"Constant closure creation…" << flush;
-		cc.anotateClosures();
+		wcerr << L"Finding constant closures…" << flush;
+		cclosure.anotateClosures();
 		wcerr << endl;
-	} while (!(ll.fixedPoint() && cc.fixedPoint()));
+		
+		//wcerr << L"Constant call creation…" << flush;
+		//ccall.anotateCalls();
+		//wcerr << endl;
+		
+	} while (!(ll.fixedPoint() && cclosure.fixedPoint() && ccall.fixedPoint()));
 	
 	// Topological sort the bodies of functions
 	wcerr << L"Sorting closure bodies topologically…" << flush;
@@ -334,6 +342,7 @@ sint32 Main(const vector<string>& args)
 	wcerr << "Calling " << edge << " with arguments " << arguments << L"…" << flush;
 	const Node* closure = edge->source();
 	assert(closure->has<NativeProperty>());
+	assert(closure->has<ClosureProperty>() && closure->get<ClosureProperty>().edges().empty());
 	vector<Value> results = closure->get<NativeProperty>().call(arguments);
 	wcerr << endl;
 	wcout << "Resulted is: " << results << endl;

@@ -5,7 +5,7 @@
 #include <Parser/ConstantProperty.h>
 #include <Passes/Closure.h>
 
-#define debug false
+#define debug true
 
 void ConstantClosure::anotateClosures()
 {
@@ -15,8 +15,7 @@ void ConstantClosure::anotateClosures()
 			continue;
 		if(!node->has<ClosureProperty>())
 			continue;
-		if(node->outArrity() < 1)
-			continue;
+		assert(node->outArrity() >= 1);
 		if(node->out(0)->has<ConstantProperty>())
 			continue;
 		if(node->get<ClosureProperty>().edges().empty()) {

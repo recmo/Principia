@@ -6,6 +6,7 @@ class LlvmPtrtointInttoptrCombine: public llvm::BasicBlockPass
 {
 public:
 	static char ID;
-	explicit LlvmPtrtointInttoptrCombine(): BasicBlockPass(ID) { }
+	explicit LlvmPtrtointInttoptrCombine();
+	virtual ~LlvmPtrtointInttoptrCombine();
 	virtual bool runOnBasicBlock(llvm::BasicBlock &BB);
 };

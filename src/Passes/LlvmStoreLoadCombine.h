@@ -5,7 +5,8 @@
 class LlvmStoreLoadCombine: public llvm::BasicBlockPass
 {
 public:
+	explicit LlvmStoreLoadCombine();
+	virtual ~LlvmStoreLoadCombine();
 	static char ID;
-	explicit LlvmStoreLoadCombine(): BasicBlockPass(ID) { }
 	virtual bool runOnBasicBlock(llvm::BasicBlock &BB);
 };

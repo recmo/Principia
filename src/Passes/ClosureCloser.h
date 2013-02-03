@@ -5,10 +5,10 @@ class Node;
 class Edge;
 
 /// Anotate the DFG with ClosureProperties
-class LambdaLifter {
+class ClosureCloser {
 public:
-	LambdaLifter(DataFlowGraph* dfg): _dfg(dfg), _fixedPoint(true) { }
-	~LambdaLifter() { }
+	ClosureCloser(DataFlowGraph* dfg): _dfg(dfg), _fixedPoint(true) { }
+	~ClosureCloser() { }
 	
 	void anotateClosures();
 	

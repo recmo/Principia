@@ -46,13 +46,13 @@ public:
 	virtual void print(std::wostream& out) const = 0;
 };
 
-std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction& inst)
+inline std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction& inst)
 {
 	inst.print(out);
 	return out;
 }
 
-std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction* inst)
+inline std::wostream& operator<<(std::wostream& out, const StackMachineProperty::Instruction* inst)
 {
 	if(inst)
 		inst->print(out);

@@ -9,6 +9,14 @@ static RegisterPass<LlvmPtrtointInttoptrCombine> X("PtrtointInttoptrCombine", "P
                              false /* Only looks at CFG */,
                              false /* Analysis Pass */);
 
+LlvmPtrtointInttoptrCombine::LlvmPtrtointInttoptrCombine(): BasicBlockPass(ID)
+{
+}
+
+LlvmPtrtointInttoptrCombine::~LlvmPtrtointInttoptrCombine()
+{
+}
+
 bool LlvmPtrtointInttoptrCombine::runOnBasicBlock(BasicBlock& BB)
 {
 	for (BasicBlock::iterator i = BB.begin(), end = BB.end(); i != end;) {

@@ -17,11 +17,11 @@
 #include <llvm/Analysis/Passes.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/JIT.h>
-#include <llvm/Target/TargetData.h>
 #include <llvm/PassManager.h>
 #include <llvm/PassManagers.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/Attributes.h>
 
 // Passes
 #include <llvm/Analysis/Passes.h>
@@ -58,9 +58,9 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 , _context(llvm::getGlobalContext())
 , _module(new llvm::Module("Program", _context))
 , _builder(_context)
-, _stack()
 , _malloc(0)
 , _trace(0)
+, _stack()
 , _declarations()
 , _wrappers()
 , _closures()
@@ -206,7 +206,7 @@ void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::PrivateLinkage, name, _module);
 	
 	// All functions are pure
-	function->addFnAttr(llvm::Attribute::ReadOnly);
+	function->addFnAttr(llvm::Attributes::ReadOnly);
 	
 	// Use the fastest calling convention, required for tail calling
 	function->setCallingConv(llvm::CallingConv::Fast);
@@ -611,7 +611,7 @@ llvm::Value* LlvmCompiler::buildMalloc(int size)
 {
 	// Allocate the space
 	llvm::Value* space = _builder.CreateCall(_malloc, _builder.getInt64(size * 8) , "space");
-	assert(llvm::isMalloc(space));
+	// assert(llvm::isMalloc(space));
 	llvm::Value* pointer = _builder.CreateBitCast(space, _builder.getInt64Ty()->getPointerTo());
 	return pointer;
 }

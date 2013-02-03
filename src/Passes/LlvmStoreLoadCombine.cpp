@@ -9,6 +9,17 @@ static RegisterPass<LlvmStoreLoadCombine> X("StoreLoadCombine", "Store / Load Co
                              false /* Only looks at CFG */,
                              false /* Analysis Pass */);
 
+
+
+LlvmStoreLoadCombine::LlvmStoreLoadCombine()
+: BasicBlockPass(ID)
+{
+}
+
+LlvmStoreLoadCombine::~LlvmStoreLoadCombine()
+{
+}
+
 bool LlvmStoreLoadCombine::runOnBasicBlock(BasicBlock& BB)
 {
 	for (BasicBlock::iterator i = BB.begin(), end = BB.end(); i != end;) {

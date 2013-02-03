@@ -1,4 +1,4 @@
-#include "Passes/LambdaLifter.h"
+#include "Passes/ClosureCloser.h"
 #include <DFG/DataFlowGraph.h>
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
@@ -7,9 +7,9 @@
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 
-#define debug false
+#define debug true
 
-void LambdaLifter::anotateClosures()
+void ClosureCloser::anotateClosures()
 {
 	_fixedPoint = true;
 	foreach(Node* node, _dfg->nodes()) {
@@ -19,7 +19,7 @@ void LambdaLifter::anotateClosures()
 	}
 }
 
-void LambdaLifter::anotateClosure(Node* closureNode)
+void ClosureCloser::anotateClosure(Node* closureNode)
 {
 	assert(closureNode->type() == NodeType::Closure);
 	
@@ -64,12 +64,15 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 		// For each direct source node
 		foreach(Node* direct, directSources) {
 			
-			// Abort if a sink is outside the lazy set
+			wcerr << "Considering adding " << direct << " to the lazy list." << endl;
+			
+			// Abort if a sink is outside the lazy set (why?)
 			bool abort = false;
 			foreach(const Edge* sink, direct->out()) {
 				foreach(Node* sinkNode, sink->sinks()) {
 					if(!contains(lazySet, sinkNode)) {
-						abort = true;
+						wcerr << "Result escapes from: " << direct << " through " << sink << " into " << sinkNode << endl;
+						abort = direct->type() == NodeType::Closure;
 						break;
 					}
 				}
@@ -131,7 +134,7 @@ void LambdaLifter::anotateClosure(Node* closureNode)
 	_fixedPoint = false;
 }
 
-void LambdaLifter::recurseOut(Edge* edge, vector<Edge*>* edges)
+void ClosureCloser::recurseOut(Edge* edge, vector<Edge*>* edges)
 {
 	if(contains(*edges, edge))
 		return;
@@ -140,13 +143,13 @@ void LambdaLifter::recurseOut(Edge* edge, vector<Edge*>* edges)
 		recurseOut(node, edges);
 }
 
-void LambdaLifter::recurseOut(Node* node, vector<Edge*>* edges)
+void ClosureCloser::recurseOut(Node* node, vector<Edge*>* edges)
 {
 	for(int i = 0; i < node->outArrity(); ++i)
 		recurseOut(node->out(i), edges);
 }
 
-void LambdaLifter::recurseOut(Node* node, vector<Node*>* nodes)
+void ClosureCloser::recurseOut(Node* node, vector<Node*>* nodes)
 {
 	if(contains(*nodes, node))
 		return;
@@ -157,7 +160,7 @@ void LambdaLifter::recurseOut(Node* node, vector<Node*>* nodes)
 	}
 }
 
-void LambdaLifter::recurseIn(Edge* edge, std::vector<Edge*>* edges)
+void ClosureCloser::recurseIn(Edge* edge, std::vector<Edge*>* edges)
 {
 	if(contains(*edges, edge))
 		return;
@@ -165,7 +168,7 @@ void LambdaLifter::recurseIn(Edge* edge, std::vector<Edge*>* edges)
 	recurseIn(edge->source(), edges);
 }
 
-void LambdaLifter::recurseIn(Node* node, std::vector<Edge*>* edges)
+void ClosureCloser::recurseIn(Node* node, std::vector<Edge*>* edges)
 {
 	if(node == 0)
 		return;

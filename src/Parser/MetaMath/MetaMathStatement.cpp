@@ -21,10 +21,8 @@ MetaMathStatement::~MetaMathStatement()
 {
 }
 
-vector<const MetaMathStatement*> MetaMathStatement::frame() const
+void MetaMathStatement::calcFrame()
 {
-	vector<const MetaMathStatement*> result;
-	
 	// Collect the relevant variables
 	vector<string> variables;
 	auto process = [&] (const MetaMathStatement* statement) {
@@ -43,28 +41,31 @@ vector<const MetaMathStatement*> MetaMathStatement::frame() const
 	// Add the corresponding floating hypothesis to the frame
 	/// @todo sort by declaration order!!!
 	for(const string& variable: variables)
-		result.push_back(_parent->floatingHypothesis(variable));
+		_frame.push_back(_parent->floatingHypothesis(variable));
 	
 	// Sort floating hypothesis by declaration order
-	std::sort(result.begin(), result.end(), [] (const MetaMathStatement* a, const MetaMathStatement* b) {
+	std::sort(_frame.begin(), _frame.end(), [] (const MetaMathStatement* a, const MetaMathStatement* b) {
 		return a->_declarationOrder < b->_declarationOrder;
 	});
 	
 	// Add all the essential hypothesis to the frame
 	for(MetaMathStatement* statement: _essentialHypothesis)
-		result.push_back(statement);
+		_frame.push_back(statement);
 	
 	// We do not add the statement itself
-	return result;
 }
 
 void MetaMathStatement::verify() const
 {
 	wcout << _label << "\t";
-	for(const string& symbol: symbols())
-		wcout << " " << symbol;
+	string previous;
+	for(const string& symbol: symbols()) {
+		if(previous != L"(" && symbol != L")")
+			wcout << " ";
+		wcout << symbol;
+		previous = symbol;
+	}
 	wcout << endl;
-	
 	
 	assert(_kind == MetaMathScope::Derived);
 	vector<vector<string>> stack;

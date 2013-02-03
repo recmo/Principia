@@ -116,6 +116,7 @@ void MetaMathScope::axiom(const string& label, const vector<string>& symbols)
 	statement->kind(Axiom);
 	statement->essentialHypothesis(essentialHypothesis());
 	statement->symbols(symbols);
+	statement->calcFrame();
 	_statements.push_back(statement);
 	
 	// Axioms also go in the global scope
@@ -135,6 +136,7 @@ void MetaMathScope::derived(const string& label, const vector<string>& symbols, 
 	statement->label(label);
 	statement->symbols(symbols);
 	statement->proof(proof);
+	statement->calcFrame();
 	_statements.push_back(statement);
 	
 	// Derivations also go in the global scope

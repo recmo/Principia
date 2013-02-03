@@ -19,7 +19,9 @@ public:
 	void proof(const vector<string>& value) { _proof = value; }
 	const vector<string>& proof() const { return _proof; }
 	
-	vector<const MetaMathStatement*> frame() const;
+	vector<const MetaMathStatement*> frame() const { return _frame; }
+	
+	void calcFrame();
 	
 	void verify() const;
 	
@@ -28,6 +30,7 @@ protected:
 	uint _declarationOrder;
 	MetaMathScope::StatementKind _kind;
 	vector<MetaMathStatement*> _essentialHypothesis;
+	vector<const MetaMathStatement*> _frame;
 	string _label;
 	vector<string> _symbols;
 	vector<string> _proof;

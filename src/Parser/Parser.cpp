@@ -72,6 +72,7 @@ SourceProperty Parser::source(bool hasLexeme)
 
 void Parser::parseFailure(string location)
 {
+	wcerr << L"parseFailure" << endl;
 	SourceProperty s = source();
 	if(location.empty())
 		wcerr << endl << s << L": Syntax error." << endl;
@@ -104,7 +105,11 @@ ParseTree::Scope* Parser::parseScope()
 	for(;;readNext()) switch(token()) {
 	case TokenStatementSeparator: continue;
 	case TokenBlockBegin: scope->add(parseScope()); continue;
-	case TokenIdentifier: scope->add(parseStatement()); continue;
+	case TokenIdentifier:
+	case TokenCall:
+	case TokenClosure:
+		scope->add(parseStatement());
+		continue;
 	case TokenBlockEnd: return scope;
 	default: parseFailure(L"scope"); delete scope; return 0;
 	}
@@ -122,7 +127,7 @@ ParseTree::Statement* Parser::parseStatement()
 	
 	// Parse the statement type
 	switch(token()) {
-	case TokenAssignment: statement->type(NodeType::Call); break;
+	case TokenCall: statement->type(NodeType::Call); break;
 	case TokenClosure: statement->type(NodeType::Closure); break;
 	default: parseFailure(L"statement type"); delete statement; return 0;
 	}
@@ -158,7 +163,7 @@ ParseTree::InlineStatement* Parser::parseInlineStatement()
 	
 	// Parse the statement type
 	switch(token()) {
-	case TokenAssignment: statement->type(NodeType::Call); break;
+	case TokenCall: statement->type(NodeType::Call); break;
 	case TokenClosure: statement->type(NodeType::Closure); break;
 	default: parseFailure(L"inline statement type"); delete statement; return 0;
 	}

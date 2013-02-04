@@ -37,7 +37,7 @@ void IdentifierBinder::crawl(ParseTree::Statement* statement)
 					wcerr << endl;
 				}
 				id->bindingSite(bindingSite);
-			} else if(debug) {
+			} else {
 				wcerr << "Unresolved symbol " << id->name() << " from ";
 				id->parent()->print(wcerr);
 				wcerr << endl;

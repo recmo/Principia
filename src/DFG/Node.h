@@ -15,14 +15,19 @@ public:
 	int inArrity() const { return _inArrity; }
 	int outArrity() const { return _outArrity; }
 	
-	const Edge* in(int index) const;
-	Edge* in(int index);
-	std::vector<const Edge*> in() const;
-	const Edge* out(int index) const;
-	Edge* out(int index);
-	std::vector<const Edge*> out() const;
+	const Edge* in(uint index) const;
+	Edge* in(uint index);
+	std::vector<const Edge*> constIn() const;
+	std::vector<Edge*> in();
+	uint inIndexOf(const Edge* edge) const;
 	
-	void connect(int index, Edge* edge);
+	const Edge* out(uint index) const;
+	Edge* out(uint index);
+	std::vector<const Edge*> constOut() const;
+	std::vector<Edge*> out();
+	uint outIndexOf(const Edge* edge) const;
+	
+	void connect(uint index, Edge* edge);
 	void forgetEdge(const Edge* edge);
 	void replaceEdge(const Edge* from, Edge* to);
 	
@@ -31,10 +36,12 @@ public:
 	std::set<Node*> outNodes(bool ignoreFunctional);
 	std::set<Node*> outClosures(bool ignoreFunctional);
 	
+	void check() const;
+	
 protected:
 	NodeType _type;
-	int _inArrity;
-	int _outArrity;
+	uint _inArrity;
+	uint _outArrity;
 	Edge** _incomming;
 	Edge*  _outgoing;
 };
@@ -50,27 +57,27 @@ inline std::wostream& operator<<(std::wostream& out, const Node* node)
 	return (node) ? out << *node : out << L"nullNode";
 }
 
-inline Edge* Node::out(int index)
+inline Edge* Node::out(uint index)
 {
-	assert(index >= 0 && index < _outArrity);
+	assert(index < _outArrity);
 	return _outgoing + index;
 }
 
-inline const Edge* Node::out(int index) const
+inline const Edge* Node::out(uint index) const
 {
-	assert(index >= 0 && index < _outArrity);
+	assert(index < _outArrity);
 	return _outgoing + index;
 }
 
-inline Edge* Node::in(int index)
+inline Edge* Node::in(uint index)
 {
-	assert(index >= 0 && index < _inArrity);
+	assert(index < _inArrity);
 	return _incomming[index];
 }
 
-inline const Edge* Node::in(int index) const
+inline const Edge* Node::in(uint index) const
 {
-	assert(index >= 0 && index < _inArrity);
+	assert(index < _inArrity);
 	return _incomming[index];
 }
 

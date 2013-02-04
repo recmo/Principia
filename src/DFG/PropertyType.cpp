@@ -13,6 +13,8 @@ string PropertyType::toString() const
 		case PropertyType::Native: return L"Native";
 		case PropertyType::StackVM: return L"StackVM";
 		case PropertyType::Escape: return L"Escape";
+		case PropertyType::Precondition: return L"Precondition";
+		case PropertyType::Postcondition: return L"Postcondition";
 		default: return L"Illegal value";
 	}
 }

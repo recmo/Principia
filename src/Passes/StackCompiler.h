@@ -22,5 +22,5 @@ private:
 	std::vector<StackMachineProperty::Instruction*> _order;
 	
 	void sortClosure();
-	void sortClosure(Node* node);
+	void sortClosureNode(Node* node);
 };

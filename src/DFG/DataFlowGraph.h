@@ -17,6 +17,10 @@ public:
 	const vector<Node*>& nodes() const { return _nodes; }
 	vector<Node*>& nodes() { return _nodes; }
 	
+	Edge* edgeByIdentifier(const string& identifier);
+	
+	void check();
+	
 private:
 	vector<Node*> _nodes;
 };

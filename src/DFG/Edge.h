@@ -7,10 +7,11 @@ class Node;
 class Edge: public PropertyMap
 {
 public:
-	Edge(Node* source = 0);
+	Edge(Node* source = nullptr);
 	~Edge();
 	
 	Node* source() const { return _source; }
+	uint sourceIndex() const;
 	const vector<Node*>& sinks() const { return _sinks; }
 	
 	void addSink(Node* node);

@@ -5,48 +5,45 @@
 #include <set>
 using namespace std;
 
-Node::Node(NodeType type, int inArrity, int outArity)
+Node::Node(NodeType type, int inArrity, int outArrity)
 : PropertyMap()
 , _type(type)
 , _inArrity(inArrity)
-, _outArrity(outArity)
-, _incomming(0)
-, _outgoing(0)
+, _outArrity(outArrity)
+, _incomming(new Edge*[inArrity])
+, _outgoing(new Edge[outArrity])
 {
 	assert(type.isValid());
 	assert(inArrity >= (type == NodeType::Call) ? 1 : 0);
-	assert(outArity >= (type == NodeType::Closure)? 1 : 0);
-	_incomming = new Edge*[_inArrity];
-	_outgoing = new Edge[_outArrity];
-	for(int i = 0; i < _inArrity; ++i)
-		_incomming[i] = 0;
-	for(int i = 0; i < _outArrity; ++i)
+	assert(outArrity >= (type == NodeType::Closure)? 1 : 0);
+	for(uint i = 0; i < _inArrity; ++i)
+		_incomming[i] = nullptr;
+	for(uint i = 0; i < _outArrity; ++i)
 		_outgoing[i]._source = this;
+	for(uint i = 0; i < _outArrity; ++i)
+		assert(_outgoing[i].sourceIndex() == i);
 }
 
 Node::~Node()
 {
-	for(int i = 0; i < _inArrity; ++i) {
-		if(_incomming[i] == 0)
-			continue;
-		_incomming[i]->_source = this;
-	}
+	for(uint i = 0; i < _inArrity; ++i)
+		_incomming[i]->delSink(this);
 	delete[] _incomming;
 	delete[] _outgoing;
 }
 
 void Node::forgetEdge(const Edge* edge)
 {
-	for(int i = 0; i < _inArrity; ++i)
+	for(uint i = 0; i < _inArrity; ++i)
 		if(_incomming[i] == edge)
-			_incomming[i] = 0;
+			_incomming[i] = nullptr;
 }
 
-void Node::connect(int index, Edge* edge)
+void Node::connect(uint index, Edge* edge)
 {
-	assert(edge != 0);
-	assert(index >= 0 && index < _inArrity);
-	if(_incomming[index] != 0)
+	assert(edge != nullptr);
+	assert(index < _inArrity);
+	if(_incomming[index] != nullptr)
 		_incomming[index]->delSink(this);
 	_incomming[index] = edge;
 	edge->addSink(this);
@@ -58,7 +55,7 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 	assert(to != 0);
 	assert(from != to);
 	bool foundsomething = false;
-	for(int i = 0; i < _inArrity; ++i){
+	for(uint i = 0; i < _inArrity; ++i){
 		if(_incomming[i] == from) {
 			_incomming[i] = to;
 			foundsomething = true;
@@ -96,34 +93,68 @@ std::set<Node*> Node::outNodes(bool ignoreFunctional)
 {
 	std::set<Node*> outNodes;
 	bool skipFirst = ignoreFunctional && type() == NodeType::Closure;
-	for(int i = (skipFirst) ? 1 : 0; i < outArrity(); ++i)
-		for(int j = 0; j < out(i)->sinks().size(); ++j)
+	for(uint i = (skipFirst) ? 1 : 0; i < outArrity(); ++i)
+		for(uint j = 0; j < out(i)->sinks().size(); ++j)
 			outNodes.insert(out(i)->sinks()[j]);
 	return outNodes;
 }
 
 std::set<Node*> Node::outClosures(bool ignoreFunctional)
 {
-
+	throw "Unimplemted...";
 }
 
-std::vector<const Edge*> Node::in() const
+std::vector<const Edge*> Node::constIn() const
 {
 	vector<const Edge*> result;
-	for(int i = 0; i < inArrity(); ++i)
+	for(uint i = 0; i < inArrity(); ++i)
 		result.push_back(in(i));
 	return result;
 }
 
-std::vector<const Edge*> Node::out() const
+std::vector<Edge*> Node::in()
+{
+	vector<Edge*> result;
+	for(uint i = 0; i < inArrity(); ++i)
+		result.push_back(in(i));
+	return result;
+}
+
+std::vector<const Edge*> Node::constOut() const
 {
 	vector<const Edge*> result;
-	for(int i = 0; i < outArrity(); ++i)
+	for(uint i = 0; i < outArrity(); ++i)
 		result.push_back(out(i));
 	return result;
 }
 
+std::vector<Edge*> Node::out()
+{
+	vector<Edge*> result;
+	for(uint i = 0; i < outArrity(); ++i)
+		result.push_back(out(i));
+	return result;
+}
 
+uint Node::inIndexOf(const Edge* edge) const
+{
+	for(uint i = 0; i < _inArrity; ++i)
+		if(_incomming[i] == edge)
+			return i;
+	return -1;
+}
 
+uint Node::outIndexOf(const Edge* edge) const
+{
+	uint i = edge - _outgoing;
+	if(i >= _outArrity)
+		i = -1;
+	assert(out(i) == edge);
+	return i;
+}
 
-
+void Node::check() const
+{
+	for(uint i = 0; i < _outArrity; ++i)
+		assert(_outgoing[i]._source == this);
+}

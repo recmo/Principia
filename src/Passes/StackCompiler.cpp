@@ -26,7 +26,7 @@ void StackCompiler::sortClosures()
 void StackCompiler::sortClosure()
 {
 	if(debug)
-		wcerr << endl << L"Sorting " << _closure << endl;
+		wcerr << endl << L"Compiling closure " << _closure << endl;
 	
 	// Initialize the stack with the closure and the arguments
 	foreach(const Edge* edge, _closure->get<ClosureProperty>().edges())
@@ -42,7 +42,7 @@ void StackCompiler::sortClosure()
 			continue;
 		}
 		if(!contains(_stack, edge))
-			sortClosure(edge->source());
+			sortClosureNode(edge->source());
 		returnInst->addReturnValue(indexOf(_stack, edge));
 	}
 	
@@ -60,8 +60,11 @@ void StackCompiler::sortClosure()
 	_closure->set(svmp);
 }
 
-void StackCompiler::sortClosure(Node* node)
+void StackCompiler::sortClosureNode(Node* node)
 {
+	if(debug)
+		wcerr << L"Compiling node " << node << endl;
+	
 	int closureIndex = -1;
 	vector<const Edge*> sources;
 	StackMachineProperty::CallInstruction* call;
@@ -77,11 +80,13 @@ void StackCompiler::sortClosure(Node* node)
 		sources = node->get<ClosureProperty>().edges();
 	} else {
 		// Allocate a call instruction
+		if(debug)
+			wcerr << "Call " << node << endl;
 		call = new StackMachineProperty::CallInstruction(node);
 		call->numReturns(node->outArrity());
 		
 		// Find the nodes sources
-		sources = node->in();
+		sources = node->constIn();
 	}
 	if(debug)
 		wcerr << node << " sources " << sources << endl;
@@ -92,7 +97,7 @@ void StackCompiler::sortClosure(Node* node)
 		int valueIndex = -1;
 		if(!edge->has<ConstantProperty>()) {
 			if(!contains(_stack, edge))
-				sortClosure(edge->source());
+				sortClosureNode(edge->source());
 			valueIndex = indexOf(_stack, edge);
 		}
 		if(node->type() == NodeType::Closure) {

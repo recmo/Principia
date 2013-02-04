@@ -21,9 +21,15 @@ define {
 	RadixPoint   "."
 	SepDigit     [:union({Digit},{Separator}):]
 	Number       {Digit}{SepDigit}*({RadixPoint}{SepDigit}*)?({Subscript}+({SupSign}?{Superscript}+)?)?
-
-	Assignment   "≔"
+	
+	Call         "≔"
 	Closure      "↦"
+	
+	Because      "∵"
+	Axiom        "⊨"
+	Proofs       "⊢"
+	Therefore    "∴"
+	
 	QuoteOpen    "“"
 	QuoteClose   "”"
 	BracketOpen  "("
@@ -35,8 +41,12 @@ token {
 	Identifier;
 	Quotation;
 	Number;
-	Assignment;
+	Call;
 	Closure;
+	Because;
+	Axiom;
+	Proofs;
+	Therefore;
 	StatementSeparator;
 	BlockBegin;
 	BlockEnd;
@@ -62,8 +72,12 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
 	{Whitespace}     { }
 	
 	// Syntax
-	{Assignment}     => TokenAssignment;
+	{Call}           => TokenCall;
 	{Closure}        => TokenClosure;
+	{Because}        => TokenBecause;
+	{Axiom}          => TokenAxiom;
+	{Proofs}         => TokenProofs;
+	{Therefore}      => TokenTherefore;
 	{BracketOpen}    => TokenBracketOpen;
 	{BracketClose}   => TokenBracketClose;
 	{BracketValue}   => TokenBracketValue;

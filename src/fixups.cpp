@@ -32,7 +32,7 @@ std::wstring decodeUtf8(const std::string& encoded)
 	// Parse error codes
 	if(result != converter::ok)
 	{
-		throw std::invalid_argument("The argument could not be decoded.");
+		throw std::invalid_argument("The argument could not be decoded from UTF-8.");
 	}
 	
 	// Copy to a wstring object
@@ -64,16 +64,20 @@ std::string encodeUtf8(const std::wstring& plaintext)
 	uint32 length = plaintext.length();
 	const wchar_t* in = plaintext.c_str();
 	const wchar_t* in_next = 0;
-	char* out = new char[length];
+	char* out = new char[length * 6]; // UTF-8 takes six bytes per codepoint max, there is no Byte Order Mark
 	char* out_next = 0;
 	
 	// Call the converter
-	converter::result result = facet.out(mbstate, in, in + length, in_next, out, out + length, out_next);
+	converter::result result = facet.out(mbstate, in, in + length, in_next, out, out + (6 * length), out_next);
 	
 	// Parse error codes
 	if(result != converter::ok)
 	{
-		throw std::invalid_argument("The argument could not be decoded.");
+		wcerr << endl << L"input = ";
+		wcerr << plaintext;
+		wcerr << endl;
+		wcerr << "result = " << result << endl;
+		throw std::invalid_argument("The argument could not be encoded to UTF-8.");
 	}
 	
 	std::string str(out, out_next - out);
@@ -111,7 +115,7 @@ std::wstring decodeLocal(const std::string& encoded)
 	// Parse error codes
 	if(result != converter::ok)
 	{
-		throw std::invalid_argument("The argument could not be decoded.");
+		throw std::invalid_argument("The argument could not be decoded from local encoding.");
 	}
 	
 	std::wstring wstr(out, out_next - out);
@@ -149,7 +153,10 @@ std::string encodeLocal(const std::wstring& plaintext)
 	// Parse error codes
 	if(result != converter::ok)
 	{
-		throw std::invalid_argument("The argument could not be decoded.");
+		wcerr << endl << L"input = ";
+		wcerr << plaintext;
+		wcerr << endl;
+		throw std::invalid_argument("The argument could not be encoded to local encoding.");
 	}
 	
 	std::string str(out, out_next - out);

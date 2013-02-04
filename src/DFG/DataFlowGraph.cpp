@@ -1,5 +1,6 @@
 #include "DFG/DataFlowGraph.h"
 #include "DFG/Node.h"
+#include <Parser/IdentifierProperty.h>
 
 DataFlowGraph::DataFlowGraph()
 : PropertyMap()
@@ -33,4 +34,23 @@ Node* DataFlowGraph::addCall(Node* closure)
 	Node* call = addCall(closure->outArrity() - 1, closure->inArrity());
 	call->connect(0, closure->out(0));
 	return call;
+}
+
+void DataFlowGraph::check()
+{
+	for(Node* node: _nodes) 
+		node->check();
+}
+
+Edge* DataFlowGraph::edgeByIdentifier(const string& identifier)
+{
+	for(Node* node: _nodes) {
+		for(Edge* edge: node->out()) {
+			if(!edge->has<IdentifierProperty>())
+				continue;
+			if(edge->get<IdentifierProperty>().value() == identifier)
+				return edge;
+		}
+	}
+	return nullptr;
 }

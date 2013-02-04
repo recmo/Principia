@@ -373,7 +373,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 		wcerr << "CALL " << call->node() << endl;
 	
 	// Fetch the argument values
-	vector<const Edge*> inputs = call->node()->in();
+	vector<const Edge*> inputs = call->node()->constIn();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(int i = 0; i < stackPositions.size(); ++i) {
@@ -501,7 +501,7 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 		wcerr << "BUILTIN " << call->node() << endl;
 	
 	// Construct the arguments
-	vector<const Edge*> inputs = call->node()->in();
+	vector<const Edge*> inputs = call->node()->constIn();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(int i = 1; i < stackPositions.size(); ++i) {
@@ -547,6 +547,11 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 		_stack.push_back(dividend);
 		_stack.push_back(remainder);
 	} else if(name == L"head") {
+		wcerr << "Do not know builtin " << name  << endl;
+		
+		
+	} else if(name == L"≡") {
+		wcerr << "Do not know builtin " << name  << endl;
 		
 		
 	} else {

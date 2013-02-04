@@ -4,6 +4,7 @@
 #include "Passes/Validator.h"
 #include "Parser/Parser.h"
 #include "DFG/DataFlowGraph.h"
+#include "DFG/CongruenceComparator.h"
 #include "Parser/IdentifierProperty.h"
 #include "Parser/IdentifierBinder.h"
 #include "Parser/DataFlowGraphCompiler.h"
@@ -222,7 +223,9 @@ sint32 Main(const vector<string>& args)
 	dfgc.compile();
 	DataFlowGraph* dfg = dfgc.dataFlowGraph();
 	wcerr << endl;
-
+	
+	dfg->check();
+	
 	/*
 	// Print structure
 	wcerr << L"Writing dot file…" << flush;
@@ -244,13 +247,11 @@ sint32 Main(const vector<string>& args)
 	//   - Contract the strongly connected component to  
 	
 	// Validate
-	/*
-	wcerr << L"Validating structure…" << flush;
-	Validator validator(dfg);
-	validator.validate();
-	validator.print();
-	wcerr << endl;
-	*/
+	// wcerr << L"Validating structure…" << flush;
+	// Validator validator(dfg);
+	// validator.validate();
+	// validator.print();
+	// wcerr << endl;
 	
 	// Close over closures
 	// Create constant closures
@@ -273,8 +274,10 @@ sint32 Main(const vector<string>& args)
 		
 	} while (!(ll.fixedPoint() && cclosure.fixedPoint() && ccall.fixedPoint()));
 	
-	// Topological sort the bodies of functions
-	wcerr << L"Sorting closure bodies topologically…" << flush;
+	dfg->check();
+	
+	// Compile to a stack machine
+	wcerr << L"Compiling to stack machine language…" << flush;
 	StackCompiler ts(dfg);
 	ts.sortClosures();
 	wcerr << endl;
@@ -287,9 +290,9 @@ sint32 Main(const vector<string>& args)
 	
 	wcerr << endl << endl;
 	foreach(const Node* node, dfg->nodes()) {
-		wcerr << node << " " << node->out() << " " << node->in() << endl;
+		wcerr << node << " " << node->constOut() << " " << node->constIn() << endl;
 		node->printProperties(wcerr);
-		foreach(const Edge* edge, node->out()) {
+		foreach(const Edge* edge, node->constOut()) {
 			wcerr << "    " << edge << endl;
 			edge->printProperties(wcerr);
 		}
@@ -309,19 +312,8 @@ sint32 Main(const vector<string>& args)
 	
 	// Get the edge
 	wcerr << L"Finding function to call…" << flush;
-	Edge* edge = 0;
-	foreach(Node* node, dfg->nodes()) {
-		for(int i = 0; i < node->outArrity(); ++i) {
-			Edge* tedge = node->out(i);
-			if(tedge == 0)
-				continue;
-			if(!tedge->has<IdentifierProperty>())
-				continue;
-			if(tedge->get<IdentifierProperty>().value() == args[2])
-				edge = tedge;
-		}
-	}
-	if(edge == 0) {
+	Edge* edge = dfg->edgeByIdentifier(args[2]);
+	if(!edge) {
 		wcerr << L"Error could not edge function " << args[2] << endl;
 		return -1;
 	}

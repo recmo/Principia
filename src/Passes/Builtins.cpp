@@ -219,6 +219,12 @@ vector<Value> nodeType(const vector<Value>& arg)
 	// Distinguish between call and closure nodes
 }
 
+vector<Value> intensionalEquivalent(const vector<Value>& arg)
+{
+	vector<Value> result;
+	return result;
+}
+
 vector<Value> call(const vector<Value>& arg)
 {
 	// call num_inputs num_outputs ↦ closure
@@ -265,6 +271,7 @@ vector<Value> compose(const vector<Value>& arg)
 	// make_closure in_closure out_closure ↦ closure
 }
 
+
 BuiltinsStatic::BuiltinsStatic()
 {
 	insert(value_type(L"if", &builtin_if));
@@ -278,4 +285,5 @@ BuiltinsStatic::BuiltinsStatic()
 	insert(value_type(L"mulr", &builtin_mulr));
 	insert(value_type(L"subr", &builtin_subr));
 	insert(value_type(L"divr", &builtin_divr));
+	insert(value_type(L"≡", &intensionalEquivalent));
 }

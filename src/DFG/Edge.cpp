@@ -17,6 +17,14 @@ Edge::~Edge()
 		(*it)->forgetEdge(this);
 }
 
+uint Edge::sourceIndex() const
+{
+	assert(_source);
+	uint index = _source->outIndexOf(this);
+	assert(index < _source->outArrity());
+	return index;
+}
+
 void Edge::addSink(Node* node)
 {
 	for(auto it = _sinks.begin(); it != _sinks.end(); ++it)

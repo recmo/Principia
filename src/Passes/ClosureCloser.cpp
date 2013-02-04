@@ -7,7 +7,7 @@
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 
-#define debug true
+#define debug false
 
 void ClosureCloser::anotateClosures()
 {
@@ -64,14 +64,18 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		// For each direct source node
 		foreach(Node* direct, directSources) {
 			
-			wcerr << "Considering adding " << direct << " to the lazy list." << endl;
+			if(debug)
+				wcerr << "Considering adding " << direct << " to the lazy list." << endl;
 			
-			// Abort if a sink is outside the lazy set (why?)
+			// Abort if a sink is outside the lazy set for a closure node
+			/// @todo As many call nodes as possible are included, this is not at all lazy,
+			/// but we must try to create closures that are minimal
 			bool abort = false;
 			foreach(const Edge* sink, direct->out()) {
 				foreach(Node* sinkNode, sink->sinks()) {
 					if(!contains(lazySet, sinkNode)) {
-						wcerr << "Result escapes from: " << direct << " through " << sink << " into " << sinkNode << endl;
+						if(debug)
+							wcerr << "Result escapes from: " << direct << " through " << sink << " into " << sinkNode << endl;
 						abort = direct->type() == NodeType::Closure;
 						break;
 					}
@@ -170,7 +174,7 @@ void ClosureCloser::recurseIn(Edge* edge, std::vector<Edge*>* edges)
 
 void ClosureCloser::recurseIn(Node* node, std::vector<Edge*>* edges)
 {
-	if(node == 0)
+	if(!node || !edges)
 		return;
 	for(int i = 0; i < node->inArrity(); ++i)
 		recurseIn(node->in(i), edges);

@@ -17,6 +17,7 @@ public:
 	class Expression;
 	class InlineStatement;
 	class Constant;
+	class Proposition;
 	
 	const Scope* topLevel() const { return _topLevel; }
 	Scope* topLevel() { return _topLevel; }
@@ -58,6 +59,7 @@ public:
 	
 	const std::vector<StatementOrScope*>& children() const { return _children; }
 	Scope& add(StatementOrScope* value) { value->parent(this).index(_children.size()); _children.push_back(value); return *this; }
+	Scope& add(Proposition* value) { _propositions.push_back(value); return *this; }
 	
 	StatementOrScope* first() { return (_children.empty()) ? 0 : _children.front(); }
 	StatementOrScope* last() { return (_children.empty()) ? 0 : _children.back(); }
@@ -66,6 +68,30 @@ public:
 	
 private:
 	std::vector<StatementOrScope*> _children;
+	std::vector<Proposition*> _propositions;
+};
+
+class ParseTree::Proposition
+{
+public:
+	enum Kind {
+		Precondition,
+		Postcondition,
+		Axiom,
+		Assertion
+	};
+	
+	Proposition(Kind kind): _kind(kind) { }
+	virtual ~Proposition() { }
+	
+	Expression* condition() const { return _condition; }
+	void setCondition(Expression* value) { _condition = value; }
+	
+	virtual void print(std::wostream& out);
+	
+protected:
+	Kind _kind;
+	Expression* _condition;
 };
 
 class ParseTree::Expression

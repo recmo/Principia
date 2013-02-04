@@ -211,6 +211,11 @@ sint32 Main(const vector<string>& args)
 	// Fetch the parse tree
 	ParseTree* tree = parser.tree();
 	
+	wcerr << endl << L"Parse tree:" << endl;
+	tree->print(wcerr);
+	
+	return 0;
+	
 	// Bind the identifiers
 	wcerr << L"Binding identifiers…" << flush;
 	IdentifierBinder ib(tree);

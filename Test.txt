@@ -11,7 +11,6 @@ C φ ψ ↦ χ
 	⊨ (≔ Boolean χ)
 	∴ (≔ Boolean χ)
 
-
 c↦“Closures can be annotated by logical statements:
 	∵ ‘because’: Specifies a precondition. Calls to the closure must satisfy these.
 	⊨ ‘axiom’: Given the preconditions, the following statement is accepted as true without proof.
@@ -19,36 +18,35 @@ c↦“Closures can be annotated by logical statements:
 	∴ ‘therefore’: Specifies a postcondition. Calls to the closure will have these satisfied.
 ”
 
-
 ax1 φ ψ ↦ χ
-	∵ Boolean φ
-	∵ Boolean ψ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
 	χ ≔ C φ (≔ C ψ φ)
 	⊨ χ
-	∴ Boolean χ
+	∴ (≔ Boolean χ)
 	∴ χ
 
 ax2 φ ψ χ ↦ η
-	∵ Boolean φ
-	∵ Boolean ψ
-	∵ Boolean χ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
+	∵ (≔ Boolean χ)
 	η ≔ C (≔ C φ (≔ C ψ χ)) (≔ C (≔ C φ ψ) (≔ C φ χ) )
 	⊨ η
-	∴ Boolean η
+	∴ (≔ Boolean η)
 	∴ η
 
 ax3 φ ψ ↦ ψ
-	∵ Boolean φ
-	∵ Boolean ψ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
 	∵ φ
 	∵ (≔ C φ ψ)
 	⊨ ψ
-	∴ Boolean ψ
+	∴ (≔ Boolean ψ)
 	∴ ψ
 
 
 th1 φ ↦ ψ
-	∵ Boolean φ
+	∵ (≔ Boolean φ)
 	ψ ≔ C φ φ
 	a ≔ ax1 φ φ
 		⊢ (≔ C φ ψ)
@@ -61,7 +59,7 @@ th1 φ ↦ ψ
 		⊢ (≔ C a ψ)
 	e ≔ ax3 a ψ
 		⊢ ψ
-	∴ Boolean ψ
+	∴ (≔ Boolean ψ)
 	∴ ψ
 
 

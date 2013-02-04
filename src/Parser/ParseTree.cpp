@@ -48,13 +48,32 @@ ParseTree::Scope::~Scope()
 
 void ParseTree::Scope::print(std::wostream& out, int indentation)
 {
-	foreach(StatementOrScope* child, _children) {
+	for(Proposition* prop: _propositions) {
+		for(int i = 0; i < indentation; ++i)
+			out << L"\t";
+		prop->print(out);
+		out << endl;
+	}
+	for(StatementOrScope* child: _children) {
 		for(int i = 0; i < indentation; ++i)
 			out << L"\t";
 		child->print(out, indentation + 1);
 		if(dynamic_cast<Statement*>(child))
 			out << endl;
 	}
+}
+
+void ParseTree::Proposition::print(std::wostream& out)
+{
+	switch(_kind) {
+	case Precondition: out << L"∵"; break;
+	case Postcondition: out << L"∴"; break;
+	case Axiom: out << L"⊨"; break;
+	case Assertion: out << L"⊢"; break;
+	}
+	out << " ";
+	if(_condition)
+		_condition->print(out);
 }
 
 ParseTree::Statement::Statement()

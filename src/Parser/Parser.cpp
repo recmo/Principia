@@ -4,7 +4,7 @@
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
 
-#define debug false
+#define debug true
 
 Parser::Parser()
 : _token(0)
@@ -72,6 +72,7 @@ SourceProperty Parser::source(bool hasLexeme)
 
 void Parser::parseFailure(string location)
 {
+	wcerr << decodeLocal(_token->type_id_name()) << endl;
 	wcerr << L"parseFailure" << endl;
 	SourceProperty s = source();
 	if(location.empty())
@@ -110,9 +111,38 @@ ParseTree::Scope* Parser::parseScope()
 	case TokenClosure:
 		scope->add(parseStatement());
 		continue;
+	case TokenBecause:
+	case TokenAxiom:
+	case TokenProofs:
+	case TokenTherefore:
+		scope->add(parseProposition());
+		continue;
 	case TokenBlockEnd: return scope;
 	default: parseFailure(L"scope"); delete scope; return 0;
 	}
+}
+
+ParseTree::Proposition* Parser::parseProposition()
+{
+	ParseTree::Proposition* prop = nullptr;
+	switch(token()) {
+	case TokenBecause: prop = new ParseTree::Proposition(ParseTree::Proposition::Precondition); break;
+	case TokenAxiom: prop = new ParseTree::Proposition(ParseTree::Proposition::Axiom); break;
+	case TokenProofs: prop = new ParseTree::Proposition(ParseTree::Proposition::Assertion); break;
+	case TokenTherefore: prop = new ParseTree::Proposition(ParseTree::Proposition::Postcondition); break;
+	default: parseFailure(L"proposition"); return nullptr;
+	}
+	readNext();
+	switch(token()) {
+	case TokenIdentifier: prop->setCondition(parseIdentifier()); break;
+	case TokenBracketOpen: prop->setCondition(parseInlineStatement()); break;
+	case TokenNumber: prop->setCondition(parseNumber()); break;
+	case TokenQuotation: prop->setCondition(parseQuotation()); break;
+	default:
+		parseFailure(L"proposition condition");
+		return nullptr;
+	}
+	return prop;
 }
 
 ParseTree::Statement* Parser::parseStatement()

@@ -7,7 +7,7 @@
 #include <DFG/Edge.h>
 #include <Passes/Builtins.h>
 
-#define debug false
+#define debug true
 
 DataFlowGraphCompiler::DataFlowGraphCompiler(ParseTree* parseTree)
 : _parseTree(parseTree)
@@ -28,7 +28,7 @@ void DataFlowGraphCompiler::compile()
 
 void DataFlowGraphCompiler::declare(ParseTree::Scope* scope)
 {
-	foreach(ParseTree::StatementOrScope* sors, scope->children()) {
+	foreach(ParseTree::ScopedElement* sors, scope->children()) {
 		// Recurse on scopes
 		ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(sors);
 		if(scope)
@@ -98,7 +98,7 @@ void DataFlowGraphCompiler::declare(ParseTree::Statement* statement)
 
 void DataFlowGraphCompiler::connect(ParseTree::Scope* scope)
 {
-	foreach(ParseTree::StatementOrScope* sors, scope->children()) {
+	foreach(ParseTree::ScopedElement* sors, scope->children()) {
 		// Recurse on scopes
 		ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(sors);
 		if(scope)

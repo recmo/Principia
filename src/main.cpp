@@ -214,8 +214,6 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl << L"Parse tree:" << endl;
 	tree->print(wcerr);
 	
-	return 0;
-	
 	// Bind the identifiers
 	wcerr << L"Binding identifiers…" << flush;
 	IdentifierBinder ib(tree);
@@ -228,6 +226,9 @@ sint32 Main(const vector<string>& args)
 	dfgc.compile();
 	DataFlowGraph* dfg = dfgc.dataFlowGraph();
 	wcerr << endl;
+	
+	tree->print(wcerr);
+	return 0;
 	
 	dfg->check();
 	

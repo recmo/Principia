@@ -11,10 +11,12 @@ private:
 	ParseTree* _parseTree;
 	void crawl(ParseTree::Scope* scope);
 	void crawl(ParseTree::Statement* statement);
+	void crawl(ParseTree::Proposition* proposition);
+	void crawl(ParseTree::Identifier* identifier);
 	ParseTree::Identifier* search(ParseTree::Identifier* identifier);
 	ParseTree::Expression* getLeftLeaf(ParseTree::Expression* expression);
 	ParseTree::Expression* getRightLeaf(ParseTree::Expression* expression);
-	ParseTree::Statement* getStatement(ParseTree::Expression* expression);
-	ParseTree::Identifier* searchLeft(ParseTree::StatementOrScope* sors, const string& name);
-	ParseTree::Identifier* searchRight(ParseTree::StatementOrScope* sors, const string& name);
+	ParseTree::Scope* getScope(ParseTree::Expression* expression);
+	ParseTree::Identifier* searchLeft(ParseTree::ScopedElement* sors, const string& name);
+	ParseTree::Identifier* searchRight(ParseTree::ScopedElement* sors, const string& name);
 };

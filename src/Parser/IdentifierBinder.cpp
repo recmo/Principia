@@ -1,6 +1,6 @@
 #include "IdentifierBinder.h"
 
-#define debug false
+#define debug true
 
 void IdentifierBinder::bind()
 {
@@ -10,43 +10,62 @@ void IdentifierBinder::bind()
 
 void IdentifierBinder::crawl(ParseTree::Scope* scope)
 {
-	foreach(ParseTree::StatementOrScope* child, scope->children()) {
+	for(ParseTree::ScopedElement* child: scope->children()) {
 		if(ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(child))
 			crawl(scope);
 		if(ParseTree::Statement* statement = dynamic_cast<ParseTree::Statement*>(child))
 			crawl(statement);
+		if(ParseTree::Proposition* proposition = dynamic_cast<ParseTree::Proposition*>(child))
+			crawl(proposition);
 	}
 }
 
 void IdentifierBinder::crawl(ParseTree::Statement* statement)
 {
-	foreach(ParseTree::Expression* expression, statement->in()) {
-		if(ParseTree::Identifier* id = dynamic_cast<ParseTree::Identifier*>(expression)) {
-			if(debug) {
-				wcerr << endl;
-				wcerr << "Resolving " << id->name() << endl;
-				wcerr << "From: ";
-				id->parent()->print(wcerr);
-				wcerr << endl;
-			}
-			ParseTree::Identifier* bindingSite = search(id);
-			if(bindingSite) {
-				if(debug) {
-					wcerr << "Resolved to " << bindingSite->name() << " from ";
-					bindingSite->parent()->print(wcerr);
-					wcerr << endl;
-				}
-				id->bindingSite(bindingSite);
-			} else {
-				wcerr << "Unresolved symbol " << id->name() << " from ";
-				id->parent()->print(wcerr);
-				wcerr << endl;
-			}
-		}
+	for(ParseTree::Expression* expression: statement->in()) {
+		if(ParseTree::Identifier* identifier = dynamic_cast<ParseTree::Identifier*>(expression))
+			crawl(identifier);
 		if(ParseTree::InlineStatement* statement = dynamic_cast<ParseTree::InlineStatement*>(expression))
 			crawl(statement);
 	}
 }
+
+void IdentifierBinder::crawl(ParseTree::Proposition* proposition)
+{
+	ParseTree::Expression* expression = proposition->condition();
+	if(ParseTree::Identifier* identifier = dynamic_cast<ParseTree::Identifier*>(expression))
+		crawl(identifier);
+	if(ParseTree::InlineStatement* statement = dynamic_cast<ParseTree::InlineStatement*>(expression))
+		crawl(statement);
+}
+
+void IdentifierBinder::crawl(ParseTree::Identifier* identifier)
+{
+	if(identifier->bindingSite())
+		return;
+	if(debug) {
+		wcerr << endl;
+		wcerr << "===================================================================" << endl;
+		wcerr << "Resolving " << identifier->name() << endl;
+		wcerr << "From: ";
+		identifier->parent()->print(wcerr);
+		wcerr << endl;
+	}
+	ParseTree::Identifier* bindingSite = search(identifier);
+	if(bindingSite) {
+		if(debug) {
+			wcerr << "Resolved to " << bindingSite->name() << " from ";
+			bindingSite->parent()->print(wcerr);
+			wcerr << endl;
+		}
+		identifier->bindingSite(bindingSite);
+	} else {
+		wcerr << "Unresolved symbol " << identifier->name() << " from ";
+		identifier->parent()->print(wcerr);
+		wcerr << endl;
+	}
+}
+
 
 ParseTree::Identifier* IdentifierBinder::search(ParseTree::Identifier* identifier)
 {
@@ -79,26 +98,30 @@ ParseTree::Identifier* IdentifierBinder::search(ParseTree::Identifier* identifie
 			wcerr << endl;
 		}
 		ParseTree::Identifier* id = dynamic_cast<ParseTree::Identifier*>(sibbling);
+		if(debug)
+			wcerr << "LEAF RIGHT2" << endl;
 		if(id && id->isOutbound() && id->name() == name)
 			return id;
+		if(debug)
+			wcerr << "LEAF RIGHT3" << endl;
 	}
+	if(debug)
+		wcerr << "LEAF RIGHT4" << endl;
 	
 	// Find the enclosing scope
 	/// TODO: Do not go depth first on scopes
-	ParseTree::StatementOrScope* child = getStatement(identifier);
-	ParseTree::Scope* scope = child->parent();
+	ParseTree::Scope* scope = getScope(identifier);
+	ParseTree::ScopedElement* child = scope;
 	while(scope) {
 		if(debug) {
 			wcerr << "SCOPE " << endl;
 			scope->print(wcerr);
 			wcerr << endl;
-			wcerr << "CHILD " << endl;
-			child->print(wcerr);
 			wcerr << endl;
 		}
 		
 		// Go left-depth-first up the scope
-		ParseTree::StatementOrScope* left = child;
+		ParseTree::ScopedElement* left = child;
 		while(left = left->prevSibbling()) {
 			if(debug) {
 				wcerr << "SCOPE LEFT UP" << endl;
@@ -112,7 +135,7 @@ ParseTree::Identifier* IdentifierBinder::search(ParseTree::Identifier* identifie
 		}
 			
 		// Go right-depth-first down the scope
-		ParseTree::StatementOrScope* right = child;
+		ParseTree::ScopedElement* right = child;
 		while(right = right->nextSibbling()) {
 			if(debug) {
 				wcerr << "SCOPE RIGHT DOWN" << endl;
@@ -137,7 +160,7 @@ ParseTree::Expression* IdentifierBinder::getLeftLeaf(ParseTree::Expression* expr
 {
 	ParseTree::Expression* left = expression->prevSibbling();
 	while(!left) {
-		ParseTree::Statement* parent = expression->parent();
+		ParseTree::Statement* parent = dynamic_cast<ParseTree::Statement*>(expression->parent());
 		if(!parent)
 			return 0;
 		ParseTree::Expression* inlineStatement = dynamic_cast<ParseTree::InlineStatement*>(parent);
@@ -157,7 +180,7 @@ ParseTree::Expression* IdentifierBinder::getRightLeaf(ParseTree::Expression* exp
 {
 	ParseTree::Expression* right = expression->nextSibbling();
 	if(!right) {
-		ParseTree::Statement* parent = expression->parent();
+		ParseTree::Statement* parent = dynamic_cast<ParseTree::Statement*>(expression->parent());
 		if(!parent)
 			return 0;
 		ParseTree::Expression* inlineStatement = dynamic_cast<ParseTree::InlineStatement*>(parent);
@@ -172,18 +195,16 @@ ParseTree::Expression* IdentifierBinder::getRightLeaf(ParseTree::Expression* exp
 	return right;
 }
 
-ParseTree::Statement* IdentifierBinder::getStatement(ParseTree::Expression* expression)
+ParseTree::Scope* IdentifierBinder::getScope(ParseTree::Expression* expression)
 {
-	ParseTree::Statement* statement = expression->parent();
-	if(!statement)
-		return 0;
-	ParseTree::Expression* parentExpression = dynamic_cast<ParseTree::InlineStatement*>(statement);
-	if(parentExpression)
-		return getStatement(parentExpression);
-	return statement;
+	if(ParseTree::Statement* statement = dynamic_cast<ParseTree::Statement*>(expression->parent()))
+		return statement->parent();
+	if(ParseTree::Expression* expression = dynamic_cast<ParseTree::Expression*>(expression->parent()))
+		return getScope(expression);
+	throw L"Unkown expression type";
 }
 
-ParseTree::Identifier* IdentifierBinder::searchLeft(ParseTree::StatementOrScope* sors, const string& name)
+ParseTree::Identifier* IdentifierBinder::searchLeft(ParseTree::ScopedElement* sors, const string& name)
 {
 	// Search through statements
 	ParseTree::Statement* statement = dynamic_cast<ParseTree::Statement*>(sors);
@@ -201,7 +222,7 @@ ParseTree::Identifier* IdentifierBinder::searchLeft(ParseTree::StatementOrScope*
 	/// TODO: First go through statements at the scope level, then go in the scopes
 	ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(sors);
 	if(scope) {
-		ParseTree::StatementOrScope* child = scope->last();
+		ParseTree::ScopedElement* child = scope->last();
 		while(child) {
 			ParseTree::Identifier* id = searchLeft(child, name);
 			if(id)
@@ -213,10 +234,13 @@ ParseTree::Identifier* IdentifierBinder::searchLeft(ParseTree::StatementOrScope*
 	return 0;
 }
 
-ParseTree::Identifier* IdentifierBinder::searchRight(ParseTree::StatementOrScope* sors, const string& name)
+ParseTree::Identifier* IdentifierBinder::searchRight(ParseTree::ScopedElement* element, const string& name)
 {
+	wcerr << L"searchRight ";
+	element->print(wcerr);
+	wcerr << element << " " << name << endl;
 	// Search through statements
-	ParseTree::Statement* statement = dynamic_cast<ParseTree::Statement*>(sors);
+	ParseTree::Statement* statement = dynamic_cast<ParseTree::Statement*>(element);
 	if(statement) {
 		ParseTree::Expression* exp = statement->first();
 		while(exp) {
@@ -229,9 +253,9 @@ ParseTree::Identifier* IdentifierBinder::searchRight(ParseTree::StatementOrScope
 	
 	// Recursively search through scopes
 	/// TODO: First go through statements at the scope level, then go in the scopes
-	ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(sors);
+	ParseTree::Scope* scope = dynamic_cast<ParseTree::Scope*>(element);
 	if(scope) {
-		ParseTree::StatementOrScope* child = scope->first();
+		ParseTree::ScopedElement* child = scope->first();
 		while(child) {
 			ParseTree::Identifier* id = searchRight(child, name);
 			if(id)
@@ -240,5 +264,5 @@ ParseTree::Identifier* IdentifierBinder::searchRight(ParseTree::StatementOrScope
 		}
 	}
 	
-	return 0;
+	return nullptr;
 }

@@ -18,12 +18,10 @@ public:
 private:
 	ParseTree* _parseTree;
 	DataFlowGraph* _dfg;
-	void declare(ParseTree::Scope* scope);
-	void declare(ParseTree::Statement* statement);
-	void connect(ParseTree::Scope* scope);
-	void connect(ParseTree::Statement* statement);
+	void declare(ParseTree::Node* node);
+	void connect(ParseTree::Node* node);
 	
 	std::map<ParseTree::Statement*, Node*> _declarations;
-	std::map<ParseTree::InlineStatement*, Edge*> _inlineValues;
+	std::map<ParseTree::Statement*, Edge*> _inlineValues;
 	std::map<ParseTree::Identifier*, Edge*> _identifiers;
 };

@@ -30,10 +30,10 @@ private:
 	
 	ParseTree* parseFile();
 	ParseTree::Statement* parseStatement();
-	ParseTree::InlineStatement* parseInlineStatement();
+	ParseTree::Statement* parseInlineStatement();
 	ParseTree::Scope* parseScope();
 	ParseTree::Proposition* parseProposition();
-	ParseTree::Expression* parseExpression();
+	ParseTree::Node* parseExpression();
 	ParseTree::Identifier* parseIdentifier();
 	ParseTree::Constant* parseNumber();
 	ParseTree::Constant* parseQuotation();

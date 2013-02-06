@@ -88,8 +88,8 @@ ParseTree* Parser::parseFile()
 	ParseTree* tree = new ParseTree;
 	for(;;readNext()) switch(token()) {
 	case TokenStatementSeparator: continue;
-	case TokenBlockBegin: tree->topLevel()->add(parseScope()); continue;
-	case TokenIdentifier: tree->topLevel()->add(parseStatement()); continue;
+	case TokenBlockBegin: tree->top()->appendChild(parseScope()); continue;
+	case TokenIdentifier: tree->top()->appendChild(parseStatement()); continue;
 	case TokenEndOfStream: return tree;
 	default: parseFailure(L"file"); delete tree; return 0;
 	}
@@ -105,17 +105,17 @@ ParseTree::Scope* Parser::parseScope()
 	ParseTree::Scope* scope = new ParseTree::Scope;
 	for(;;readNext()) switch(token()) {
 	case TokenStatementSeparator: continue;
-	case TokenBlockBegin: scope->add(parseScope()); continue;
+	case TokenBlockBegin: scope->appendChild(parseScope()); continue;
 	case TokenIdentifier:
 	case TokenCall:
 	case TokenClosure:
-		scope->add(parseStatement());
+		scope->appendChild(parseStatement());
 		continue;
 	case TokenBecause:
 	case TokenAxiom:
 	case TokenProofs:
 	case TokenTherefore:
-		scope->add(parseProposition());
+		scope->appendChild(parseProposition());
 		continue;
 	case TokenBlockEnd: return scope;
 	default: parseFailure(L"scope"); delete scope; return 0;
@@ -134,10 +134,10 @@ ParseTree::Proposition* Parser::parseProposition()
 	}
 	readNext();
 	switch(token()) {
-	case TokenIdentifier: prop->setCondition(parseIdentifier()); break;
-	case TokenBracketOpen: prop->setCondition(parseInlineStatement()); break;
-	case TokenNumber: prop->setCondition(parseNumber()); break;
-	case TokenQuotation: prop->setCondition(parseQuotation()); break;
+	case TokenIdentifier: prop->appendChild(parseIdentifier()); break;
+	case TokenBracketOpen: prop->appendChild(parseInlineStatement()); break;
+	case TokenNumber: prop->appendChild(parseNumber()); break;
+	case TokenQuotation: prop->appendChild(parseQuotation()); break;
 	default:
 		parseFailure(L"proposition condition");
 		return nullptr;
@@ -176,9 +176,9 @@ ParseTree::Statement* Parser::parseStatement()
 	}
 }
 
-ParseTree::InlineStatement* Parser::parseInlineStatement()
+ParseTree::Statement* Parser::parseInlineStatement()
 {
-	ParseTree::InlineStatement* statement = new ParseTree::InlineStatement;
+	ParseTree::Statement* statement = new ParseTree::Statement;
 	
 	// Eat the bracker open
 	assert(token() == TokenBracketOpen);

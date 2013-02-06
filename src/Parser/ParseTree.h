@@ -4,104 +4,89 @@
 #include "SourceProperty.h"
 #include <Passes/Value.h>
 
+/// @todo refactor
+
 class ParseTree
 {
 public:
 	ParseTree();
 	~ParseTree();
 	
-	class ScopedElement;
+	class Node;
 	class Statement;
 	class Scope;
 	class Identifier;
-	class Expression;
-	class InlineStatement;
 	class Constant;
 	class Proposition;
 	
-	const Scope* topLevel() const { return _topLevel; }
-	Scope* topLevel() { return _topLevel; }
+	const Scope* top() const { return _top; }
+	Scope* top() { return _top; }
 	
 	void print(std::wostream& out) const;
+	bool validate() const;
 	
 private:
-	Scope* _topLevel;
+	Scope* _top;
 };
 
-
-class ParseTree::ScopedElement
+class ParseTree::Node
 {
 public:
-	virtual ~ScopedElement() {}
+	virtual ~Node();
 	
-	Scope* parent() { return _parent; }
-	ScopedElement& parent(Scope* value) { _parent = value; return *this; }
+	virtual void print(std::wostream& out, uint indentation = 0) const = 0;
+	virtual bool validate() const;
 	
-	int index() { return _index; }
-	ScopedElement& index(int value) { _index = value; return *this; }
+	Node* parent() const { return _parent; }
+	uint indexInParent() const { return _indexInParent; }
+	Node* prevSibbling() const;
+	Node* nextSibbling() const;
+	Node* firstChild() const;
+	Node* lastChild() const;
+	uint numChildren() const { return _children.size(); }
+	Node* child(uint index) const;
+	const std::vector<Node*>& children() const { return _children; }
 	
-	ScopedElement* prevSibbling();
-	ScopedElement* nextSibbling();
+	void appendChild(Node* child);
+	void insertChild(Node* child, uint position);
 	
-	virtual void print(std::wostream& out, int indentation = 0) const = 0;
+	template<class T>
+	bool isA() const { return dynamic_cast<const T*>(this) != nullptr; }
+	
+	template<class T>
+	T* to() { return dynamic_cast<T*>(this); }
+	
+	template<class T>
+	const T* to() const { return dynamic_cast<T*>(this); }
 	
 protected:
-	ScopedElement(): _parent(0), _index(0) { }
-	Scope* _parent;
-	int _index;
+	Node();
+	Node* _parent;
+	uint _indexInParent;
+	std::vector<Node*> _children;
 };
 
-class ParseTree::Scope: public ScopedElement
+class ParseTree::Scope: public Node
 {
 public:
-	Scope();
-	virtual ~Scope();
-	
-	const std::vector<ScopedElement*>& children() const { return _children; }
-	Scope& add(ScopedElement* value) { value->parent(this).index(_children.size()); _children.push_back(value); return *this; }
-	
-	ScopedElement* first() { return (_children.empty()) ? 0 : _children.front(); }
-	ScopedElement* last() { return (_children.empty()) ? 0 : _children.back(); }
-	
-	virtual void print(std::wostream& out, int indentation = 0) const;
-	
-private:
-	std::vector<ScopedElement*> _children;
+	Scope() { }
+	virtual ~Scope() { }
+	virtual void print(std::wostream& out, uint indentation = 0) const;
 };
 
-class ParseTree::Expression
+class ParseTree::Identifier: public Node
 {
 public:
-	virtual ~Expression() { }
-	
-	ScopedElement* parent() { return _parent; }
-	Expression& parent(ScopedElement* value) { _parent = value; return *this; }
-	
-	bool isOutbound() { return _parent && _index < 0; }
-	bool isInbound() { return _parent && _index >= 0; }
-	
-	Expression* prevSibbling();
-	Expression* nextSibbling();
-	
-	int index() { return _index; }
-	Expression& index(int value) { _index = value; return *this; }
-	
-	virtual void print(std::wostream& out) const = 0;
-	
-protected:
-	Expression(): _parent(0), _index(0) { }
-	ScopedElement* _parent;
-	int _index;
-};
-
-class ParseTree::Identifier: public Expression
-{
-public:
-	Identifier(): Expression(), _name(), _source(), _bindingSite(0) { }
+	Identifier(): _name(), _outbound(false), _source(), _bindingSite(nullptr) { }
 	virtual ~Identifier() { }
 	
 	const std::wstring& name() const { return _name; }
 	Identifier& name(const std::wstring& value) { _name = value; return *this; }
+	
+	bool outbound() const { return _outbound; }
+	bool inbound() const { return !_outbound; }
+	Identifier& setOutbound() { _outbound = true; return *this; }
+	Identifier& setInbound() { _outbound = true; return *this; }
 	
 	const SourceProperty& soureProperty() const { return _source; };
 	Identifier& soureProperty(const SourceProperty& value) { _source = value; return *this; }
@@ -109,15 +94,16 @@ public:
 	Identifier* bindingSite() const { return _bindingSite; }
 	Identifier& bindingSite(Identifier* value) { _bindingSite = value; return *this; }
 	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 private:
 	std::wstring _name;
+	bool _outbound;
 	SourceProperty _source;
 	Identifier* _bindingSite;
 };
 
-class ParseTree::Constant: public Expression
+class ParseTree::Constant: public Node
 {
 public:
 	Constant(Value value): _value(value) { }
@@ -126,13 +112,13 @@ public:
 	Value value() const { return _value; }
 	Constant& value(Value val) { _value = val; return *this; }
 	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 private:
 	Value _value;
 };
 
-class ParseTree::Proposition: public ScopedElement
+class ParseTree::Proposition: public Node
 {
 public:
 	enum Kind {
@@ -144,47 +130,33 @@ public:
 	
 	Proposition(Kind kind): _kind(kind) { }
 	virtual ~Proposition() { }
-	
-	Expression* condition() const { return _condition; }
-	void setCondition(Expression* value) { value->parent(this).index(0); _condition = value; }
-	
-	virtual void print(std::wostream& out, int indentation = 0) const;
+	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 protected:
 	Kind _kind;
-	Expression* _condition;
 };
 
-class ParseTree::Statement: public ScopedElement
+class ParseTree::Statement: public Node
 {
 public:
-	Statement();
-	virtual ~Statement();
+	Statement(): _type(NodeType::Call), _outArrity(0) { }
+	virtual ~Statement() { }
+	
 	
 	NodeType type() const { return _type; }
 	Statement& type(NodeType value) { _type = value; return *this; }
 	
-	const std::vector<Identifier*>& out() const { return _out; }
-	const std::vector<Expression*>& in() const { return _in; }
+	const std::vector<Identifier*>& out() const;
+	   std::vector< Node* > in() const;
 	
-	Expression* first();
-	Expression* last();
+	Statement& addOut(Identifier* value);
+	Statement& addIn(Node* value);
 	
-	Statement& addOut(Identifier* value) { value->parent(this).index(-_out.size() - 1); _out.push_back(value); return *this; }
-	Statement& addIn(Expression* value) { value->parent(this).index(_in.size()); _in.push_back(value); return *this; }
+	bool isInline() const;
 	
-	virtual void print(std::wostream& out, int indentation = 0) const;
+	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 private:
 	NodeType _type;
-	vector<Identifier*> _out;
-	vector<Expression*> _in;
-};
-
-class ParseTree::InlineStatement: public Expression, public Statement
-{
-public:
-	virtual ~InlineStatement() { }
-	
-	virtual void print(std::wostream& out) const;
+	uint _outArrity;
 };

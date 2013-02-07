@@ -160,3 +160,18 @@ private:
 	NodeType _type;
 	uint _outArrity;
 };
+
+inline std::wostream& operator<<(std::wostream& out, const ParseTree::Node& node)
+{
+	node.print(out);
+	return out;
+}
+
+inline std::wostream& operator<<(std::wostream& out, const ParseTree::Node* node)
+{
+	if(node)
+		node->print(out);
+	else
+		out << L"<null>";
+	return out;
+}

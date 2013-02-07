@@ -40,7 +40,7 @@ private:
 	void buildDefaultClosure(const Node* closureNode);
 	void buildWrapper(const Node* closureNode);
 	llvm::Value* buildConstant(const Value& value);
-	llvm::FunctionType* buildFunctionType(int inArrity, int outArrity);
+	llvm::FunctionType* buildFunctionType(int inArity, int outArity);
 	void buildTrace(uint64 value) { buildTrace(_builder.getInt64(value)); }
 	void buildTrace(llvm::Value* value);
 	

@@ -31,7 +31,7 @@ Node* DataFlowGraph::addCall(int numArgs, int numRets)
 Node* DataFlowGraph::addCall(Node* closure)
 {
 	assert(closure->type() == NodeType::Closure);
-	Node* call = addCall(closure->outArrity() - 1, closure->inArrity());
+	Node* call = addCall(closure->outArity() - 1, closure->inArity());
 	call->connect(0, closure->out(0));
 	return call;
 }

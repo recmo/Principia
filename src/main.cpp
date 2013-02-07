@@ -228,8 +228,6 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl;
 	
 	tree->print(wcerr);
-	return 0;
-	
 	dfg->check();
 	
 	/*

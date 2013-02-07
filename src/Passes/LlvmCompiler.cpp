@@ -185,7 +185,7 @@ void LlvmCompiler::compile()
 		}
 		NativeProperty::Function funcPtr = reinterpret_cast<NativeProperty::Function>(voidPtr);
 		int numClosure = closure->get<ClosureProperty>().edges().size();
-		closure->set(NativeProperty(funcPtr, numClosure, closure->outArrity() - 1, closure->inArrity()));
+		closure->set(NativeProperty(funcPtr, numClosure, closure->outArity() - 1, closure->inArity()));
 	}
 	if(debug)
 		wcerr << "DONE!" << endl;
@@ -197,7 +197,7 @@ void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 		wcerr << "DEC FUNC " << closureNode << endl;
 	
 	// Construct the function type
-	llvm::FunctionType* functionType = buildFunctionType(closureNode->outArrity() - 1, closureNode->inArrity());
+	llvm::FunctionType* functionType = buildFunctionType(closureNode->outArity() - 1, closureNode->inArity());
 	
 	// Construct the function
 	std::string name = "";
@@ -278,7 +278,7 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	// Load the input variables
 	vector<llvm::Value*> inputValues;
 	inputValues.push_back(closure);
-	for(int i = 0; i < closureNode->outArrity() - 1; ++i) {
+	for(int i = 0; i < closureNode->outArity() - 1; ++i) {
 		llvm::Value* ptr = _builder.CreateGEP(inputs, _builder.getInt64(i));
 		llvm::Value* value = _builder.CreateLoad(ptr);
 		inputValues.push_back(value);
@@ -293,11 +293,11 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	result->setTailCall();
 	
 	// Unpack the result value and store
-	if(closureNode->inArrity() == 1) {
+	if(closureNode->inArity() == 1) {
 		llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(0));
 		_builder.CreateStore(result, ptr);
 	} else {
-		for(int i = 0; i < closureNode->inArrity(); ++i) {
+		for(int i = 0; i < closureNode->inArity(); ++i) {
 			llvm::Value* value = _builder.CreateExtractValue(result, i);
 			llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(i));
 			_builder.CreateStore(value, ptr);
@@ -394,7 +394,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	} else {
 		
 		// Fetch the function pointer
-		llvm::FunctionType* funcType = buildFunctionType(call->node()->inArrity() - 1, call->node()->outArrity());
+		llvm::FunctionType* funcType = buildFunctionType(call->node()->inArity() - 1, call->node()->outArity());
 		llvm::Value* closurePtr = _builder.CreateBitCast(args[0], _builder.getInt64Ty()->getPointerTo());
 		llvm::Value* funcPtrIntPtr = _builder.CreateGEP(closurePtr, _builder.getInt64(0));
 		llvm::Value* funcPtrInt = _builder.CreateLoad(funcPtrIntPtr);
@@ -483,7 +483,7 @@ void LlvmCompiler::buildRet(const StackMachineProperty::ReturnInstruction* ret)
 		}
 	} else {
 		vector<llvm::Value*> results;
-		for(int i = 0; i < ret->closure()->inArrity(); ++i) {
+		for(int i = 0; i < ret->closure()->inArity(); ++i) {
 			if(resultStackpos[i] == -1)
 				results.push_back(buildConstant(ret->closure()->in(i)->get<ConstantProperty>().value()));
 			else {
@@ -577,23 +577,23 @@ llvm::Value* LlvmCompiler::buildConstant(const Value& value)
 	}
 }
 
-llvm::FunctionType* LlvmCompiler::buildFunctionType(int inArrity, int outArrity)
+llvm::FunctionType* LlvmCompiler::buildFunctionType(int inArity, int outArity)
 {
 	// Construct the argument type
 	std::vector<llvm::Type*> params;
 	params.push_back(_builder.getInt64Ty()->getPointerTo()); // Pointer to closure
-	for(int i = 0; i < inArrity; ++i)
+	for(int i = 0; i < inArity; ++i)
 		params.push_back(_builder.getInt64Ty());
 	
 	// Construct the return type
 	llvm::Type* returns = 0;
-	if(outArrity == 0) {
+	if(outArity == 0) {
 		returns = _builder.getVoidTy();
-	} else if (outArrity == 1) {
+	} else if (outArity == 1) {
 		returns = _builder.getInt64Ty();
 	} else {
 		std::vector<llvm::Type*> returnTypes;
-		for(int i = 0; i < outArrity; ++i) {
+		for(int i = 0; i < outArity; ++i) {
 			llvm::Type* type = _builder.getInt64Ty();
 			returnTypes.push_back(type);
 		}

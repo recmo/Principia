@@ -60,7 +60,7 @@ void Validator::visit(int i)
 	
 	// For each edge from v to a neighboring vertex w:
 	Node* node = _program->nodes()[i];
-	for(int j = 0; j < node->outArrity(); ++j) {
+	for(int j = 0; j < node->outArity(); ++j) {
 		Edge* out = node->out(j);
 		
 		//if(node->type() == NodeType::Closure && j == 0)

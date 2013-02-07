@@ -89,6 +89,7 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 
 void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 {
+	assert(node);
 	if(node->isA<ParseTree::Statement>()) {
 		ParseTree::Statement* statement = node->to<ParseTree::Statement>();
 		if(debug) {

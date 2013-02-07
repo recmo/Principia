@@ -58,7 +58,7 @@ void DotFileWriter::write(const Node& node)
 	}
 	if(_contractionMode == None)
 	{
-		for(int i = 0; i < node.outArrity(); ++i) {
+		for(int i = 0; i < node.outArity(); ++i) {
 			write(*(node.out(i)));
 			_out << objectId(&node) << " -> " << objectId(node.out(i)) << " [";
 			_out << " label=" << i;
@@ -66,7 +66,7 @@ void DotFileWriter::write(const Node& node)
 				_out << " style=dotted";
 			_out << "];" << endl;
 		}
-		for(int i = 0; i < node.inArrity(); ++i) {
+		for(int i = 0; i < node.inArity(); ++i) {
 			write(*(node.in(i)));
 			_out << objectId(node.in(i)) << " -> " << objectId(&node) << " [";
 			_out << " label=" << i;
@@ -77,7 +77,7 @@ void DotFileWriter::write(const Node& node)
 	}
 	else if(_contractionMode == Edges)
 	{
-		for(int i = 0; i < node.outArrity(); ++i) {
+		for(int i = 0; i < node.outArity(); ++i) {
 			const Edge* out = node.out(i);
 			bool dotted = false;
 			if(!showClosureFunc && node.type() == NodeType::Closure && i == 0)
@@ -132,7 +132,7 @@ string DotFileWriter::objectId(const void* object)
 std::set<const Node*> DotFileWriter::contractEdges(const Node* node)
 {
 	set<const Node*> contracted;
-	for(int i = 0; i < node->outArrity(); ++i) {
+	for(int i = 0; i < node->outArity(); ++i) {
 		const Edge* out = node->out(i);
 		for(int j = 0; j < out->sinks().size(); ++j) {
 			contracted.insert(out->sinks()[j]);
@@ -152,7 +152,7 @@ std::set<const Node*> DotFileWriter::contractCalls(const Node* node, bool functi
 			for(int j = 0; j < out->sinks().size(); ++j)
 				contractCalls(out->sinks()[j], reached);
 	} else
-		for(int i = 1; i < node->outArrity(); ++i) {
+		for(int i = 1; i < node->outArity(); ++i) {
 			const Edge* out = node->out(i);
 			for(int j = 0; j < out->sinks().size(); ++j)
 				contractCalls(out->sinks()[j], reached);
@@ -173,7 +173,7 @@ void DotFileWriter::contractCalls(const Node* node, std::set<const Node*>& visit
 	visited.insert(node);
 	if(node->type() == NodeType::Closure)
 		return;
-	for(int i = 0; i < node->outArrity(); ++i) {
+	for(int i = 0; i < node->outArity(); ++i) {
 		const Edge* out = node->out(i);
 		for(int j = 0; j < out->sinks().size(); ++j) {
 			contractCalls(out->sinks()[j], visited);

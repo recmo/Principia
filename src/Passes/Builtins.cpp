@@ -243,8 +243,8 @@ vector<Value> arity(const vector<Value>& arg)
 	if(closure.kind == Value::Builtin) {
 		// TODO
 	} else {
-		sint64 num_inputs = closure.closure()->node()->inArrity();
-		sint64 num_outputs = closure.closure()->node()->outArrity() - 1;
+		sint64 num_inputs = closure.closure()->node()->inArity();
+		sint64 num_outputs = closure.closure()->node()->outArity() - 1;
 		ret.push_back(Value(num_inputs));
 		ret.push_back(Value(num_outputs));
 	}

@@ -74,17 +74,17 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 	if(left == right)
 		return true;
 	
-	// Equivalence of type and arrity
+	// Equivalence of type and arity
 	if(left->type() != right->type())
 		return false;
-	if(left->outArrity() != right->outArrity())
+	if(left->outArity() != right->outArity())
 		return false;
-	if(left->inArrity() != right->inArrity())
+	if(left->inArity() != right->inArity())
 		return false;
 	
 	// Calls are structurally equal iff all their inputs are equal
 	if(left->type() == NodeType::Call) {
-		for(uint i = 0; i < left->inArrity(); ++i) {
+		for(uint i = 0; i < left->inArity(); ++i) {
 			if(!compareEdges(left->in(i), right->in(i)))
 				return false;
 		}
@@ -96,7 +96,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 	if(left->type() == NodeType::Closure) {
 		
 		// Push the equality of the parameters on the stack
-		for(uint i = 0; i < left->outArrity(); ++i) {
+		for(uint i = 0; i < left->outArity(); ++i) {
 			if(debug)
 				wcerr << "Pushing " << left->out(i) << " ≡ " << right->out(i) << endl;
 			std::pair<const Edge*, const Edge*> recursionPair;
@@ -107,7 +107,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		
 		// Compare the output of the closure
 		bool equal = true;
-		for(uint i = 0; i < left->inArrity(); ++i) {
+		for(uint i = 0; i < left->inArity(); ++i) {
 			if(!compareEdges(left->in(i), right->in(i))) {
 				equal = false;
 				break;
@@ -115,7 +115,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		}
 		
 		// Pop the equality of the parameters
-		for(uint i = 0; i < left->outArrity(); ++i) {
+		for(uint i = 0; i < left->outArity(); ++i) {
 			if(debug)
 				wcerr << "Poping " << left->out(i) << " ≡ " << right->out(i) << endl;
 			recursionPairs.pop_back();

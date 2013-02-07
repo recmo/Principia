@@ -15,7 +15,7 @@ void ConstantClosure::anotateClosures()
 			continue;
 		if(!node->has<ClosureProperty>())
 			continue;
-		assert(node->outArrity() >= 1);
+		assert(node->outArity() >= 1);
 		if(node->out(0)->has<ConstantProperty>())
 			continue;
 		if(node->get<ClosureProperty>().edges().empty()) {

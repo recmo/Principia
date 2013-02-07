@@ -31,6 +31,6 @@ void ClosureTree::calculate()
 
 void ClosureTree::recurse(Node* node)
 {
-	//for(int o = 0; o < node->outArrity();
+	//for(int o = 0; o < node->outArity();
 }
 

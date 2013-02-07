@@ -16,7 +16,7 @@ void ConstantCall::anotateCalls()
 		
 		// If all inputs are constant, the call is constant
 		bool isConstant = true;
-		for(uint i = 0; i < node->inArrity(); ++i) {
+		for(uint i = 0; i < node->inArity(); ++i) {
 			if(!node->in(i)->has<ConstantProperty>()) {
 				isConstant = false;
 				break;
@@ -32,7 +32,7 @@ void ConstantCall::anotateCalls()
 		// If the call is constant, mark it, and all its outputs so
 		/// @todo Values
 		node->set(ConstantProperty(Value()));
-		for(uint i = 0; i < node->outArrity(); ++i)
+		for(uint i = 0; i < node->outArity(); ++i)
 			node->out(i)->set(ConstantProperty(Value()));
 	}
 }

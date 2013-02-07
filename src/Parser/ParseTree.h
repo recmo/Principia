@@ -139,7 +139,7 @@ protected:
 class ParseTree::Statement: public Node
 {
 public:
-	Statement(): _type(NodeType::Call), _outArrity(0) { }
+	Statement(): _type(NodeType::Call) { }
 	virtual ~Statement() { }
 	
 	
@@ -147,7 +147,7 @@ public:
 	Statement& type(NodeType value) { _type = value; return *this; }
 	
 	const std::vector<Identifier*>& out() const;
-	   std::vector< Node* > in() const;
+	std::vector<Node*> in() const;
 	
 	Statement& addOut(Identifier* value);
 	Statement& addIn(Node* value);
@@ -158,7 +158,6 @@ public:
 	
 private:
 	NodeType _type;
-	uint _outArrity;
 };
 
 inline std::wostream& operator<<(std::wostream& out, const ParseTree::Node& node)

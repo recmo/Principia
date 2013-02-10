@@ -97,6 +97,15 @@ bool ParseTree::Node::validate() const
 	}
 }
 
+ParseTree::Scope* ParseTree::Node::enclosingScope() const
+{
+	if(!_parent)
+		return nullptr;
+	if(_parent->isA<Scope>())
+		return _parent->to<Scope>();
+	return _parent->enclosingScope();
+}
+
 void ParseTree::Scope::print(std::wostream& out, uint indentation) const
 {
 	for(Node* child: children()) {
@@ -107,6 +116,16 @@ void ParseTree::Scope::print(std::wostream& out, uint indentation) const
 		if(!child->isA<Scope>())
 			out << endl;
 	}
+}
+
+ParseTree::Statement* ParseTree::Scope::associatedStatement() const
+{
+	ParseTree::Node* prev = prevSibbling();
+	if(!prev)
+		return nullptr;
+	if(!prev->isA<Statement>())
+		return nullptr;
+	return prev->to<Statement>();
 }
 
 void ParseTree::Proposition::print(std::wostream& out, uint indentation) const

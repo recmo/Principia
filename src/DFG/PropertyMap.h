@@ -6,6 +6,7 @@
 class PropertyMap
 {
 public:
+	PropertyMap();
 	~PropertyMap();
 	
 	void set(const Property& prop);

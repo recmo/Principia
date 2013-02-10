@@ -20,6 +20,7 @@ private:
 	DataFlowGraph* _dfg;
 	void declare(ParseTree::Node* node);
 	void connect(ParseTree::Node* node);
+	Edge* edgeForExpression(ParseTree::Node* expression);
 	
 	std::map<ParseTree::Statement*, Node*> _declarations;
 	std::map<ParseTree::Statement*, Edge*> _inlineValues;

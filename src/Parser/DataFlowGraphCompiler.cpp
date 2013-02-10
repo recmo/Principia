@@ -6,8 +6,9 @@
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
 #include <Passes/Builtins.h>
+#include <Verifier/PropositionProperty.h>
 
-#define debug true
+#define debug false
 
 DataFlowGraphCompiler::DataFlowGraphCompiler(ParseTree* parseTree)
 : _parseTree(parseTree)
@@ -79,8 +80,6 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 		if(inlineValue)
 			_inlineValues[statement] = inlineValue;
 	}
-	// Propositions do not require declaration
-	
 	
 	// Recurse on the parse tree
 	for(ParseTree::Node* child: node->children())
@@ -100,62 +99,77 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 		
 		Node* node = _declarations[statement];
 		for(int i = 0; i < node->in().size(); ++i) {
-			ParseTree::Node* expression = statement->in()[i];
-			Edge* edge = nullptr;
-			
-			// Connect identifiers
-			if(expression->isA<ParseTree::Identifier>()) {
-				ParseTree::Identifier* identifier = expression->to<ParseTree::Identifier>();
-				if(identifier->bindingSite()) {
-					edge = _identifiers[identifier->bindingSite()];
-				} else if(contains(builtins, identifier->name())) {
-					if(debug)
-						wcerr << "GLOBAL " << identifier->name() << endl;
-					edge = new Edge;
-					edge->set(IdentifierProperty(identifier->name()));
-					edge->set(ConstantProperty(Value(builtins[identifier->name()])));
-				}
-			}
-			
-			// Connect inline statements
-			if(expression->isA<ParseTree::Statement>()) {
-				ParseTree::Statement* inlineStatement =  expression->to<ParseTree::Statement>();
-				edge = _inlineValues[inlineStatement];
-				// Recursively connect
-				connect(inlineStatement);
-			}
-			
-			// Connect constants
-			if(expression->isA<ParseTree::Constant>()) {
-				ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
-				edge = new Edge;
-				edge->set(ConstantProperty(constant->value()));
-			}
-			
-			// Failure
-			if(edge == 0) {
-				wcerr << "Could not connect expression: ";
-				expression->print(wcerr);
-				wcerr << endl;
-				continue;
-			}
-			
-			node->connect(i, edge);
+			Edge* efe = edgeForExpression(statement->in()[i]);
+			node->connect(i, efe);
 		}
-	}
-	
-	if(node->isA<ParseTree::Proposition>()) {
+	} else if(node->isA<ParseTree::Proposition>()) {
 		ParseTree::Proposition* proposition = node->to<ParseTree::Proposition>();
 		if(debug) {
-			wcerr << "CONNECT ";
+			wcerr << "PROPOSITION ";
 			proposition->print(wcerr);
 			wcerr << endl;
 		}
 		
-		/// @todo
+		// Find the statement associated with the proposition
+		ParseTree::Scope* scope = proposition->enclosingScope();
+		assert(scope);
+		ParseTree::Statement* statement = scope->associatedStatement();
+		if(!statement) {
+			wcerr << "No statement associated to scope for proposition " << proposition << endl;
+			return;
+		}
+		Node* target = _declarations[statement];
+		assert(target);
+		Edge* condition = edgeForExpression(proposition->firstChild());
+		assert(condition);
+		PropositionProperty pp;
+		if(target->has<PropositionProperty>())
+			pp = target->get<PropositionProperty>();
+		switch(proposition->kind()) {
+		case ParseTree::Proposition::Precondition: pp.precondition(condition); break;
+		case ParseTree::Proposition::Axiom: pp.axiom(condition); break;
+		case ParseTree::Proposition::Assertion: pp.assertion(condition); break;
+		case ParseTree::Proposition::Postcondition: pp.postcondition(condition); break;
+		}
+		target->set(pp);
+		
 	}
 	
 	// Recurse on the parse tree
 	for(ParseTree::Node* child: node->children())
 		connect(child);
+}
+
+Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
+{
+	assert(expression);
+	if(expression->isA<ParseTree::Identifier>()) {
+		ParseTree::Identifier* identifier = expression->to<ParseTree::Identifier>();
+		if(identifier->bindingSite()) {
+			return _identifiers[identifier->bindingSite()];
+		} else if(contains(builtins, identifier->name())) {
+			if(debug)
+				wcerr << "GLOBAL " << identifier->name() << endl;
+			Edge* edge = new Edge(nullptr);
+			edge->set(IdentifierProperty(identifier->name()));
+			edge->set(ConstantProperty(Value(builtins[identifier->name()])));
+			return edge;
+		}
+		wcerr << "Could bind identifier: ";
+		expression->print(wcerr);
+		wcerr << endl;
+		throw L"Could not bind identifier";
+	} else if(expression->isA<ParseTree::Statement>()) {
+		ParseTree::Statement* inlineStatement =  expression->to<ParseTree::Statement>();
+		return _inlineValues[inlineStatement];
+	} else if(expression->isA<ParseTree::Constant>()) {
+		ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
+		Edge* edge = new Edge(nullptr);
+		edge->set(ConstantProperty(constant->value()));
+		return edge;
+	}
+	wcerr << "Could not connect expression: ";
+	expression->print(wcerr);
+	wcerr << endl;
+	throw L"Could not connect expression";
 }

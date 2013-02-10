@@ -298,8 +298,6 @@ ParseTree::Constant* Parser::parseNumber()
 		exponent += separators;
 	
 	// Set a real or integer constant based on the radix point
-	Edge* constantEdge = new Edge;
-	constantEdge->set(source());
 	if(seenPoint) {
 		double value = mantissa * pow(base, exponent);
 		return new ParseTree::Constant(value);

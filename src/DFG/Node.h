@@ -8,12 +8,12 @@
 class Node: public PropertyMap
 {
 public:
-	Node(NodeType type, int inArity, int outArity);
+	Node(NodeType type, int incommingArity, int outgoingArity);
 	~Node();
 	
 	NodeType type() const { return _type; }
-	int inArity() const { return _inArity; }
-	int outArity() const { return _outArity; }
+	int inArity() const { return _incomming.size(); }
+	int outArity() const { return _outgoing.size(); }
 	
 	const Edge* in(uint index) const;
 	Edge* in(uint index);
@@ -36,14 +36,10 @@ public:
 	std::set<Node*> outNodes(bool ignoreFunctional);
 	std::set<Node*> outClosures(bool ignoreFunctional);
 	
-	void check() const;
-	
 protected:
 	NodeType _type;
-	uint _inArity;
-	uint _outArity;
-	Edge** _incomming;
-	Edge*  _outgoing;
+	std::vector<Edge*> _incomming;
+	std::vector<Edge*> _outgoing;
 };
 
 inline std::wostream& operator<<(std::wostream& out, const Node& node)
@@ -59,25 +55,25 @@ inline std::wostream& operator<<(std::wostream& out, const Node* node)
 
 inline Edge* Node::out(uint index)
 {
-	assert(index < _outArity);
-	return _outgoing + index;
+	assert(index < outArity());
+	return _outgoing[index];
 }
 
 inline const Edge* Node::out(uint index) const
 {
-	assert(index < _outArity);
-	return _outgoing + index;
+	assert(index < outArity());
+	return _outgoing[index];
 }
 
 inline Edge* Node::in(uint index)
 {
-	assert(index < _inArity);
+	assert(index < inArity());
 	return _incomming[index];
 }
 
 inline const Edge* Node::in(uint index) const
 {
-	assert(index < _inArity);
+	assert(index < inArity());
 	return _incomming[index];
 }
 

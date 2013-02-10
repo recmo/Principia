@@ -19,10 +19,6 @@ public:
 	
 	Edge* edgeByIdentifier(const string& identifier);
 	
-	void check();
-	
 private:
 	vector<Node*> _nodes;
 };
-
-

@@ -1,6 +1,6 @@
 #include "IdentifierBinder.h"
 
-#define debug true
+#define debug false
 
 void IdentifierBinder::bind()
 {

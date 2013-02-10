@@ -18,8 +18,7 @@ public:
 	const static int Native = 7;
 	const static int StackVM = 8;
 	const static int Escape = 9;
-	const static int Precondition = 10;
-	const static int Postcondition = 11;
+	const static int Proposition = 10;
 	
 private:
 	int value;

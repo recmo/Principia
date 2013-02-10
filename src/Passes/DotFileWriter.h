@@ -19,9 +19,9 @@ public:
 	ContractionMode contractionMode() const { return _contractionMode; }
 	DotFileWriter& contractionMode(const ContractionMode& value) { _contractionMode = value; return *this; }
 	
-	void write(const DataFlowGraph& dfg);
-	void write(const Node& node);
-	void write(const Edge& edge);
+	void write(const DataFlowGraph* dfg);
+	void write(const Node* node);
+	void write(const Edge* edge);
 	
 	set<const Node*> contractEdges(const Node*);
 	set<const Node*> contractCalls(const Node* node, bool functional);

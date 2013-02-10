@@ -7,7 +7,7 @@ class Node;
 class Edge: public PropertyMap
 {
 public:
-	Edge(Node* source = nullptr);
+	Edge(Node* source);
 	~Edge();
 	
 	Node* source() const { return _source; }
@@ -29,7 +29,6 @@ private:
 	
 	Node* _source;
 	vector<Node*> _sinks;
-	friend class Node;
 };
 
 inline std::wostream& operator<<(std::wostream& out, const Edge& edge)

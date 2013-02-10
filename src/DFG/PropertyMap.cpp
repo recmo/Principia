@@ -1,5 +1,10 @@
 #include "DFG/PropertyMap.h"
 
+PropertyMap::PropertyMap()
+: _propertyMap()
+{
+}
+
 PropertyMap::~PropertyMap()
 {
 	for(auto it = _propertyMap.begin(); it != _propertyMap.end(); ++it)
@@ -41,5 +46,3 @@ void PropertyMap::printProperties(std::wostream& out) const
 	for(auto it = _propertyMap.begin(); it != _propertyMap.end(); ++it)
 		out << L"\t" << *((*it).second) << endl;
 }
-
- 

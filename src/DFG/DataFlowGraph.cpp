@@ -36,12 +36,6 @@ Node* DataFlowGraph::addCall(Node* closure)
 	return call;
 }
 
-void DataFlowGraph::check()
-{
-	for(Node* node: _nodes) 
-		node->check();
-}
-
 Edge* DataFlowGraph::edgeByIdentifier(const string& identifier)
 {
 	for(Node* node: _nodes) {

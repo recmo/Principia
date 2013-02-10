@@ -1,7 +1,7 @@
 
 c↦“Closures without outputs are predicates”
 
-Boolean φ ↦ dummy
+Boolean φ ↦ 0
 
 c↦“Closures without body are abstract functions in extension.”
 

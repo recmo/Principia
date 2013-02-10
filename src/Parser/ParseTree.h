@@ -50,6 +50,8 @@ public:
 	void appendChild(Node* child);
 	void insertChild(Node* child, uint position);
 	
+	Scope* enclosingScope() const;
+	
 	template<class T>
 	bool isA() const { return dynamic_cast<const T*>(this) != nullptr; }
 	
@@ -72,6 +74,8 @@ public:
 	Scope() { }
 	virtual ~Scope() { }
 	virtual void print(std::wostream& out, uint indentation = 0) const;
+	
+	Statement* associatedStatement() const;
 };
 
 class ParseTree::Identifier: public Node
@@ -131,6 +135,8 @@ public:
 	Proposition(Kind kind): _kind(kind) { }
 	virtual ~Proposition() { }
 	virtual void print(std::wostream& out, uint indentation = 0) const;
+	
+	Kind kind() const { return _kind; }
 	
 protected:
 	Kind _kind;

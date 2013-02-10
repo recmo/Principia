@@ -228,17 +228,16 @@ sint32 Main(const vector<string>& args)
 	wcerr << endl;
 	
 	tree->print(wcerr);
-	dfg->check();
 	
-	/*
 	// Print structure
-	wcerr << L"Writing dot file…" << flush;
-	DotFileWriter dfw(L"test.dot");
-	dfw.contractionMode(DotFileWriter::Calls);
-	dfw.write(*dfg);
-	// make && ./debug Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
-	wcerr << endl;
-	*/
+	if(false) {
+		wcerr << L"Writing dot file…" << flush;
+		DotFileWriter dfw(L"test.dot");
+		dfw.contractionMode(DotFileWriter::None);
+		dfw.write(dfg);
+		// make && ./debug Ackermann.txt PRA 2 2 && dot -Tps ./test.dot -o ./test.ps
+		wcerr << endl;
+	}
 	
 	// To validate
 	// - Take the DFG
@@ -251,11 +250,13 @@ sint32 Main(const vector<string>& args)
 	//   - Contract the strongly connected component to  
 	
 	// Validate
-	// wcerr << L"Validating structure…" << flush;
-	// Validator validator(dfg);
-	// validator.validate();
-	// validator.print();
-	// wcerr << endl;
+	if(false) {
+		wcerr << L"Validating structure…" << flush;
+		Validator validator(dfg);
+		validator.validate();
+		validator.print();
+		wcerr << endl;
+	}
 	
 	// Close over closures
 	// Create constant closures
@@ -278,8 +279,6 @@ sint32 Main(const vector<string>& args)
 		
 	} while (!(ll.fixedPoint() && cclosure.fixedPoint() && ccall.fixedPoint()));
 	
-	dfg->check();
-	
 	// Compile to a stack machine
 	wcerr << L"Compiling to stack machine language…" << flush;
 	StackCompiler ts(dfg);
@@ -292,17 +291,19 @@ sint32 Main(const vector<string>& args)
 	ea.analyse();
 	wcerr << endl;
 	
+	/*
 	wcerr << endl << endl;
-	foreach(const Node* node, dfg->nodes()) {
+	for(const Node* node: dfg->nodes()) {
 		wcerr << node << " " << node->constOut() << " " << node->constIn() << endl;
 		node->printProperties(wcerr);
-		foreach(const Edge* edge, node->constOut()) {
+		for(const Edge* edge: node->constOut()) {
 			wcerr << "    " << edge << endl;
 			edge->printProperties(wcerr);
 		}
 		wcerr << endl;
 	}
 	wcerr << endl << endl;
+	*/
 	
 	// Compile to LLVM !
 	wcerr << L"Compiling to native code using LLVM…" << flush;

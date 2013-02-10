@@ -5,36 +5,32 @@
 #include <set>
 using namespace std;
 
-Node::Node(NodeType type, int inArity, int outArity)
+Node::Node(NodeType type, int incommingArity, int outgoingArity)
 : PropertyMap()
 , _type(type)
-, _inArity(inArity)
-, _outArity(outArity)
-, _incomming(new Edge*[inArity])
-, _outgoing(new Edge[outArity])
+, _incomming(incommingArity)
+, _outgoing(outgoingArity)
 {
 	assert(type.isValid());
-	assert(inArity >= (type == NodeType::Call) ? 1 : 0);
-	assert(outArity >= (type == NodeType::Closure)? 1 : 0);
-	for(uint i = 0; i < _inArity; ++i)
+	assert(inArity() >= (type == NodeType::Call) ? 1 : 0);
+	assert(outArity() >= (type == NodeType::Closure)? 1 : 0);
+	for(uint i = 0; i < inArity(); ++i)
 		_incomming[i] = nullptr;
-	for(uint i = 0; i < _outArity; ++i)
-		_outgoing[i]._source = this;
-	for(uint i = 0; i < _outArity; ++i)
-		assert(_outgoing[i].sourceIndex() == i);
+	for(uint i = 0; i < outArity(); ++i)
+		_outgoing[i] = new Edge(this);
 }
 
 Node::~Node()
 {
-	for(uint i = 0; i < _inArity; ++i)
-		_incomming[i]->delSink(this);
-	delete[] _incomming;
-	delete[] _outgoing;
+	for(Edge* incomming: _incomming)
+		incomming->delSink(this);
+	for(Edge* outgoing: _outgoing)
+		delete outgoing;
 }
 
 void Node::forgetEdge(const Edge* edge)
 {
-	for(uint i = 0; i < _inArity; ++i)
+	for(uint i = 0; i < inArity(); ++i)
 		if(_incomming[i] == edge)
 			_incomming[i] = nullptr;
 }
@@ -42,7 +38,8 @@ void Node::forgetEdge(const Edge* edge)
 void Node::connect(uint index, Edge* edge)
 {
 	assert(edge);
-	assert(index < _inArity);
+	assert(index < inArity());
+	assert(edge->source() == nullptr || edge->source()->outIndexOf(edge) != -1);
 	if(_incomming[index])
 		_incomming[index]->delSink(this);
 	_incomming[index] = edge;
@@ -54,8 +51,9 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 	assert(from != 0);
 	assert(to != 0);
 	assert(from != to);
+	assert(to->source() == nullptr || to->source()->outIndexOf(to) != -1);
 	bool foundsomething = false;
-	for(uint i = 0; i < _inArity; ++i){
+	for(uint i = 0; i < inArity(); ++i){
 		if(_incomming[i] == from) {
 			_incomming[i] = to;
 			foundsomething = true;
@@ -80,8 +78,8 @@ void Node::print(std::wostream& out) const
 	} else {
 		if(type() == NodeType::Call && inArity() > 0 && in(0)->has<IdentifierProperty>())
 			out << L"<" << in(0)->get<IdentifierProperty>().value() << L">";
-		else if(type() == NodeType::Closure && outArity() > 0 && _outgoing[0].has<IdentifierProperty>())
-			out << L"<" << _outgoing[0].get<IdentifierProperty>().value() << L">";
+		else if(type() == NodeType::Closure && outArity() > 0 && _outgoing[0]->has<IdentifierProperty>())
+			out << L"<" << _outgoing[0]->get<IdentifierProperty>().value() << L">";
 		else 
 			out << L"<anonymous>";
 	}
@@ -138,7 +136,7 @@ std::vector<Edge*> Node::out()
 
 uint Node::inIndexOf(const Edge* edge) const
 {
-	for(uint i = 0; i < _inArity; ++i)
+	for(uint i = 0; i < inArity(); ++i)
 		if(_incomming[i] == edge)
 			return i;
 	return -1;
@@ -146,15 +144,8 @@ uint Node::inIndexOf(const Edge* edge) const
 
 uint Node::outIndexOf(const Edge* edge) const
 {
-	uint i = edge - _outgoing;
-	if(i >= _outArity)
-		i = -1;
-	assert(out(i) == edge);
-	return i;
-}
-
-void Node::check() const
-{
-	for(uint i = 0; i < _outArity; ++i)
-		assert(_outgoing[i]._source == this);
+	for(uint i = 0; i < outArity(); ++i)
+		if(_outgoing[i] == edge)
+			return i;
+	return -1;
 }

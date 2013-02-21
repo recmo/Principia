@@ -10,5 +10,5 @@ public:
 private:
 	ParseTree* _parseTree;
 	void recurse(ParseTree::Node* node);
-	   void bind(ParseTree::Identifier* identifier);
+	void bind(ParseTree::Identifier* identifier);
 };

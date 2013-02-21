@@ -28,24 +28,59 @@ void IdentifierBinder::bind(ParseTree::Identifier* identifier)
 		wcerr << "From: " << identifier->parent() << endl;
 	}
 	
-	/// @todo If the statement is immediately follows by a scope, then search this scope before the statements enclosing scope
-	
 	ParseTree::Identifier* bindingSite = nullptr;
 	
-	// Find the enclosing scope
-	ParseTree::Node* scope = identifier;
-	while(!scope->isA<ParseTree::Scope>()) {
-		scope = scope->parent();
-		assert(scope != nullptr);
+	// Find the enclosing line and scope
+	ParseTree::Node* line = identifier;
+	assert(line->parent());
+	while(!line->parent()->isA<ParseTree::Scope>()) {
+		line = line->parent();
+		assert(line->parent());
+	}
+	ParseTree::Node* scope = line->parent();
+	ParseTree::Node* sibScope = line->nextSibbling();
+	if(sibScope && !sibScope->isA<ParseTree::Scope>())
+		sibScope = nullptr;
+	
+	// Search a sibling scope first in bottom to top order
+	if(sibScope) {
+		// Find the rightmost leaf
+		ParseTree::Node* left = sibScope;
+		while(left->lastChild())
+			left = left->lastChild();
+		
+		// Search left/up
+		for(;;) {
+			// Go up until we have a prevSibbling
+			while(left != sibScope && !left->prevSibbling())
+				left = left->parent();
+			if(left == sibScope)
+				break;
+			
+			// Go left and find rightmost leaf
+			/// @todo Do not go into closures other than first argument
+			/// @todo Do not go into scopes
+			left = left->prevSibbling();
+			while(left->lastChild())
+				left = left->lastChild();
+			
+			// Check if we have the binding site
+			if(left->isA<ParseTree::Identifier>()) {
+				ParseTree::Identifier* id = left->to<ParseTree::Identifier>();
+				if(id->outbound() && id->name() == identifier->name()) {
+					bindingSite = id;
+					break;
+				}
+			}
+		}
 	}
 	
 	// Search, alternating between left/up, right/down and broadening the scope
 	ParseTree::Node* left = identifier;
 	ParseTree::Node* right = identifier;
+	while(!bindingSite) {
+	// Search left/up
 	for(;;) {
-		
-		// Search left/up
-		for(;;) {
 			// Go up until we have a prevSibbling
 			while(left != scope && !left->prevSibbling())
 				left = left->parent();
@@ -68,8 +103,6 @@ void IdentifierBinder::bind(ParseTree::Identifier* identifier)
 				}
 			}
 		}
-		if(bindingSite)
-			break;
 		
 		// Search right/down
 		for(;;) {
@@ -95,8 +128,6 @@ void IdentifierBinder::bind(ParseTree::Identifier* identifier)
 				}
 			}
 		}
-		if(bindingSite)
-			break;
 		
 		// Broaden the scope
 		if(!scope) {

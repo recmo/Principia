@@ -18,6 +18,7 @@
 #include "Passes/NativeProperty.h"
 #include "Passes/ClosureProperty.h"
 #include "Passes/EscapeAnalysis.h"
+#include "Verifier/Verifier.h"
 #include <fstream>
 #include <cmath>
 
@@ -220,14 +221,15 @@ sint32 Main(const vector<string>& args)
 	ib.bind();
 	wcerr << endl;
 	
+	tree->uniqueifyNames();
+	tree->print(wcerr);
+	
 	// Compile to a data flow graph
 	wcerr << L"Compiling data flow graph…" << flush;
 	DataFlowGraphCompiler dfgc(tree);
 	dfgc.compile();
 	DataFlowGraph* dfg = dfgc.dataFlowGraph();
 	wcerr << endl;
-	
-	tree->print(wcerr);
 	
 	// Print structure
 	if(false) {
@@ -290,6 +292,13 @@ sint32 Main(const vector<string>& args)
 	EscapeAnalysis ea(dfg);
 	ea.analyse();
 	wcerr << endl;
+	
+	// Verification
+	wcerr << L"Verifiying…" << flush;
+	Verifier v(dfg);
+	v.verify();
+	wcerr << endl;
+	
 	
 	/*
 	wcerr << endl << endl;

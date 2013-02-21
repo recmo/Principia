@@ -3,26 +3,12 @@
 #include "Node.h"
 #include <Parser/ConstantProperty.h>
 
-#define debug true
-
-bool CongruenceComparator::compare(const Edge* left, const Edge* right)
-{
-	return CongruenceComparator().compareEdges(left, right);
-}
-
-bool CongruenceComparator::compare(const Node* left, const Node* right)
-{
-	return CongruenceComparator().compareNodes(left, right);
-}
-
-bool CongruenceComparator::compare(const Value& left, const Value& right)
-{
-	return CongruenceComparator().compareValues(left, right);
-}
-
+#define debug false
 
 CongruenceComparator::CongruenceComparator()
-: recursionPairs()
+: _connectLeft()
+, _connectRight()
+, _recursionPairs()
 {
 }
 
@@ -40,6 +26,14 @@ bool CongruenceComparator::compareEdges(const Edge* left, const Edge* right)
 	if(left == right)
 		return true;
 	
+	// Apply any edge mapping
+	auto leftMap = _connectLeft.find(left);
+	if(leftMap != _connectLeft.end())
+		left = leftMap->second;
+	auto rightMap = _connectRight.find(right);
+	if(rightMap != _connectRight.end())
+		right = rightMap->second;
+	
 	// Sourceless edges (for example constants)
 	if(!left->source() || !right->source()) {
 		if(left->source() != right->source())
@@ -47,7 +41,7 @@ bool CongruenceComparator::compareEdges(const Edge* left, const Edge* right)
 		if(left->has<ConstantProperty>() && right->has<ConstantProperty>())
 			return compareValues(left->get<ConstantProperty>().value(), right->get<ConstantProperty>().value());
 		if(debug)
-			wcerr << L"Uncomparable edges detected, assuming different." << endl;
+			wcerr << L"Incomparable edges detected, assuming different." << endl;
 		return false;
 	}
 	
@@ -56,7 +50,7 @@ bool CongruenceComparator::compareEdges(const Edge* left, const Edge* right)
 		return false;
 	
 	// Recursion pairs
-	for(const std::pair<const Edge*, const Edge*> pair: recursionPairs)
+	for(const std::pair<const Edge*, const Edge*> pair: _recursionPairs)
 		if(left == pair.first && right == pair.second)
 			return true;
 	
@@ -91,8 +85,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		return true;
 	}
 	
-	// Closures are equal iff their incoming edges are equal assuming their first outgoing edges are equal
-	// The assumption amounts to stating that on recursion
+	// Closures are equal iff their incoming edges are equal assuming their outgoing edges are equal
 	if(left->type() == NodeType::Closure) {
 		
 		// Push the equality of the parameters on the stack
@@ -102,7 +95,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 			std::pair<const Edge*, const Edge*> recursionPair;
 			recursionPair.first = left->out(i);
 			recursionPair.second = right->out(i);
-			recursionPairs.push_back(recursionPair);
+			_recursionPairs.push_back(recursionPair);
 		}
 		
 		// Compare the output of the closure
@@ -118,7 +111,7 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		for(uint i = 0; i < left->outArity(); ++i) {
 			if(debug)
 				wcerr << "Poping " << left->out(i) << " ≡ " << right->out(i) << endl;
-			recursionPairs.pop_back();
+			_recursionPairs.pop_back();
 		}
 		return equal;
 	}
@@ -139,7 +132,7 @@ bool CongruenceComparator::compareValues(const Value& left, const Value& right)
 	case Value::String: return left.stringValue() == right.stringValue();
 	case Value::Builtin: return left.builtin() == right.builtin();
 	default:
-		wcerr << L"Uncomparable values detected, assuming different." << endl;
+		wcerr << L"Incomparable values detected, assuming different." << endl;
 		return false;
 	}
 }

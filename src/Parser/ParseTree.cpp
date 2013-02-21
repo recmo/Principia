@@ -15,6 +15,29 @@ void ParseTree::print(std::wostream& out) const
 	_top->print(out);
 }
 
+void ParseTree::uniqueifyNames()
+{
+	std::map<string, uint> idCounter;
+	std::function<void(Node*)> recurse = [&](Node* node) {
+		// Fix up identifiers
+		if(node->isA<Identifier>()) {
+			Identifier* id = node->to<Identifier>();
+			if(id->outbound()) {
+				string name = id->name();
+				uint count = idCounter[name]++;
+				if(count) {
+					wchar number = '0' + count; /// @todo
+					name.append(&number, 1);
+					id->name(name);
+				}
+			}
+		}
+		
+		for(Node* child: node->children())
+			recurse(child);
+	};
+	recurse(_top);
+}
 
 ParseTree::Node::Node()
 : _parent(nullptr)
@@ -173,7 +196,10 @@ void ParseTree::Constant::print(std::wostream& out, uint indentation) const
 
 void ParseTree::Identifier::print(std::wostream& out, uint indentation) const
 {
-	out << _name;
+	if(bindingSite())
+		out << bindingSite();
+	else
+		out << _name;
 }
 
 ParseTree::Statement& ParseTree::Statement::addOut(ParseTree::Identifier* value)

@@ -56,7 +56,7 @@ void Edge::replaceWith(Edge* edge)
 
 void Edge::print(std::wostream& out) const
 {
-	if(has<IdentifierProperty>())
+	if(has<IdentifierProperty>() && get<IdentifierProperty>().value() != L"·")
 		out << get<IdentifierProperty>().value();
 	else if(has<ConstantProperty>())
 		out << get<ConstantProperty>().value();

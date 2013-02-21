@@ -25,6 +25,8 @@ public:
 	void print(std::wostream& out) const;
 	bool validate() const;
 	
+	void uniqueifyNames();
+	
 private:
 	Scope* _top;
 };

@@ -6,10 +6,14 @@ Boolean φ ↦ 0
 c↦“Closures without body are abstract functions in extension.”
 
 C φ ψ ↦ χ
-	∵ (≔ Boolean φ)
-	∵ (≔ Boolean ψ)
-	⊨ (≔ Boolean χ)
-	∴ (≔ Boolean χ)
+	p1 ≔ Boolean φ
+	p2 ≔ Boolean ψ
+	a1 ≔ Boolean χ
+	p3 ≔ Boolean χ
+	∵ p1
+	∵ p2
+	⊨ a1
+	∴ p3
 
 c↦“Closures can be annotated by logical statements:
 	∵ ‘because’: Specifies a precondition. Calls to the closure must satisfy these.
@@ -45,7 +49,7 @@ ax3 φ ψ ↦ ψ
 	∴ ψ
 
 
-th1 φ ↦ ψ
+th1 φ ↦ e
 	∵ (≔ Boolean φ)
 	ψ ≔ C φ φ
 	a ≔ ax1 φ φ
@@ -59,7 +63,7 @@ th1 φ ↦ ψ
 		⊢ (≔ C a ψ)
 	e ≔ ax3 a ψ
 		⊢ ψ
-	∴ (≔ Boolean ψ)
-	∴ ψ
+	∴ (≔ Boolean e)
+	∴ e
 
 

@@ -26,7 +26,8 @@ libs :=
 # compiler := ${compiler} $(shell llvm-config --cxxflags)
 compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
-libs := ${libs} $(shell llvm-config --libs all core analysis jit native) $(shell llvm-config --ldflags)
+linker := ${linker} $(shell llvm-config --ldflags)  -L$(shell llvm-config --libdir)
+libs :=  ${libs} $(shell llvm-config --libs all core analysis jit native)
 
 debug_flags := -ggdb
 profiling_flags := -fprofile-generate --coverage
@@ -83,6 +84,12 @@ build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
 	@mv $(notdir $*)-configuration.hpp build/resources/$*-configuration.hpp
 	@mv $(notdir $*).cpp build/resources/$*.qx.cpp
 
+# Special rule for the two llvm passes that need to be compiled without rtti
+build/debug/src/Passes/Llvm%Combine.o: src/Passes/Llvm%Combine.cpp
+	@echo "C++   " $*.cpp
+	@mkdir -p $(dir $@)
+	@$(compiler) $(debug_flags) -fno-rtti -c $< -o $@
+
 build/debug/%.o: %.cpp
 	@echo "C++   " $*.cpp
 	@mkdir -p $(dir $@)
@@ -104,7 +111,7 @@ build/profiled/%.o: %.cpp build/profiling/%.gcda
 
 build/debug/$(program): $(debug_objects)
 	@echo "Link  " $@
-	@$(linker) $(debug_flags) $^ $(libs) -o $@
+	$(linker) $(debug_flags) $^ $(libs) -o $@
 
 build/profiling/$(program): $(profiling_objects)
 	@echo "Link  " $@

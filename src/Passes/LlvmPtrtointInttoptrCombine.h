@@ -2,6 +2,7 @@
 #include <llvm/Pass.h>
 #include <llvm/BasicBlock.h>
 
+/// Disable typeinfo on this class since LLVM does not provide it
 class LlvmPtrtointInttoptrCombine: public llvm::BasicBlockPass
 {
 public:

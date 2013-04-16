@@ -154,7 +154,7 @@ public:
 	NodeType type() const { return _type; }
 	Statement& type(NodeType value) { _type = value; return *this; }
 	
-	const std::vector<Identifier*>& out() const;
+	std::vector<Identifier*> out() const;
 	std::vector<Node*> in() const;
 	
 	Statement& addOut(Identifier* value);

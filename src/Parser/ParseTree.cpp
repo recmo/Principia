@@ -213,6 +213,15 @@ ParseTree::Statement& ParseTree::Statement::addIn(ParseTree::Node* value)
 	appendChild(value);
 }
 
+std::vector<ParseTree::Identifier*> ParseTree::Statement::out() const
+{
+	std::vector<ParseTree::Identifier*> result;
+	for(Node* child: children())
+		if(child->isA<ParseTree::Identifier>() && child->to<ParseTree::Identifier>()->outbound())
+			result.push_back(child->to<ParseTree::Identifier>());
+	return result;
+}
+
 std::vector<ParseTree::Node*> ParseTree::Statement::in() const
 {
 	std::vector<ParseTree::Node*> result;

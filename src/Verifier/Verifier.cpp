@@ -19,7 +19,7 @@ void Verifier::verify()
 /// @todo Verify totality of closures
 void Verifier::verify(const Node* closure)
 {
-	_assumptions.clear();
+	_propositions.clear();
 	assert(closure->type() == NodeType::Closure);
 	if(!closure->has<PropositionProperty>()) {
 		wcerr << "No logic for" << closure << endl;
@@ -96,14 +96,14 @@ void Verifier::assume(const Edge* statement, const Connections& connections)
 {
 	if(debug)
 		wcerr << L"∴ " << statement << " " << connections << endl;
-	_assumptions.push_back(std::pair<const Edge*, Connections>(statement, connections));
+	_propositions.push_back(std::pair<const Edge*, Connections>(statement, connections));
 }
 
 void Verifier::verify(const Edge* statement, const Connections& connections)
 {
 	if(debug)
 		wcerr << L"∵ " << statement << " " << connections << endl;
-	for(auto assumption: _assumptions) {
+	for(auto assumption: _propositions) {
 		if(debug)
 			wcerr << "? " << assumption.first << endl;
 		CongruenceComparator cc;

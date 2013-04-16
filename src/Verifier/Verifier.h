@@ -12,7 +12,7 @@ public:
 private:
 	typedef std::map<const Edge*, const Edge*> Connections;
 	const DataFlowGraph *_dfg;
-	std::vector<std::pair<const Edge*, Connections> > _assumptions;
+	std::vector<std::pair<const Edge*, Connections> > _propositions;
 	
 	void verify(const Node* closure);
 	void assume(const Edge* statement,  const Connections& connections = Connections());

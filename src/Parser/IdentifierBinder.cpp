@@ -76,7 +76,7 @@ ParseTree::Identifier* IdentifierBinder::bindingSite(ParseTree::Identifier* iden
 	// Search the line itself
 	/// @todo Also check inline statements
 	{
-		ParseTree::Identifier* site = directBind(line, identifier->name());
+		ParseTree::Identifier* site = directBind(line, identifier->name(), true);
 		if(site)
 			return site;
 	}
@@ -84,8 +84,10 @@ ParseTree::Identifier* IdentifierBinder::bindingSite(ParseTree::Identifier* iden
 	// Search the scope
 	while(scope) {
 		// Search up in scope
+		// Sibling scopes get to see all the associated closures nodes
 		for(ParseTree::Node* node = line->prevSibbling(); node; node = node->prevSibbling()) {
-			ParseTree::Identifier* site = directBind(node, identifier->name());
+			bool fullClosure = (line->isA<ParseTree::Scope>()) && (node == line->prevSibbling());
+			ParseTree::Identifier* site = directBind(node, identifier->name(), fullClosure);
 			if(site)
 				return site;
 		}
@@ -105,16 +107,23 @@ ParseTree::Identifier* IdentifierBinder::bindingSite(ParseTree::Identifier* iden
 	return nullptr;
 }
 
-ParseTree::Identifier* IdentifierBinder::directBind(ParseTree::Node* node, const string& name) const
+ParseTree::Identifier* IdentifierBinder::directBind(ParseTree::Node* node, const string& name, bool fullClosure) const
 {
 	if(!node->isA<ParseTree::Statement>())
 		return nullptr;
 	
-	// Iterate over the outputs
 	ParseTree::Statement* statement = node->to<ParseTree::Statement>();
-	for(ParseTree::Identifier* identifier: statement->out())
+	if(statement->type() == NodeType::Call || fullClosure) {
+		// Iterate over all the outputs
+		for(ParseTree::Identifier* identifier: statement->out())
+			if(identifier->name() == name)
+				return identifier;
+	} else {
+		// Iterate only over the closure output
+		ParseTree::Identifier* identifier = statement->out()[0];
 		if(identifier->name() == name)
 			return identifier;
+	}
 	return nullptr;
 }
 

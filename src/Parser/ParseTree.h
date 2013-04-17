@@ -39,6 +39,9 @@ public:
 	virtual void print(std::wostream& out, uint indentation = 0) const = 0;
 	virtual bool validate() const;
 	
+	SourceProperty source() const { return _source; }
+	void source(const SourceProperty& source) { _source = source; }
+	
 	Node* parent() const { return _parent; }
 	uint indexInParent() const { return _indexInParent; }
 	Node* prevSibbling() const;
@@ -68,6 +71,7 @@ protected:
 	Node* _parent;
 	uint _indexInParent;
 	std::vector<Node*> _children;
+	SourceProperty _source;
 };
 
 class ParseTree::Scope: public Node
@@ -83,7 +87,7 @@ public:
 class ParseTree::Identifier: public Node
 {
 public:
-	Identifier(): _name(), _outbound(false), _source(), _bindingSite(nullptr) { }
+	Identifier(): _name(), _outbound(false), _bindingSite(nullptr) { }
 	virtual ~Identifier() { }
 	
 	const std::wstring& name() const { return _name; }
@@ -94,9 +98,6 @@ public:
 	Identifier& setOutbound() { _outbound = true; return *this; }
 	Identifier& setInbound() { _outbound = true; return *this; }
 	
-	const SourceProperty& soureProperty() const { return _source; };
-	Identifier& soureProperty(const SourceProperty& value) { _source = value; return *this; }
-	
 	Identifier* bindingSite() const { return _bindingSite; }
 	Identifier& bindingSite(Identifier* value) { _bindingSite = value; return *this; }
 	
@@ -105,7 +106,6 @@ public:
 private:
 	std::wstring _name;
 	bool _outbound;
-	SourceProperty _source;
 	Identifier* _bindingSite;
 };
 

@@ -5,7 +5,7 @@
 #include <Parser/ConstantProperty.h>
 #include <Passes/Closure.h>
 
-#define debug true
+#define debug false
 
 void ConstantClosure::anotateClosures()
 {

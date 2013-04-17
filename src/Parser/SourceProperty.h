@@ -16,8 +16,11 @@ public:
 	virtual SourceProperty* clone() const { return new SourceProperty(*this); }
 	
 	virtual void print(std::wostream& out) const;
+	void printLocation(std::wostream& out) const;
+	void printContent(std::wostream& out) const;
 	void printCaret(std::wostream& out) const;
 	
+	bool isEmpty() const { return _filename.empty(); }
 	int fromLine() const { return _fromLine; }
 	int toLine() const { return _toLine; }
 	int fromColumn() const { return _fromColumn; }

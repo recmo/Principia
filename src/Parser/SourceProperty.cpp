@@ -29,12 +29,38 @@ SourceProperty::~SourceProperty()
 
 void SourceProperty::print(std::wostream& out) const
 {
+	printLocation(out);
+	// printContent(out);
+}
+
+void SourceProperty::printLocation(std::wostream& out) const
+{
 	out << _filename << L":" << _fromLine << L":" << _fromColumn;
+}
+
+void SourceProperty::printContent(std::wostream& out) const
+{
+	std::wifstream sourceFile(encodeLocal(_filename));
+	
+	// Skip the first lines
+	string line;
+	for(int l = 1; l < _fromLine; ++l)
+		std::getline(sourceFile, line);
+	
+	out << L"“";
+	for(int l = _fromLine; l <= _toLine; ++l) {
+		std::getline(sourceFile, line);
+		int fromColumn = (l == _fromLine) ? _fromColumn : 1;
+		int toColumn = (l == _toLine) ? _toColumn : line.size();
+		for(int c = fromColumn - 1; c <= toColumn; ++c)
+			out << line[c];
+	}
+	out << L"”";
 }
 
 void SourceProperty::printCaret(std::wostream& out) const
 {
-	print(out);
+	printLocation(out);
 	out << endl;
 	std::wifstream sourceFile(encodeLocal(_filename));
 	
@@ -43,8 +69,7 @@ void SourceProperty::printCaret(std::wostream& out) const
 	for(int l = 1; l < _fromLine; ++l)
 		std::getline(sourceFile, line);
 	
-	for(int l = _fromLine; l <= _toLine; ++l)
-	{
+	for(int l = _fromLine; l <= _toLine; ++l) {
 		std::getline(sourceFile, line);
 		//for(int c = 0; c < line.size(); ++c)
 		//	out << L'‘' << line[c] << L'’' <<  (line[c] == L'\t')<< endl;
@@ -57,8 +82,5 @@ void SourceProperty::printCaret(std::wostream& out) const
 			out << L'‾';
 		out << endl;
 	}
-	
-	// this is an illegal ​( statement )
-	//                    ‾‾‾‾‾‾‾‾‾‾‾‾‾
 }
 

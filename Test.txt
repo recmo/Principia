@@ -1,6 +1,39 @@
 
 c↦“Closures without outputs are predicates”
 
+c↦“
+
+A set can be represented by a function from the universe of discourse to a boolean value (i.e. a predicate)
+
+How does well-definedness (non-recursiveness) of the set correspond with totality of the associated predicate?
+
+Is demanding totality of the predicate sufficient to prevent the pathological cases of naive set theory?
+
+If so, this would mean the predicate associated with paradoxical sets is non-total.
+
+Russel's paradox: 
+	let R = { x | x ∉ x }
+	then R ∈ R ⇔ R ∉ R
+
+P(x) = x ∉ x
+
+”
+
+
+c↦“
+Recursion is total iff there exist a wellfounded relation < on all the input parameters and the recursive call has this relation compared with the containing function:
+
+	f φ ↦ …
+		… ≔ f ψ
+
+then Total f ⇔ ψ < φ.
+
+Note: Recursive behaviour can be hidden in complex structures of higher-order functions and co-recursion. How does the above statement translate to such an environment?
+
+From this should follow any induction method, μ-recursion and Walther-recursion.
+
+”
+
 Boolean φ ↦ 0
 
 c↦“Closures without body are abstract functions in extension.”
@@ -10,6 +43,7 @@ C φ ψ ↦ χ
 	p2 ≔ Boolean ψ
 	a1 ≔ Boolean χ
 	p3 ≔ Boolean χ
+	χ ↦
 	∵ p1
 	∵ p2
 	⊨ a1
@@ -25,7 +59,7 @@ c↦“Closures can be annotated by logical statements:
 ax1 φ ψ ↦ χ
 	∵ (≔ Boolean φ)
 	∵ (≔ Boolean ψ)
-	χ ≔ C φ (≔ C ψ φ)
+	χ  ≔ C φ (≔ C ψ φ)
 	⊨ χ
 	∴ (≔ Boolean χ)
 	∴ χ
@@ -49,7 +83,7 @@ ax3 φ ψ ↦ ψ
 	∴ ψ
 
 
-th1 φ ↦ e
+th1 φ ↦ ψ
 	∵ (≔ Boolean φ)
 	ψ ≔ C φ φ
 	a ≔ ax1 φ φ

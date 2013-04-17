@@ -62,9 +62,7 @@ void Edge::print(std::wostream& out) const
 		out << get<ConstantProperty>().value();
 	else if(has<SourceProperty>()) {
 		SourceProperty sp = get<SourceProperty>();
-		out << L"<" << sp.fromLine();
-		out << L":" << sp.fromColumn();
-		out << L">";
+		sp.print(out);
 	} else {
 		out << L"<" << uint64(this) << ">";
 	}

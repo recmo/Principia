@@ -72,9 +72,7 @@ void Node::print(std::wostream& out) const
 		out << get<IdentifierProperty>().value();
 	else if(has<SourceProperty>()) {
 		SourceProperty sp = get<SourceProperty>();
-		out << L"<" << sp.fromLine();
-		out << L":" << sp.fromColumn();
-		out << L">";
+		sp.print(out);
 	} else {
 		if(type() == NodeType::Call && inArity() > 0 && in(0)->has<IdentifierProperty>())
 			out << L"<" << in(0)->get<IdentifierProperty>().value() << L">";

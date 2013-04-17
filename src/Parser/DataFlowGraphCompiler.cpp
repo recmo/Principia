@@ -57,17 +57,22 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 		}
 		if(statement->isInline() && !customOutDot) {
 			ParseTree::Identifier* implicitOut = new ParseTree::Identifier();
+			if(!statement->source().isEmpty())
+				implicitOut->source(statement->source());
 			implicitOut->name(L"·");
 			outs.insert(outs.begin(), implicitOut);
 		}
 		
 		// Create the node
 		Node* node = new Node(statement->type(), ins.size(), outs.size());
+		if(!statement->source().isEmpty())
+			node->set(statement->source());
 		Edge* inlineValue = nullptr;
 		uint i = 0;
 		for(ParseTree::Identifier* out: outs) {
 			node->out(i)->set(IdentifierProperty(out->name()));
-			node->out(i)->set(SourceProperty(out->soureProperty()));
+			if(!out->source().isEmpty());
+				node->out(i)->set(out->source());
 			_identifiers[out] = node->out(i);
 			if(statement->isInline() && out->name() == L"·")
 				inlineValue = node->out(i);
@@ -165,6 +170,8 @@ Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
 	} else if(expression->isA<ParseTree::Constant>()) {
 		ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
 		Edge* edge = new Edge(nullptr);
+		if(!constant->source().isEmpty())
+			edge->set(constant->source());
 		edge->set(ConstantProperty(constant->value()));
 		return edge;
 	}

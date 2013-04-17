@@ -1,5 +1,5 @@
 Euclid a b ↦ gcd x y
 	d r ≔ div a b
-	gcd x y ≔ (≔ if r (↦ (x y ≔ Euclid b r) y (≔ sub x (≔ mul y d))) (↦ b 0 1))
+	gcd x y ≔ (≔ if r (↦ (xr yr ≔ Euclid b r) yr (≔ sub xr (≔ mul yr d))) (↦ b 0 1))
 
 gcd a b ↦ (⏚ ⏚ ≔ Euclid a b)

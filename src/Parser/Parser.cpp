@@ -103,6 +103,7 @@ ParseTree::Scope* Parser::parseScope()
 	
 	// Parse the scope
 	ParseTree::Scope* scope = new ParseTree::Scope;
+	scope->source(source(false));
 	for(;;readNext()) switch(token()) {
 	case TokenStatementSeparator: continue;
 	case TokenBlockBegin: scope->appendChild(parseScope()); continue;
@@ -132,6 +133,7 @@ ParseTree::Proposition* Parser::parseProposition()
 	case TokenTherefore: prop = new ParseTree::Proposition(ParseTree::Proposition::Postcondition); break;
 	default: parseFailure(L"proposition"); return nullptr;
 	}
+	prop->source(source(false));
 	readNext();
 	switch(token()) {
 	case TokenIdentifier: prop->appendChild(parseIdentifier()); break;
@@ -148,6 +150,7 @@ ParseTree::Proposition* Parser::parseProposition()
 ParseTree::Statement* Parser::parseStatement()
 {
 	ParseTree::Statement* statement = new ParseTree::Statement;
+	statement->source(source(false));
 	
 	// Parse the out identifiers
 	while(token() == TokenIdentifier) {
@@ -179,6 +182,7 @@ ParseTree::Statement* Parser::parseStatement()
 ParseTree::Statement* Parser::parseInlineStatement()
 {
 	ParseTree::Statement* statement = new ParseTree::Statement;
+	statement->source(source(false));
 	
 	// Eat the bracker open
 	assert(token() == TokenBracketOpen);
@@ -195,7 +199,7 @@ ParseTree::Statement* Parser::parseInlineStatement()
 	switch(token()) {
 	case TokenCall: statement->type(NodeType::Call); break;
 	case TokenClosure: statement->type(NodeType::Closure); break;
-	default: parseFailure(L"inline statement type"); delete statement; return 0;
+	default: parseFailure(L"inline statement type"); delete statement; return nullptr;
 	}
 	readNext();
 	
@@ -206,15 +210,15 @@ ParseTree::Statement* Parser::parseInlineStatement()
 	case TokenNumber: statement->addIn(parseNumber()); continue;
 	case TokenQuotation: statement->addIn(parseQuotation()); continue;
 	case TokenBracketClose: return statement;
-	default: parseFailure(L"inline statement inputs"); delete statement; return 0;
+	default: parseFailure(L"inline statement inputs"); delete statement; return nullptr;
 	}
 }
 
 ParseTree::Identifier* Parser::parseIdentifier()
 {
 	ParseTree::Identifier* id = new ParseTree::Identifier;
+	id->source(source(true));
 	id->name(lexeme());
-	id->soureProperty(source(true));
 	return id;
 }
 
@@ -241,11 +245,13 @@ ParseTree::Constant* Parser::parseNumber()
 		base = 0;
 		for(;;) {
 			size_t digit = baseDigits.find_first_of(litteral[basePos]);
-			if(digit == string::npos) break;
+			if(digit == string::npos)
+				break;
 			base *= 10;
 			base += digit;
 			basePos++;
-			if(basePos == litteral.size()) break;
+			if(basePos == litteral.size())
+				break;
 		}
 		if(basePos < litteral.size()) {
 			// Read the exponent sign if its there
@@ -260,7 +266,8 @@ ParseTree::Constant* Parser::parseNumber()
 			exponent = 0;
 			for(; basePos < litteral.size(); ++basePos) {
 				size_t digit = exponentDigits.find_first_of(litteral[basePos]);
-				if(digit == string::npos) throw "Syntax error in number";
+				if(digit == string::npos)
+					throw "Syntax error in number";
 				exponent *= 10;
 				exponent += digit;
 			}
@@ -290,7 +297,8 @@ ParseTree::Constant* Parser::parseNumber()
 			continue;
 		}
 		size_t digit = digits.find_first_of(litteral[i]);
-		if(digit >= base) throw "Syntax error in number";
+		if(digit >= base)
+			throw "Syntax error in number";
 		mantissa *= base;
 		mantissa += digit;
 	}
@@ -298,9 +306,10 @@ ParseTree::Constant* Parser::parseNumber()
 		exponent += separators;
 	
 	// Set a real or integer constant based on the radix point
+	ParseTree::Constant* constant = nullptr;
 	if(seenPoint) {
 		double value = mantissa * pow(base, exponent);
-		return new ParseTree::Constant(value);
+		constant = new ParseTree::Constant(value);
 	} else {
 		sint64 value = mantissa;
 		uint64 squares = base;
@@ -311,8 +320,10 @@ ParseTree::Constant* Parser::parseNumber()
 			squares *= squares;
 			exponent >>= 1;
 		}
-		return new ParseTree::Constant(value);
+		constant = new ParseTree::Constant(value);
 	}
+	constant->source(source(true));
+	return constant;
 }
 
 ParseTree::Constant* Parser::parseQuotation()
@@ -338,6 +349,8 @@ ParseTree::Constant* Parser::parseQuotation()
 	fromLine -= num_lines;
 	SourceProperty location(_filename, fromLine, fromColumn, toLine, toColumn);
 	
-	return new ParseTree::Constant(contents);
+	ParseTree::Constant* constant = new ParseTree::Constant(contents);
+	constant->source(source(true));
+	return constant;
 }
 

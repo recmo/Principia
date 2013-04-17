@@ -22,6 +22,8 @@
 #include <fstream>
 #include <cmath>
 
+#include "Interactive.h"
+
 /// TODO: Use alloca when we can
 
 /// TODO: Background thread to analyse the performance oprofile style
@@ -192,11 +194,11 @@ etc…
 
 sint32 Main(const vector<string>& args)
 {
-	//MetaMathParser mmp(args[1]);
-	//mmp.parse();
+	wcerr << L"Welcome to the Principia language" << endl;
+	//Interactive session;
+	//session.loop();
 	//return 0;
 	
-	wcerr << L"Simple C++ interpreter for the Principia language" << endl;
 	wcerr << endl;
 	if(args.size() < 3) {
 		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
@@ -212,17 +214,14 @@ sint32 Main(const vector<string>& args)
 	// Fetch the parse tree
 	ParseTree* tree = parser.tree();
 	
-	wcerr << endl << L"Parse tree:" << endl;
-	tree->print(wcerr);
-	
 	// Bind the identifiers
 	wcerr << L"Binding identifiers…" << flush;
 	IdentifierBinder ib(tree);
 	ib.bind();
 	wcerr << endl;
 	
-	tree->uniqueifyNames();
-	tree->print(wcerr);
+	//tree->uniqueifyNames();
+	//tree->print(wcerr);
 	
 	// Compile to a data flow graph
 	wcerr << L"Compiling data flow graph…" << flush;
@@ -299,6 +298,7 @@ sint32 Main(const vector<string>& args)
 	v.verify();
 	wcerr << endl;
 	
+	return 0;
 	
 	/*
 	wcerr << endl << endl;

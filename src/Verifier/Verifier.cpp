@@ -3,6 +3,7 @@
 #include <Passes/StackMachineProperty.h>
 #include <DFG/CongruenceComparator.h>
 #include <Parser/ConstantProperty.h>
+#include <Parser/SourceProperty.h>
 
 #define debug true
 
@@ -115,5 +116,10 @@ void Verifier::verify(const Edge* statement, const Connections& connections)
 			return;
 		}
 	}
-	wcerr << endl << "ERROR: Could not verify statement: " << statement << endl << endl;
+	wcerr << endl << "ERROR: Could not verify statement:" << endl;
+	if(statement->has<SourceProperty>())
+		statement->get<SourceProperty>().printCaret(wcerr);
+	else
+		wcerr << statement << endl;
+	wcerr << endl;
 }

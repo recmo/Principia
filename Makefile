@@ -7,7 +7,7 @@ parsers := $(shell find -wholename './src/*.qx')
 # Tools
 finddeps := g++ -Isrc -MM -MP
 
-compiler := g++ -pipe
+compiler := clang++
 compiler := ${compiler} -std=c++11 -Wall -Wextra
 compiler := ${compiler} -I. -Isrc -Ibuild/resources
 # compiler := ${compiler} -fgraphite -flto

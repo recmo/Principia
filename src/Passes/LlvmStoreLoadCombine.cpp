@@ -1,6 +1,6 @@
 #include <Passes/LlvmStoreLoadCombine.h>
-#include <llvm/BasicBlock.h>
-#include <llvm/Instructions.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Instructions.h>
 using namespace llvm;
 
 char LlvmStoreLoadCombine::ID = 0;

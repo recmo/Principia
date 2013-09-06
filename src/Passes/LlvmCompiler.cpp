@@ -10,8 +10,8 @@
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 #include <stdint.h>
-#include <llvm/DerivedTypes.h>
-#include <llvm/Attributes.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Attributes.h>
 #include <llvm/Analysis/MemoryBuiltins.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/Analysis/Passes.h>
@@ -21,7 +21,6 @@
 #include <llvm/PassManagers.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
-#include <llvm/Attributes.h>
 
 // Passes
 #include <llvm/Analysis/Passes.h>
@@ -206,7 +205,7 @@ void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 	llvm::Function* function = llvm::Function::Create(functionType, llvm::Function::PrivateLinkage, name, _module);
 	
 	// All functions are pure
-	function->addFnAttr(llvm::Attributes::ReadOnly);
+	function->addFnAttr(llvm::Attribute::ReadOnly);
 	
 	// Use the fastest calling convention, required for tail calling
 	function->setCallingConv(llvm::CallingConv::Fast);

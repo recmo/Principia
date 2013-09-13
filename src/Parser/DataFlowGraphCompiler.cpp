@@ -71,7 +71,7 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 		uint i = 0;
 		for(ParseTree::Identifier* out: outs) {
 			node->out(i)->set(IdentifierProperty(out->name()));
-			if(!out->source().isEmpty());
+			if(!out->source().isEmpty())
 				node->out(i)->set(out->source());
 			_identifiers[out] = node->out(i);
 			if(statement->isInline() && out->name() == L"·")

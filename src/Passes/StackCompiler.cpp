@@ -31,7 +31,7 @@ void StackCompiler::sortClosure()
 	// Initialize the stack with the closure and the arguments
 	foreach(const Edge* edge, _closure->get<ClosureProperty>().edges())
 		_stack.push_back(edge);
-	for(int i = 1; i < _closure->outArity(); ++i)
+	for(uint i = 1; i < _closure->outArity(); ++i)
 		_stack.push_back(_closure->out(i));
 	
 	// Start from the returns

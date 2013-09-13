@@ -1,4 +1,4 @@
-#pragma oncepos
+#pragma once
 #include "fixups.h"
 #include "DFG/PropertyType.h"
 #include "DFG/Property.h"

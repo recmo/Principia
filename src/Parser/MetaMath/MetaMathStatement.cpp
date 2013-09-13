@@ -85,14 +85,14 @@ void MetaMathStatement::verify() const
 			map<string, vector<string>> substitution;
 			
 			// generate the mapping
-			for(int i = 0; i < frame.size(); ++i) {
+			for(uint i = 0; i < frame.size(); ++i) {
 				const MetaMathStatement* frameStatement = frame[i];
 				vector<string> stackStatement = stack[stack.size() - frame.size() + i];
 				if(frameStatement->kind() == MetaMathScope::FloatingHypothesis) {
 					// wcout << "Match " << frameStatement << " to " << stackStatement << endl;
 					assert(frameStatement->symbols()[0] == stackStatement[0]);
 					vector<string> substitute;
-					for(int i = 1; i < stackStatement.size(); ++i)
+					for(uint i = 1; i < stackStatement.size(); ++i)
 						substitute.push_back(stackStatement[i]);
 					substitution[frameStatement->symbols()[1]] = substitute;
 				} else if (frameStatement->kind() == MetaMathScope::EssentialHypothesis) {
@@ -113,7 +113,7 @@ void MetaMathStatement::verify() const
 			/// @todo Check distinct variables
 			
 			// Pop the hypothesis off the stack
-			for(int i = 0; i < frame.size(); ++i)
+			for(uint i = 0; i < frame.size(); ++i)
 				stack.pop_back();
 			
 			// Push the theorem on the stack
@@ -146,6 +146,7 @@ std::wostream& operator<<(std::wostream& out, const MetaMathStatement* statement
 		case MetaMathScope::EssentialHypothesis: out << L" $e "; break;
 		case MetaMathScope::Axiom: out << L" $a "; break;
 		case MetaMathScope::Derived: out << L" $p "; break;
+		default: break;
 	}
 	for(const string& symbol: statement->symbols()) {
 		out << symbol << L" ";

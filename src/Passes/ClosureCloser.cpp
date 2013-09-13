@@ -26,7 +26,7 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	// Calculate internal nodes
 	vector<Node*> internalNodes;
 	internalNodes.push_back(closureNode);
-	for(int i = 1; i < closureNode->outArity(); ++i) {
+	for(uint i = 1; i < closureNode->outArity(); ++i) {
 		foreach(Node* sink, closureNode->out(i)->sinks())
 			recurseOut(sink, &internalNodes);
 	}
@@ -149,7 +149,7 @@ void ClosureCloser::recurseOut(Edge* edge, vector<Edge*>* edges)
 
 void ClosureCloser::recurseOut(Node* node, vector<Edge*>* edges)
 {
-	for(int i = 0; i < node->outArity(); ++i)
+	for(uint i = 0; i < node->outArity(); ++i)
 		recurseOut(node->out(i), edges);
 }
 
@@ -158,7 +158,7 @@ void ClosureCloser::recurseOut(Node* node, vector<Node*>* nodes)
 	if(contains(*nodes, node))
 		return;
 	nodes->push_back(node);
-	for(int i = 0; i < node->outArity(); ++i) {
+	for(uint i = 0; i < node->outArity(); ++i) {
 		foreach(Node* sink, node->out(i)->sinks())
 			recurseOut(sink, nodes);
 	}
@@ -176,6 +176,6 @@ void ClosureCloser::recurseIn(Node* node, std::vector<Edge*>* edges)
 {
 	if(!node || !edges)
 		return;
-	for(int i = 0; i < node->inArity(); ++i)
+	for(uint i = 0; i < node->inArity(); ++i)
 		recurseIn(node->in(i), edges);
 }

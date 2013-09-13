@@ -7,8 +7,8 @@ parsers := $(shell find -wholename './src/*.qx')
 # Tools
 finddeps := g++ -Isrc -MM -MP
 
-compiler := clang++
-compiler := ${compiler} -std=c++11 -Wall -Wextra
+compiler := clang++ -fsanitize=address
+compiler := ${compiler} -std=c++11 -Wall -Wextra -Wno-unused-parameter -Werror=return-type -Werror=switch
 compiler := ${compiler} -I. -Isrc -Ibuild/resources
 # compiler := ${compiler} -fgraphite -flto
 compiler := ${compiler} -march=corei7 -O3
@@ -27,7 +27,7 @@ libs :=
 compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 linker := ${linker} $(shell llvm-config --ldflags)  -L$(shell llvm-config --libdir)
-libs :=  ${libs} $(shell llvm-config --libs all core analysis jit native)
+libs :=  ${libs} $(shell llvm-config --libs all core analysis mcjit native)
 
 debug_flags := -ggdb
 profiling_flags := -fprofile-generate --coverage
@@ -38,12 +38,16 @@ profiled_flags := -fprofile-use
 
 quex := quex
 quex := ${quex} --file-extension-scheme pp
-quex := ${quex} --codec utf8 --buffer-limit 0xFF --path-termination 0xFE
 quex := ${quex} --token-id-prefix Token
-# quex := ${quex} --no-mode-transition-check
-# quex := ${quex} --template-compression-uniform
+# quex := ${quex} --codec utf8 --buffer-element-size 1
+quex := ${quex} --iconv --buffer-element-size 4
+quex := ${quex} --buffer-limit 0xFF --path-termination 0xFE
+quex := ${quex} --comment-state-machine --comment-transitions --comment-mode-patterns
+quex := ${quex} --no-DOS
+quex := ${quex} --template-compression-uniform
 # quex := ${quex} --path-compression
-# quex := ${quex} --template-compression
+quex := ${quex} --template-compression
+quex := ${quex} --no-mode-transition-check
 compiler := ${compiler} -Iquex
 compiler := ${compiler} -DQUEX_OPTION_COMPUTED_GOTOS
 compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
@@ -76,7 +80,7 @@ build/resources/%.d: src/%.cpp
 build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
 	@echo "Queχ  " $*.qx
 	@mkdir -p $(dir $@)
-	@$(quex) -i $< --analyzer-class $(basename $(notdir $<))
+	$(quex) -i $< --analyzer-class $(basename $(notdir $<))
 	@cp $(notdir $*).hpp build/resources/$*.qx.h
 	@mv $(notdir $*).hpp build/resources/$*.hpp
 	@mv $(notdir $*)-token.hpp build/resources/$*-token.hpp

@@ -23,8 +23,8 @@
 #   define __QUEX_INCLUDE_INDICATOR__ANALYZER__CONFIGURATION
 #endif
 
-#define QUEX_SETTING_VERSION           "0.62.4"
-#define QUEX_SETTING_BUILD_DATE        "Fri Sep  6 15:54:23 2013"
+#define QUEX_SETTING_VERSION           "0.64.8"
+#define QUEX_SETTING_BUILD_DATE        "Fri Sep 13 15:54:49 2013"
 #define QUEX_SETTING_ANALYZER_VERSION  "0.0.0-pre-release"
 
 #ifndef    __QUEX_OPTION_PLAIN_C
@@ -120,6 +120,8 @@
 #define    QUEX_OPTION_COLUMN_NUMBER_COUNTING       
 #endif
 
+#define    QUEX_IF_IS_NEWLINE(X)    if( X == '\n' )
+
 #ifndef QUEX_OPTION_POST_CATEGORIZER
 /* #define QUEX_OPTION_POST_CATEGORIZER */
 #endif
@@ -129,7 +131,7 @@
  *    then code for mode transition control is inserted. It can be deactivated
  *    by commenting the following option out.                                  */
 #ifndef QUEX_OPTION_RUNTIME_MODE_TRANSITION_CHECK
-#define    QUEX_OPTION_RUNTIME_MODE_TRANSITION_CHECK
+/* #define QUEX_OPTION_RUNTIME_MODE_TRANSITION_CHECK */
 #endif
 
 #ifndef    QUEX_SETTING_MODE_STACK_SIZE 
@@ -221,7 +223,7 @@
  * options out.                                                         */
 #define    __QUEX_OPTION_ON_ENTRY_HANDLER_PRESENT
 #define    __QUEX_OPTION_ON_EXIT_HANDLER_PRESENT
-/* #define QUEX_OPTION_CONVERTER_ICONV */
+#define    QUEX_OPTION_CONVERTER_ICONV
 /* #define QUEX_OPTION_CONVERTER_ICU */
 #if defined(QUEX_OPTION_CONVERTER_ICONV) || defined(QUEX_OPTION_CONVERTER_ICU)
 #    ifndef     QUEX_SETTING_TRANSLATION_BUFFER_SIZE
@@ -246,7 +248,7 @@
 
 /* Following switch is also set, if a user defined converter is defined.     */
 #ifndef    __QUEX_OPTION_CONVERTER
-/* #define __QUEX_OPTION_CONVERTER */
+#define    __QUEX_OPTION_CONVERTER
 #endif
 #ifndef    __QUEX_OPTION_CONVERTER_HELPER
 #define    __QUEX_OPTION_CONVERTER_HELPER
@@ -269,18 +271,21 @@
  *       a 'pure C' version of the quex generated engine. Thus templating would make this 
  *       goal harder achievable.                                                            */
 #ifndef    QUEX_TYPE_CHARACTER
-#   define QUEX_TYPE_CHARACTER          uint8_t
-#   define QUEX_TYPE_CHARACTER_BACKUP   uint8_t
+#   define QUEX_TYPE_CHARACTER          uint32_t
+#   define QUEX_TYPE_CHARACTER_BACKUP   uint32_t
 #endif 
 #ifndef    QUEX_SETTING_CHARACTER_SIZE
     /* Size of a QUEX_TYPE_CHARACTER in bytes. A numeric value is required here!
      * '-1' stands for 'Cannot be determined at code generation time'. In this case,
      * it must be relied upon 'sizeof(QUEX_TYPE_CHARACTER)'.                                */
-#   define QUEX_SETTING_CHARACTER_SIZE  1
+#   define QUEX_SETTING_CHARACTER_SIZE  4
 #endif
 #ifndef    QUEX_SETTING_CHARACTER_CODEC   
-#   define QUEX_SETTING_CHARACTER_CODEC utf8
+#   define QUEX_SETTING_CHARACTER_CODEC unicode
 #endif
+/* The following flag indicates that the engine is running on a specific
+ * codec. Thus no converter is necessary. Use the flag to detect misuse.                    */
+/* #define __QUEX_OPTION_ENGINE_RUNNING_ON_CODEC */
 
 #ifndef    QUEX_TYPE_ACCEPTANCE_ID
 #   define QUEX_TYPE_ACCEPTANCE_ID   int

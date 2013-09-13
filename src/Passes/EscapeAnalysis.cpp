@@ -31,7 +31,7 @@ void EscapeAnalysis::analyse(Node* closure)
 			if(StackMachineProperty::CallInstruction* call = dynamic_cast<StackMachineProperty::CallInstruction*>(instruction)) {
 				/// Anywhere but the first argument (which is the function to be called)
 				/// TODO: Functions returning themselves.
-				for(int i = 1; i < call->arguments().size(); ++i) {
+				for(uint i = 1; i < call->arguments().size(); ++i) {
 					if(call->arguments()[i] == closureStackPos) {
 						if(debug)
 							wcerr << "May escape through " << call << endl;

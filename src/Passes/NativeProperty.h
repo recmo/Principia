@@ -22,8 +22,8 @@ public:
 	vector<Value> call(const vector<Value>& inputs) const;
 	
 private:
-	int _numClosure;
-	int _numInputs;
-	int _numOutputs;
+	uint _numClosure;
+	uint _numInputs;
+	uint _numOutputs;
 	Function _function;
 };

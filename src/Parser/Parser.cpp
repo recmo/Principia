@@ -4,10 +4,10 @@
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
 
-#define debug false
+#define debug true
 
 Parser::Parser()
-: _token(0)
+: _token(nullptr)
 , _unread(false)
 {
 }
@@ -15,7 +15,7 @@ Parser::Parser()
 Parser& Parser::parse(const string& filename)
 {
 	_filename = filename;
-	_parser = new quex::Parser(encodeLocal(_filename));
+	_parser = new quex::Parser(encodeLocal(_filename), "utf8");
 	readNext();
 	_tree = parseFile();
 	delete _parser;
@@ -28,11 +28,11 @@ void Parser::readNext()
 		_unread = false;
 		return;
 	}
+	
 	_parser->receive(&_token);
 	
 	if(debug) {
 		// Debug print token
-		wcerr << endl;
 		wcerr << "TOKEN: ";
 		wcerr << decodeLocal(_token->type_id_name());
 		wcerr << " at ";
@@ -57,7 +57,8 @@ uint32 Parser::token()
 
 string Parser::lexeme()
 {
-	return decodeUtf8(reinterpret_cast<const char*>(_token->get_text().c_str()));
+	return _token->pretty_wchar_text();
+	// return decodeUtf8(reinterpret_cast<const char*>(_token->get_text().c_str()));
 }
 
 SourceProperty Parser::source(bool hasLexeme)
@@ -66,7 +67,8 @@ SourceProperty Parser::source(bool hasLexeme)
 	int fromColumn = _token->column_number();
 	int toLine = fromLine;
 	int toColumn = fromColumn;
-	if(hasLexeme) toColumn += lexeme().size() - 1;
+	if(hasLexeme)
+		toColumn += lexeme().size() - 1;
 	return SourceProperty(_filename, fromLine, fromColumn, toLine, toColumn);
 }
 
@@ -219,6 +221,7 @@ ParseTree::Identifier* Parser::parseIdentifier()
 	ParseTree::Identifier* id = new ParseTree::Identifier;
 	id->source(source(true));
 	id->name(lexeme());
+	wcout << id->name() << endl;
 	return id;
 }
 

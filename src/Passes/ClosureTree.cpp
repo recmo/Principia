@@ -5,7 +5,7 @@ ClosureTree::ClosureTree(DataFlowGraph* program)
 : _program(program)
 , _parents(program->nodes().size())
 {
-	for(int i =0; i < _program->nodes().size(); ++i)
+	for(uint i =0; i < _program->nodes().size(); ++i)
 		_parents[i] = -1;
 }
 
@@ -15,7 +15,7 @@ ClosureTree::~ClosureTree()
 
 void ClosureTree::calculate()
 {
-	for(int i = 0; i < _program->nodes().size(); ++i) {
+	for(uint i = 0; i < _program->nodes().size(); ++i) {
 		if(_parents[i] != -1)
 			continue;
 		Node* node = _program->nodes()[i];
@@ -29,7 +29,7 @@ void ClosureTree::calculate()
 	}
 }
 
-void ClosureTree::recurse(Node* node)
+void ClosureTree::recurse(Node* /*node*/)
 {
 	//for(int o = 0; o < node->outArity();
 }

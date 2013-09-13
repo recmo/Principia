@@ -3,7 +3,7 @@ title ↦ “Scott encoding”
 c↦“
 C₁ x₁ x₂ ↦ (c₁ c₂ ↦ (≔ c₁ x₁ x₂))
 C₂ ↦ (c₁ c₂ ↦ (≔ c₂))
-...
+…
 ”
 
 section ↦ “Scott booleans”
@@ -14,6 +14,13 @@ False ↦ (t f ↦ (≔ f))
 true ≔ True
 false ≔ False
 
+if condition then else ↦ (≔ condition then else)
+
+section ↦ “Boolean based logic”
+
+
+
+
 section ↦ “Scott numerals”
 
 Z ↦ (z s ↦ (≔ z))
@@ -22,6 +29,13 @@ S x ↦ (z s ↦ (≔ s x))
 c0 ≔ Z
 c1 ≔ S c0
 c2 ≔ S c1
+
+succ x ↦ (≔ S x)
+is_zero x ↦ (≔ x (↦ true) (y ↦ false))
+
+
+section ↦ “Successor base arithmetic”
+
 
 sadd x y ↦ (≔ x (↦ y) (px ↦ (≔ sadd px (≔ S y))))
 ssub x y ↦ (≔ x Z (px ↦ (≔ y (↦ x) (py ↦ (≔ ssub px py)))))

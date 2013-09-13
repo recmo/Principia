@@ -39,7 +39,7 @@ void Node::connect(uint index, Edge* edge)
 {
 	assert(edge);
 	assert(index < inArity());
-	assert(edge->source() == nullptr || edge->source()->outIndexOf(edge) != -1);
+	assert(edge->source() == nullptr || edge->source()->outIndexOf(edge) != Node::noIndex);
 	if(_incomming[index])
 		_incomming[index]->delSink(this);
 	_incomming[index] = edge;
@@ -51,7 +51,7 @@ void Node::replaceEdge(const Edge* from, Edge* to)
 	assert(from != 0);
 	assert(to != 0);
 	assert(from != to);
-	assert(to->source() == nullptr || to->source()->outIndexOf(to) != -1);
+	assert(to->source() == nullptr || to->source()->outIndexOf(to) != Node::noIndex);
 	bool foundsomething = false;
 	for(uint i = 0; i < inArity(); ++i){
 		if(_incomming[i] == from) {
@@ -95,7 +95,7 @@ std::set<Node*> Node::outNodes(bool ignoreFunctional)
 	return outNodes;
 }
 
-std::set<Node*> Node::outClosures(bool ignoreFunctional)
+std::set<Node*> Node::outClosures(bool /*ignoreFunctional*/)
 {
 	throw "Unimplemted...";
 }
@@ -137,7 +137,7 @@ uint Node::inIndexOf(const Edge* edge) const
 	for(uint i = 0; i < inArity(); ++i)
 		if(_incomming[i] == edge)
 			return i;
-	return -1;
+	return noIndex;
 }
 
 uint Node::outIndexOf(const Edge* edge) const
@@ -145,5 +145,5 @@ uint Node::outIndexOf(const Edge* edge) const
 	for(uint i = 0; i < outArity(); ++i)
 		if(_outgoing[i] == edge)
 			return i;
-	return -1;
+	return noIndex;
 }

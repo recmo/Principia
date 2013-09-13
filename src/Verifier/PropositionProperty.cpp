@@ -29,10 +29,10 @@ PropositionProperty& PropositionProperty::operator=(const PropositionProperty& c
 	_axioms = copy._axioms;
 	_assertions = copy._assertions;
 	_postconditions = copy._postconditions;
+	return *this;
 }
 
 void PropositionProperty::print(std::wostream& out) const
 {
-	out << _preconditions, _axioms, _assertions, _postconditions;
+	out << _preconditions << _axioms << _assertions << _postconditions;
 }
-

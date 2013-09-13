@@ -298,8 +298,6 @@ sint32 Main(const vector<string>& args)
 	v.verify();
 	wcerr << endl;
 	
-	return 0;
-	
 	/*
 	wcerr << endl << endl;
 	for(const Node* node: dfg->nodes()) {

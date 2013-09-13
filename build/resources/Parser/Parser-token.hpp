@@ -16,12 +16,12 @@ QUEX_NAMESPACE_LEXEME_NULL_CLOSE
 
 
 
-#   line 2 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 2 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
 #       include <iostream>
 #       include <string>
 
-#include <quex/code_base/converter_helper/from-utf8>
+#include <quex/code_base/converter_helper/from-unicode-buffer>
    
 
 #   line 28 "Parser-token.hpp"
@@ -60,22 +60,22 @@ public:
     virtual ~Token();
 
 
-#   line 12 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 12 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     std::basic_string<QUEX_TYPE_CHARACTER> text;
-#   line 13 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 13 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     size_t                                 number;
 #   line 68 "Parser-token.hpp"
 
 
 public:
 
-#   line 12 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 12 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     std::basic_string<QUEX_TYPE_CHARACTER> get_text() const                                         { return text; }
-#   line 12 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 12 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     void                                   set_text(std::basic_string<QUEX_TYPE_CHARACTER>& Value)  { text = Value; }
-#   line 13 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 13 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     size_t                                 get_number() const                                       { return number; }
-#   line 13 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 13 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
     void                                   set_number(size_t Value)                                 { number = Value; }
 #   line 81 "Parser-token.hpp"
 
@@ -115,7 +115,7 @@ public:
     public:
 #   define self (*this)
 
-#   line 32 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 32 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
         typedef std::basic_string<QUEX_TYPE_CHARACTER> __string;
 
@@ -137,8 +137,9 @@ public:
     
         const std::string 
         pretty_char_text() const
+        /* Provides a somehow pretty-print of the text in the token. */
         {
-            std::string             tmp = QUEX_CONVERTER_STRING(utf8,char)(self.text);
+            std::string             tmp = QUEX_CONVERTER_STRING(unicode,char)(self.text);
             std::string::size_type  pos = 0;
 
             while( (pos = tmp.find("\n") ) != __string::npos ) tmp.replace(pos, (size_t)1, "\\n");
@@ -152,7 +153,7 @@ public:
         const std::wstring 
         pretty_wchar_text() const
         {
-            std::wstring             tmp = QUEX_CONVERTER_STRING(utf8,wchar)(self.text);
+            std::wstring             tmp = QUEX_CONVERTER_STRING(unicode,wchar)(self.text);
             std::wstring::size_type  pos = 0;
 
             while( (pos = tmp.find(L"\n") ) != __string::npos ) tmp.replace(pos, (size_t)1, L"\\n");
@@ -164,7 +165,7 @@ public:
 #       endif
    
 
-#   line 168 "Parser-token.hpp"
+#   line 169 "Parser-token.hpp"
 
 #   undef  self
 
@@ -180,20 +181,18 @@ public:
 
 
 
-#   line 121 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 123 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
         namespace quex {
-
-        inline std::wostream&
-        operator<<(std::wostream& ostr, const Token& Tok)
-        { ostr << std::wstring(Tok.pretty_wchar_text()); return ostr; }
+        inline std::ostream&
+        operator<<(std::ostream& ostr, const Token& Tok)
+        { ostr << std::string(Tok.get_string()); return ostr; }
         } /* Closing Namespace 'quex' */
 
-
-#include <quex/code_base/converter_helper/from-utf8.i>
+#include <quex/code_base/converter_helper/from-unicode-buffer.i>
    
 
-#   line 197 "Parser-token.hpp"
+#   line 196 "Parser-token.hpp"
 
 
 
@@ -263,7 +262,7 @@ QUEX_NAME_TOKEN(copy)(Token* __this, const Token* __That)
     (void)__this;
     (void)__That;
 
-#   line 20 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 20 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
         self._id    = Other._id;
         self.text   = Other.text;
@@ -276,7 +275,7 @@ QUEX_NAME_TOKEN(copy)(Token* __this, const Token* __That)
     #   endif
    
 
-#   line 280 "Parser-token.hpp"
+#   line 279 "Parser-token.hpp"
 
 #   undef Other
 #   undef self
@@ -302,7 +301,7 @@ QUEX_NAME_TOKEN(take_text)(Token*              __this,
     (void)__this;
     (void)__analyzer;
 
-#   line 80 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 81 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
 #       if 0
         {
@@ -319,6 +318,7 @@ QUEX_NAME_TOKEN(take_text)(Token*              __this,
 #       endif
 
         /* It cannot be assumed that the lexeme is zero terminated. */
+        __quex_assert(End >= Begin);
         self.text.assign(Begin, End-Begin);
 
 #       if 0
@@ -349,7 +349,7 @@ QUEX_NAME_TOKEN(repetition_n_get)(Token* __this)
 #   define self (*__this)
     (void)__this;
     
-#   line 117 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 119 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
        return self.number;
    
@@ -366,7 +366,7 @@ QUEX_NAME_TOKEN(repetition_n_set)(Token* __this, size_t N)
     (void)__this;
     (void)N;
     
-#   line 113 "/usr/share/quex-0.62.4/quex/code_base/token/CppDefault.qx"
+#   line 115 "/usr/share/quex-0.64.8/quex/code_base/token/CppDefault.qx"
 
        self.number = N;
    

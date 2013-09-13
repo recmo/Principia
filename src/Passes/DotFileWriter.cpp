@@ -56,9 +56,8 @@ void DotFileWriter::write(const Node* node)
 			_out << " label=\"( )\"";
 		_out << "];" << endl;
 	}
-	if(_contractionMode == None)
-	{
-		for(int i = 0; i < node->outArity(); ++i) {
+	if(_contractionMode == None) {
+		for(uint i = 0; i < node->outArity(); ++i) {
 			write(node->out(i));
 			_out << objectId(&node) << " -> " << objectId(node->out(i)) << " [";
 			_out << " label=" << i;
@@ -66,7 +65,7 @@ void DotFileWriter::write(const Node* node)
 				_out << " style=dotted";
 			_out << "];" << endl;
 		}
-		for(int i = 0; i < node->inArity(); ++i) {
+		for(uint i = 0; i < node->inArity(); ++i) {
 			write(node->in(i));
 			_out << objectId(node->in(i)) << " -> " << objectId(&node) << " [";
 			_out << " label=" << i;
@@ -86,23 +85,19 @@ void DotFileWriter::write(const Node* node)
 				_out << " style=dotted";
 			_out << "];" << endl;
 		}
-	}
-	else if(_contractionMode == Edges)
-	{
-		for(int i = 0; i < node->outArity(); ++i) {
+	} else if(_contractionMode == Edges) {
+		for(uint i = 0; i < node->outArity(); ++i) {
 			const Edge* out = node->out(i);
 			bool dotted = false;
 			if(!showClosureFunc && node->type() == NodeType::Closure && i == 0)
 				dotted = true;
-			for(int j = 0; j < out->sinks().size(); ++j) {
+			for(uint j = 0; j < out->sinks().size(); ++j) {
 				_out << objectId(&node) << " -> " << objectId(out->sinks()[j]);
 				if(dotted) _out << " [style=dotted]";
 				_out << endl;
 			}
 		}
-	}
-	else if(_contractionMode == Calls)
-	{
+	} else if(_contractionMode == Calls) {
 		set<const Node*> out = contractCalls(node, false);
 		out.erase(node);
 		for(auto it =out.begin(); it != out.end(); ++it)

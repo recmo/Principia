@@ -1,5 +1,6 @@
 #pragma once
 #include "fixups.h"
+#include <limits>
 #include <set>
 #include "DFG/PropertyMap.h"
 #include "DFG/NodeType.h"
@@ -8,12 +9,14 @@
 class Node: public PropertyMap
 {
 public:
+	static const uint noIndex = std::numeric_limits<uint>::max();
+	
 	Node(NodeType type, int incommingArity, int outgoingArity);
 	~Node();
 	
 	NodeType type() const { return _type; }
-	int inArity() const { return _incomming.size(); }
-	int outArity() const { return _outgoing.size(); }
+	uint inArity() const { return _incomming.size(); }
+	uint outArity() const { return _outgoing.size(); }
 	
 	const Edge* in(uint index) const;
 	Edge* in(uint index);

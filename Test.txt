@@ -82,6 +82,9 @@ ax3 φ ψ ↦ ψ
 	∴ (≔ Boolean ψ)
 	∴ ψ
 
+problem ↦ “This verification fails when ‘e’ is not an output of th1.”
+todo ↦ “Add dependencies from the logic to the dependency tracker for the stack machine compiler”
+problem ↦ “These dependencies may be very implicit. How are we going to handle this?”
 
 th1 φ ↦ ψ
 	∵ (≔ Boolean φ)
@@ -96,7 +99,30 @@ th1 φ ↦ ψ
 	d ≔ ax3 b (≔ C a ψ)
 		⊢ (≔ C a ψ)
 	e ≔ ax3 a ψ
-		⊢ ψ
+		⊢ (≔ Boolean e)
+		⊢ e
+	∴ (≔ Boolean e)
+	∴ e
+
+
+
+
+
+th1 φ ↦ ψ
+	Bφ ∵ (≔ Boolean φ)
+	ψ ≔ C φ φ
+	a ≔ ax1 φ φ
+		⊢ (≔ C φ ψ)
+	b ≔ ax1 φ ψ
+		⊢ (≔ C φ (≔ C ψ φ))
+	c ≔ ax2 φ ψ φ
+		⊢ (≔ C (≔ C φ (≔ C ψ φ)) (≔ C (≔ C φ ψ) ψ))
+		⊢ (≔ C b (≔ C a ψ))
+	d ≔ ax3 b (≔ C a ψ)
+		⊢ (≔ C a ψ)
+	e ≔ ax3 a ψ
+		⊢ (≔ Boolean e)
+		⊢ e
 	∴ (≔ Boolean e)
 	∴ e
 

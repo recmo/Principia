@@ -9,7 +9,7 @@ Validator::Validator(DataFlowGraph* program)
 , _preorder(program->nodes().size())
 , _component(program->nodes().size())
 {
-	for(int i = 0; i < _program->nodes().size(); ++i) {
+	for(uint i = 0; i < _program->nodes().size(); ++i) {
 		_preorder[i] = -1;
 		_component[i] = -1;
 	}
@@ -27,15 +27,16 @@ void Validator::validate()
 
 int Validator::indexOf(Node* node)
 {
-	for(int i = 0; i < _program->nodes().size(); ++i)
+	for(uint i = 0; i < _program->nodes().size(); ++i)
 		if(_program->nodes()[i] == node)
 			return i;
 	assert(!"Found");
+	return -1;
 }
 
 void Validator::depthFirstSearch()
 {
-	for(int i = 0; i < _program->nodes().size(); ++i)
+	for(uint i = 0; i < _program->nodes().size(); ++i)
 		if(_preorder[i] == -1)
 			visit(i);
 		
@@ -60,13 +61,13 @@ void Validator::visit(int i)
 	
 	// For each edge from v to a neighboring vertex w:
 	Node* node = _program->nodes()[i];
-	for(int j = 0; j < node->outArity(); ++j) {
+	for(uint j = 0; j < node->outArity(); ++j) {
 		Edge* out = node->out(j);
 		
 		//if(node->type() == NodeType::Closure && j == 0)
 		//	continue;
 		
-		for(int k = 0; k < out->sinks().size(); ++k) {
+		for(uint k = 0; k < out->sinks().size(); ++k) {
 			Node* child = out->sinks()[k];
 			int child_index = indexOf(child);
 			
@@ -111,15 +112,14 @@ void Validator::visit(Node* node)
 void Validator::print()
 {
 	wcerr << "Preorder numbers: " << endl;
-	for(int i = 0; i < _program->nodes().size(); ++i) {
+	for(uint i = 0; i < _program->nodes().size(); ++i) {
 		wcerr << "\t";
 		visit(_program->nodes()[i]);
 		wcerr << "\t" << _preorder[i] << "\t" << _component[i] << endl;
 	}
 	wcerr << endl;
 	wcerr << "Strongly connected components: " << endl;
-	for(int c = 1; c <= _componentCounter; ++c)
-	{
+	for(uint c = 1; c <= _componentCounter; ++c) {
 		wcerr << "\t[";
 		vector<Node> group;
 		for(int i = 0; i < _program->nodes().size(); ++i) {

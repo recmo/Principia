@@ -15,12 +15,12 @@
 #include <llvm/Analysis/MemoryBuiltins.h>
 #include <llvm/Analysis/Verifier.h>
 #include <llvm/Analysis/Passes.h>
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
-#include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/PassManager.h>
 #include <llvm/PassManagers.h>
 #include <llvm/Support/TargetSelect.h>
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/ExecutionEngine/MCJIT.h>
 
 // Passes
 #include <llvm/Analysis/Passes.h>
@@ -65,6 +65,8 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 , _closures()
 {
 	llvm::InitializeNativeTarget();
+	llvm::InitializeNativeTargetAsmPrinter();
+	llvm::InitializeNativeTargetAsmParser();
 	
 	// Declare malloc
 	llvm::FunctionType* mallocType = llvm::FunctionType::get(_builder.getInt8PtrTy(), _builder.getInt64Ty(), false);
@@ -149,6 +151,7 @@ void LlvmCompiler::compile()
 	llvm::ExecutionEngine* ee = llvm::EngineBuilder(_module)
 	.setErrorStr(&error)
 	.setEngineKind(llvm::EngineKind::JIT)
+	.setUseMCJIT(true)
 	.setOptLevel(llvm::CodeGenOpt::Aggressive)
 	.create();
 	
@@ -172,6 +175,7 @@ void LlvmCompiler::compile()
 	// Compile to native!
 	if(debug)
 		wcerr << "Compiling to native" << endl;
+	ee->finalizeObject();
 	foreach(Node* closure, _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
@@ -277,7 +281,7 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	// Load the input variables
 	vector<llvm::Value*> inputValues;
 	inputValues.push_back(closure);
-	for(int i = 0; i < closureNode->outArity() - 1; ++i) {
+	for(uint i = 0; i < closureNode->outArity() - 1; ++i) {
 		llvm::Value* ptr = _builder.CreateGEP(inputs, _builder.getInt64(i));
 		llvm::Value* value = _builder.CreateLoad(ptr);
 		inputValues.push_back(value);
@@ -296,7 +300,7 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 		llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(0));
 		_builder.CreateStore(result, ptr);
 	} else {
-		for(int i = 0; i < closureNode->inArity(); ++i) {
+		for(uint i = 0; i < closureNode->inArity(); ++i) {
 			llvm::Value* value = _builder.CreateExtractValue(result, i);
 			llvm::Value* ptr = _builder.CreateGEP(outputs, _builder.getInt64(i));
 			_builder.CreateStore(value, ptr);
@@ -324,7 +328,7 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	// Add the closure to the stack
 	llvm::Argument* arg0 = function->arg_begin();
 	const vector<const Edge*> closureEdges = closureNode->get<ClosureProperty>().edges();
-	for(int i = 0; i < closureEdges.size(); ++i) {
+	for(uint i = 0; i < closureEdges.size(); ++i) {
 		// The first element of the closure is always the function pointer,
 		// the closure edges start at index 1
 		llvm::Value* elementPtr = _builder.CreateGEP(arg0, _builder.getInt64(i + 1));
@@ -375,7 +379,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	vector<const Edge*> inputs = call->node()->constIn();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
-	for(int i = 0; i < stackPositions.size(); ++i) {
+	for(uint i = 0; i < stackPositions.size(); ++i) {
 		if(stackPositions[i] == -1)
 			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
 		else
@@ -503,7 +507,7 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 	vector<const Edge*> inputs = call->node()->constIn();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
-	for(int i = 1; i < stackPositions.size(); ++i) {
+	for(uint i = 1; i < stackPositions.size(); ++i) {
 		if(stackPositions[i] == -1)
 			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
 		else

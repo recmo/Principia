@@ -190,7 +190,6 @@ vector<Value> character(const vector<Value>& arg)
 	sint64 cp = arg[0].integer();
 	assert(cp >= 0);
 	assert(cp <= 0x10FFFF);
-	wchar_t ct = cp;
 	vector<Value> ret;
 	ret.push_back(string(1, cp));
 	return ret;
@@ -202,10 +201,14 @@ vector<Value> character(const vector<Value>& arg)
 
 vector<Value> write(const vector<Value>& arg)
 {
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> read(const vector<Value>& arg)
 {
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 
@@ -217,22 +220,28 @@ vector<Value> nodeType(const vector<Value>& arg)
 {
 	// isNodeType closure ↦ node_type
 	// Distinguish between call and closure nodes
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> intensionalEquivalent(const vector<Value>& arg)
 {
-	vector<Value> result;
-	return result;
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> call(const vector<Value>& arg)
 {
 	// call num_inputs num_outputs ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> closure(const vector<Value>& arg)
 {
 	// closure num_inputs num_outputs ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> arity(const vector<Value>& arg)
@@ -254,23 +263,30 @@ vector<Value> arity(const vector<Value>& arg)
 vector<Value> input(const vector<Value>& arg)
 {
 	// input closure index ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> output(const vector<Value>& arg)
 {
 	// output closure index ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> strconcat(const vector<Value>& arg)
 {
 	// concat low_closure high_closure ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
 
 vector<Value> compose(const vector<Value>& arg)
 {
 	// make_closure in_closure out_closure ↦ closure
+	throw "Not implemented";
+	return vector<Value>();
 }
-
 
 BuiltinsStatic::BuiltinsStatic()
 {

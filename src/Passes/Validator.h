@@ -21,10 +21,10 @@ public:
 	
 private:
 	DataFlowGraph* _program;
-	int _preorderCounter;
-	int _componentCounter;
-	vector<int> _preorder;
-	vector<int> _component;
-	vector<int> _unassigned;
-	vector<int> _undetermined;
+	uint _preorderCounter;
+	uint _componentCounter;
+	vector<uint> _preorder;
+	vector<uint> _component;
+	vector<uint> _unassigned;
+	vector<uint> _undetermined;
 };

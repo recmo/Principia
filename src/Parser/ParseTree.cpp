@@ -92,6 +92,7 @@ ParseTree::Node* ParseTree::Node::child(uint index) const
 
 void ParseTree::Node::appendChild(ParseTree::Node* child)
 {
+	assert(child != nullptr);
 	assert(child->_parent == nullptr);
 	child->_indexInParent = _children.size();
 	child->_parent = this;
@@ -100,6 +101,7 @@ void ParseTree::Node::appendChild(ParseTree::Node* child)
 
 void ParseTree::Node::insertChild(ParseTree::Node* child, uint position)
 {
+	assert(child != nullptr);
 	assert(child->_parent == nullptr);
 	assert(position <= _children.size());
 	child->_parent = this;
@@ -118,6 +120,7 @@ bool ParseTree::Node::validate() const
 		if(!child->validate())
 			return false;
 	}
+	return true;
 }
 
 ParseTree::Scope* ParseTree::Node::enclosingScope() const
@@ -133,7 +136,7 @@ void ParseTree::Scope::print(std::wostream& out, uint indentation) const
 {
 	for(Node* child: children()) {
 		if(!child->isA<Scope>())
-			for(int i = 0; i < indentation; ++i)
+			for(uint i = 0; i < indentation; ++i)
 				out << L"\t";
 		child->print(out, indentation + 1);
 		if(!child->isA<Scope>())
@@ -151,7 +154,7 @@ ParseTree::Statement* ParseTree::Scope::associatedStatement() const
 	return prev->to<Statement>();
 }
 
-void ParseTree::Proposition::print(std::wostream& out, uint indentation) const
+void ParseTree::Proposition::print(std::wostream& out, uint /*indentation*/) const
 {
 	switch(_kind) {
 	case Precondition: out << L"∵"; break;
@@ -189,12 +192,12 @@ void ParseTree::Statement::print(std::wostream& out, uint indentation) const
 		out << ")";
 }
 
-void ParseTree::Constant::print(std::wostream& out, uint indentation) const
+void ParseTree::Constant::print(std::wostream& out, uint /*indentation*/) const
 {
 	out << _value;
 }
 
-void ParseTree::Identifier::print(std::wostream& out, uint indentation) const
+void ParseTree::Identifier::print(std::wostream& out, uint /*indentation*/) const
 {
 	if(bindingSite())
 		out << bindingSite();
@@ -204,13 +207,17 @@ void ParseTree::Identifier::print(std::wostream& out, uint indentation) const
 
 ParseTree::Statement& ParseTree::Statement::addOut(ParseTree::Identifier* value)
 {
+	assert(value != nullptr);
 	appendChild(value);
 	value->setOutbound();
+	return *this;
 }
 
 ParseTree::Statement& ParseTree::Statement::addIn(ParseTree::Node* value)
 {
+	assert(value != nullptr);
 	appendChild(value);
+	return *this;
 }
 
 std::vector<ParseTree::Identifier*> ParseTree::Statement::out() const

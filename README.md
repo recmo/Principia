@@ -20,7 +20,7 @@ Unifying these languages is a meta-language that turns these graphs into a linea
 ### Identifiers
 The syntax for identifiers conforms to Unicode 6.2.0 [UAX31-C1](http://www.unicode.org/reports/tr31/) revision 17. This essentially means that anything that could be considered a sensible identifier in any language is recognized as such.
 
-In addition to these identifiers there are symbol identifiers such as ‘+’ or ‘≥’. These are defined by the Unicode [Pattern Syntax](http://www.unicode.org/reports/tr31/#Pattern_Syntax). The parser will consider them identifier on their own, so `ab+cd` is a sequence of three identifier: `ab`, `+` and `bc`.
+In addition to these identifiers there are symbol identifiers such as `+` or `≥`. These are defined by the Unicode [Pattern Syntax](http://www.unicode.org/reports/tr31/#Pattern_Syntax). The parser will consider them identifier on their own, so `ab+cd` is a sequence of three identifiers: `ab`, `+` and `bc`.
 
 ### Statements
 The language consists of a list of statements, each followed by a newline (or more precisely, a paragraph separator). Statements are of the general form:
@@ -29,17 +29,17 @@ The language consists of a list of statements, each followed by a newline (or mo
 
 Where `out` and `in` are identifiers or literals and `operator_symbol` is one of the six language specific statements symbols:
 
-* ≔ call
-* ↦ closure
-* ∵ because
-* ∴ therefore
-* ⊨ axiom
-* ⊢ proofs
+* `≔` call
+* `↦` closure
+* `∵` because
+* `∴` therefore
+* `⊨` axiom
+* `⊢` proofs
 
 These are discussed further down. Since these are keywords, they are excluded from the list of usable identifier symbols.
 
 ### String literals
-String literals start with a double opening quote (‘“’, [U+201C](http://www.fileformat.info/info/unicode/char/2009/index.htm)) and are closed with a double closing quote (‘”’,  [U+201D](http://www.fileformat.info/info/unicode/char/2009/index.htm)). Note that the dumb symmetrical typewriter quotes ‘"’ you find on your keyboard have no role.
+String literals start with a double opening quote (`“`, [U+201C](http://www.fileformat.info/info/unicode/char/2009/index.htm)) and are closed with a double closing quote (`”`,  [U+201D](http://www.fileformat.info/info/unicode/char/2009/index.htm)). Note that the dumb symmetrical typewriter quotes `"` you find on your keyboard have no role.
 
 The parser keeps track of the number of open quotes *within* the literal and only stops the literal when the opening double quote is closed. This has the advantage that to quote a piece of code, you simply enclose it in double quotes:
 
@@ -58,11 +58,11 @@ Numeric constants are written with *mantissa*, optional *base* and optional sign
 	1₂⁶⁴
 	6.626 069 57₁₀⁻³⁴
 
-The mantissa digits are taken from 0—9 and A—Z (uppercase, because Unicode does not recognize [lowercase digits](https://en.wikipedia.org/wiki/Lowercase_digits) anymore). This means the maximum base is 36.
-The radix point is given by a full stop dot (‘.’, [U+002E](http://www.fileformat.info/info/unicode/char/002e/index.htm)).
-Thin spaces (‘ ’, [U+2009](http://www.fileformat.info/info/unicode/char/2009/index.htm)) can be used to group digits in the mantissa.
+The mantissa digits are taken from `0`—`9` and `A`—`Z` (uppercase, because Unicode does not recognize [lowercase digits](https://en.wikipedia.org/wiki/Lowercase_digits)). This means the maximum base is 36.
+The radix point is given by a full stop dot (`.`, [U+002E](http://www.fileformat.info/info/unicode/char/002e/index.htm)).
+Thin spaces (` `, [U+2009](http://www.fileformat.info/info/unicode/char/2009/index.htm)) can be used to group digits in the mantissa.
 
-The base and exponent are written in decimal using ₀—₉ and ⁰—⁹ respectively. The exponent can have optional signs ⁺ or ⁻.
+The base and exponent are written in decimal using `₀`—`₉` and `⁰`—`⁹` respectively. The exponent can have optional signs `⁺` or `⁻`. Unicode codepoints [U+2080](http://www.fileformat.info/info/unicode/char/2080/index.htm)—[U+2089](http://www.fileformat.info/info/unicode/char/2089/index.htm), [U+2070](http://www.fileformat.info/info/unicode/char/2070/index.htm)—[U+2079](http://www.fileformat.info/info/unicode/char/2079/index.htm) and [U+207A](http://www.fileformat.info/info/unicode/char/207A/index.htm), [U+207B](http://www.fileformat.info/info/unicode/char/207B/index.htm) respectively.
 
 ### Scoped statements (advanced)
 
@@ -83,9 +83,9 @@ Inbound identifiers are resolved in the following
 ### Inline statements (advanced)
 	… (out₁ · … operator_symbol in₁ in₂ …) …
 
-Where the middle dot (‘·’, [U+00B7](http://www.fileformat.info/info/unicode/char/b7/index.htm)) is used as a placeholder to specify which of the outputs of the inner statement is to be used in the outer statement.
+Where the middle dot (`·`, [U+00B7](http://www.fileformat.info/info/unicode/char/b7/index.htm)) is used as a placeholder to specify which of the outputs of the inner statement is to be used in the outer statement.
 
-If there is no middle dot, then it is automatically prepended, so
+If there is no middle dot, then it is implicitly prepended, so
 
 	… (out₂ … operator_symbol in₁ in₂ …) …
 
@@ -95,7 +95,7 @@ is equivalent to
 
 For the purposes of binding identifiers, the inline statement is considered to be in the scope of the parent statement.
 
-**TODO:** Why limit ‘·’ to outputs, what happens if we allow inline statements to be used as *inputs*?
+**TODO:** Why limit `·` to outputs, what happens if we allow inline statements to be used as *inputs*?
 
 ### Binding rules (advanced)
 

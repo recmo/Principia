@@ -56,29 +56,45 @@ ParseTree::Identifier* IdentifierBinder::bindingSite(ParseTree::Identifier* iden
 		assert(line->parent());
 	}
 	ParseTree::Node* scope = line->parent();
-	ParseTree::Node* sibScope = line->nextSibbling();
-	if(sibScope && !sibScope->isA<ParseTree::Scope>())
-		sibScope = nullptr;
+	
+	// Search a child (sibling) scope first in bottom to top order
+	ParseTree::Node* childScope = line->nextSibbling();
+	if(childScope && !childScope->isA<ParseTree::Scope>())
+		childScope = nullptr;
 	if(debug) {
 		wcerr << "Scope: " << scope << endl;
-		wcerr << "SibScope: " << sibScope << endl;
+		wcerr << "SibScope: " << childScope << endl;
 	}
-	
-	// Search a sibling scope first in bottom to top order
-	if(sibScope) {
-		for(ParseTree::Node* node = sibScope->lastChild(); node; node = node->prevSibbling()) {
+	if(childScope) {
+		for(ParseTree::Node* node = childScope->lastChild(); node; node = node->prevSibbling()) {
 			ParseTree::Identifier* site = directBind(node, identifier->name());
 			if(site)
 				return site;
 		}
 	}
 	
-	// Search the line itself
-	/// @todo Also check inline statements
-	{
-		ParseTree::Identifier* site = directBind(line, identifier->name(), true);
-		if(site)
-			return site;
+	{ // Search line from to the left
+		ParseTree::Node* left = identifier;
+		while(left) {
+			left = leftOf(line, left);
+			if(left && left->isA<ParseTree::Identifier>()) {
+				ParseTree::Identifier* leftId = left->to<ParseTree::Identifier>();
+				if(leftId->outbound() && leftId->name() == identifier->name())
+					return leftId;
+			}
+		}
+	}
+	
+	{ // Search line to the right
+		ParseTree::Node* right = identifier;
+		while(right) {
+			right = rightOf(line, right);
+			if(right && right->isA<ParseTree::Identifier>()) {
+				ParseTree::Identifier* rightId = right->to<ParseTree::Identifier>();
+				if(rightId->outbound() && rightId->name() == identifier->name())
+					return rightId;
+			}
+		}
 	}
 	
 	// Search the scope
@@ -127,3 +143,44 @@ ParseTree::Identifier* IdentifierBinder::directBind(ParseTree::Node* node, const
 	return nullptr;
 }
 
+// Do a walk of the leaves
+ParseTree::Node* IdentifierBinder::leftOf(ParseTree::Node* top, ParseTree::Node* node)
+{
+	// Go left
+	ParseTree::Node* sibling = node->prevSibbling();
+	while(!sibling) {
+		// Go up until we have a sibling
+		node = node->parent();
+		if(!node || node == top)
+			return nullptr;
+		sibling = node->prevSibbling();
+	}
+	node = sibling;
+	
+	// Go deep
+	while(node->lastChild())
+		node = node->lastChild();
+	
+	return node;
+}
+
+// Do a walk of the leaves
+ParseTree::Node* IdentifierBinder::rightOf(ParseTree::Node* top, ParseTree::Node* node)
+{
+	// Go left
+	ParseTree::Node* sibling = node->nextSibbling();
+	while(!sibling) {
+		// Go up until we have a sibling
+		node = node->parent();
+		if(!node || node == top)
+			return nullptr;
+		sibling = node->nextSibbling();
+	}
+	node = sibling;
+	
+	// Go deep
+	while(node->firstChild())
+		node = node->firstChild();
+	
+	return node;
+}

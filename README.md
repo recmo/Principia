@@ -13,7 +13,7 @@ Syntax
 
 The syntax is minimalist and heavily uses the [Unicode Standard](http://www.unicode.org/versions/Unicode6.2.0/). Please use something like [compose keys](https://en.wikipedia.org/wiki/Compose_key) to enter Unicode characters (here's my setup: [XCompile](https://github.com/Recmo/XCompile)).
 
-The language is a union between a programming language and a proof language. The programming language consists of just two constructs, *calls* and *closures*. It has first-class functions and multiple return values. The proof language has four constructs, *because*, *axiom*, *therefore* and *proofs*. Both these languages live in a space that is similar to a directed cyclic multi-graph.
+The language is a union between a programming language and a proof language. The programming language consists of just two constructs, *calls* and *closures*. It has eager evaluation, first-class functions and multiple return values. The proof language has four constructs, *because*, *axiom*, *therefore* and *proofs*. Both these languages live in a space that is similar to a directed cyclic multi-graph.
 
 Unifying these languages is a meta-language that turns these graphs into a linear syntax for consumption by text editors. The meta-language handles scoping and identifier binding. It should be noted that binding is separate from the programming language. The programming language has *no* concept of variables and binding (and therefore, none of the problems associated with it).
 
@@ -25,9 +25,9 @@ In addition to these identifiers there are symbol identifiers such as `+` or `�
 ### Statements
 The language consists of a list of statements, each followed by a newline (or more precisely, a paragraph separator). Statements are of the general form:
 
-	out₁ out₂ … operator_symbol in₁ in₂ …
+	outbound₁ outbound₂ … statement_kind inbound₁ inbound₂ …
 
-Where `out` and `in` are identifiers or literals and `operator_symbol` is one of the six language specific statements symbols:
+Where `outbound` are identifiers and `inbound` can be both identifiers, literals and expressions. The `statement_kind` is one of six specific symbols:
 
 * `≔` call
 * `↦` closure
@@ -36,7 +36,7 @@ Where `out` and `in` are identifiers or literals and `operator_symbol` is one of
 * `⊨` axiom
 * `⊢` proofs
 
-These are discussed further down. Since these are keywords, they are excluded from the list of usable identifier symbols.
+These are discussed further down. Since these are keywords, they are excluded from the list of usable identifier symbols. They are the only keywords in the language.
 
 ### String literals
 String literals start with a double opening quote (`“`, [U+201C](http://www.fileformat.info/info/unicode/char/2009/index.htm)) and are closed with a double closing quote (`”`,  [U+201D](http://www.fileformat.info/info/unicode/char/2009/index.htm)). Note that the dumb symmetrical typewriter quotes `"` you find on your keyboard have no role.
@@ -81,37 +81,52 @@ Statements can be scoped by
 Inbound identifiers are resolved in the following
 
 ### Inline statements (advanced)
-	… (out₁ · … operator_symbol in₁ in₂ …) …
 
-Where the middle dot (`·`, [U+00B7](http://www.fileformat.info/info/unicode/char/b7/index.htm)) is used as a placeholder to specify which of the outputs of the inner statement is to be used in the outer statement.
+A statement enclosed in parentheses can be used in place of an inbound. The syntax is:
+
+	… (out₁ · out₃  … statement_kind in₁ in₂ …) …
+
+Where the middle dot (`·`, [U+00B7](http://www.fileformat.info/info/unicode/char/b7/index.htm)) is used as a placeholder to specify which of the outbounds of the inner statement is to be used at that place in the outer statement.
 
 If there is no middle dot, then it is implicitly prepended, so
 
-	… (out₂ … operator_symbol in₁ in₂ …) …
+	… (out₂ … statement_kind in₁ in₂ …) …
 
 is equivalent to
 
-	… (· out₂ … operator_symbol in₁ in₂ …) …
+	… (· out₂ … statement_kind in₁ in₂ …) …
 
 For the purposes of binding identifiers, the inline statement is considered to be in the scope of the parent statement.
 
-**TODO:** Why limit `·` to outputs, what happens if we allow inline statements to be used as *inputs*?
+**TODO:** Why limit `·` to outbounds, what happens if we allow inline statements to be used as *inbounds*?
 
 ### Binding rules (advanced)
 
+**To be written**
 
+Generally tries to be intuitive, with both forward and backward searching.
 
 Programming language
 --------------------
 
 ### Call statement
-	output₁ output₂ … ≔ function input₁ input₂ …
+	return₁ return₂ … ≔ function argument₁ argument₂ …
+
+The call statement calls the function in inbound position one with the remaining inbounds as arguments. The return values are assigned to the outbounds.
 
 ### Closure statement
-	function input₁ input₂ … ↦ output₁ output₂ …
+	function argument₁ argument₂ … ↦ return₁ return₂ …
+
+The closure statement is perfectly symmetrical to the call statement. Now, the function and it's arguments are outbound and the return values are inbound.
+
+### On eagerness
+
+The language is eager
 
 Proof language
 --------------
+
+**To be written**
 
 ### Because
 	∵ proposition
@@ -125,12 +140,6 @@ Proof language
 ### Proofs
 	⊢ proposition
 
-
-Identifier binding
-------------------
-
-
-
 Implementation
 --------------
 
@@ -138,6 +147,9 @@ Implementation
 * Queχ (only if you regenerate the parser)
 * LLVM (MCJIT)
 
+The Queχ based parser produces an abstract syntax tree (AST). The binder then binds all the identifiers in the AST. From this the program data flow graph (DFG) is created. The DFG is the natural representation of the program and is where static verification and optimizations like constant propagation happen.
+
+From this DFG the (nested) closures are extracted and lambda lifted. The lifted closures are then serialized and converted to a simple stack machine language. The stack machine language is compiled to LLVM intermediate representation (IR). The IR run through optimization passes and JIT compiled to native machine code.
 
 How to build and run
 --------------------
@@ -145,4 +157,4 @@ How to build and run
 	git clone git@github.com:Recmo/Principia.git
 	cd Principia
 	make -j4
-	./Principia
+	./Principia Ackermann.txt PRA 3 3

@@ -4,7 +4,7 @@
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
 
-#define debug true
+#define debug false
 
 Parser::Parser()
 : _token(nullptr)

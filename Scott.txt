@@ -1,6 +1,9 @@
-title ↦ “Scott encoding”
+title ↦ “Mogensen-Scott encoding”
 
 c↦“
+http://www.berniepope.id.au/docs/scott_encoding.txt
+
+
 C₁ x₁ x₂ ↦ (c₁ c₂ ↦ (≔ c₁ x₁ x₂))
 C₂ ↦ (c₁ c₂ ↦ (≔ c₂))
 …
@@ -14,12 +17,15 @@ False ↦ (t f ↦ (≔ f))
 true ≔ True
 false ≔ False
 
-if condition then else ↦ (≔ condition then else)
+sif condition then else ↦ (≔ condition then else)
 
 section ↦ “Boolean based logic”
 
 
+section ↦ “Maybe types”
 
+Nothing ↦ (n j ↦ (≔ n))
+Just a ↦ (n j ↦ (≔ j a))
 
 section ↦ “Scott numerals”
 
@@ -34,7 +40,7 @@ succ x ↦ (≔ S x)
 is_zero x ↦ (≔ x (↦ true) (y ↦ false))
 
 
-section ↦ “Successor base arithmetic”
+section ↦ “Successor based arithmetic”
 
 
 sadd x y ↦ (≔ x (↦ y) (px ↦ (≔ sadd px (≔ S y))))

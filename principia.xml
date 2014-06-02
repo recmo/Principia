@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Copyright 2014 Remco Bloemen
+	All rights reserved.
+	Dit werk is auteursrechtelijk beschermd.
+-->
+<!DOCTYPE language SYSTEM "language.dtd">
+<!-- see http://docs.kde.org/stable/en/kde-baseapps/kate/katehighlight-xml-format.html -->
+<language name="Principia" version="0.1" kateversion="3.9.2" casesensitive="yes" priority="2" section="Sources" extensions="*.principia" mimetype="text/principia" author="Remco Bloemen (remco@coblue.eu)" license="GPL">
+	<highlighting>
+		<!--
+		<list name="types">
+			<item> Integer </item>
+			<item> String </item>
+			<item> ByteArray </item>
+			<item> DateTime </item>
+			<item> ModelObject </item>
+		</list>
+		-->
+		<list name="keywords">
+			<item> ≔ </item>
+			<item> ↦ </item>
+			<item> ( </item>
+			<item> ) </item>
+			<item> ∴ </item>
+			<item> ∵ </item>
+			<item> ⊨ </item>
+			<item> ⊢ </item>
+			<item> · </item>
+		</list>
+		<contexts>
+			<context name="Key" attribute="Normal Text" lineEndContext="#stay">
+				<keyword attribute="Keyword" context="#stay" String="keywords"/>
+				<DetectChar attribute="String" context="String" char="“" />
+				
+				<!-- Bases 2, 10, 16 -->
+				<RegExpr attribute="Number" String="\b[0-9 ]+(\.[0-9 ]*)?\b" context="#stay"/>
+				<RegExpr attribute="Number" String="\b[0-1 ]+(\.[0-1 ]*)?₂([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?\b" context="#stay"/>
+				<RegExpr attribute="Number" String="\b[0-9 ]+(\.[0-9 ]*)?₁₀([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?\b" context="#stay"/>
+				<RegExpr attribute="Number" String="\b[0-9A-F ]+(\.[0-9A-F ]*)?₁₆([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?\b" context="#stay"/>
+				
+				<!-- Generic -->
+				<RegExpr attribute="DifficultNumber" String="\b[0-9A-Z ]+(\.[0-9A-Z ]*)?(?!₂)(?!₁₀)(?!₁₆)[₀₁₂₃₄₅₆₇₈₉]+([⁻⁺]?[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?\b" context="#stay"/>
+			</context>
+			
+			<context name="String" attribute="String" lineEndContext="#stay">
+				<DetectChar attribute="String" context="#pop" char="”" />
+				<DetectChar attribute="String" context="String" char="“" />
+			</context>
+		</contexts>
+		<itemDatas>
+		<itemData name="Normal Text" defStyleNum="dsNormal" spellChecking="false" />
+		<itemData name="Keyword"  defStyleNum="dsKeyword" spellChecking="false"/>
+		<itemData name="String" defStyleNum="dsString" spellChecking="true" />
+		<itemData name="Number" defStyleNum="dsDecVal" spellChecking="false" />
+		<itemData name="DifficultNumber" defStyleNum="dsBaseN" spellChecking="false" />
+	</itemDatas>
+	</highlighting>
+	<general>
+		<keywords casesensitive="1"/>
+		<folding indentationsensitive="1"/>
+		<indentation mode="python" />
+	</general>
+</language>

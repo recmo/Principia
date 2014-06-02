@@ -2,7 +2,7 @@
 #include <fixups.h>
 #include <Parser/SourceProperty.h>
 #include "ParseTree.h"
-namespace quex { class Parser; class Token; }
+namespace quex { class QuexParser; class Token; }
 
 class Parser
 {
@@ -16,7 +16,7 @@ public:
 private:
 	typedef quex::Token Token;
 	string _filename;
-	quex::Parser* _parser;
+	quex::QuexParser* _parser;
 	quex::Token* _token;
 	ParseTree* _tree;
 	ParseTree::Statement* _statement;

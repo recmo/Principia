@@ -6,12 +6,12 @@
  * NOTE: This file has been created automatically by Quex.
  *       Visit quex.org for further info.
  *
- * DATE: Sat Sep 14 22:36:50 2013
+ * DATE: Mon Jun  2 17:01:15 2014
  *
  * (C) 2005-2010 Frank-Rene Schaefer
  * ABSOLUTELY NO WARRANTY                                           */
-#ifndef __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_PARSER__QUEX_TOKEN__
-#define __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_PARSER__QUEX_TOKEN__
+#ifndef __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_QUEXPARSER__QUEX_TOKEN__
+#define __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_QUEXPARSER__QUEX_TOKEN__
 
 #ifndef __QUEX_OPTION_PLAIN_C
 #   include<cstdio> 
@@ -22,7 +22,7 @@
 /* The token class definition file can only be included after 
  * the definition on TERMINATION and UNINITIALIZED.          
  * (fschaef 12y03m24d: "I do not rememember why I wrote this.")    */
-#include "Parser-token.hpp"
+#include "QuexParser-token.hpp"
 
 const QUEX_TYPE_TOKEN_ID TokenAxiom              = ((QUEX_TYPE_TOKEN_ID)10004);
 const QUEX_TYPE_TOKEN_ID TokenBecause            = ((QUEX_TYPE_TOKEN_ID)10005);
@@ -52,4 +52,4 @@ QUEX_NAMESPACE_TOKEN_OPEN
 extern const char* QUEX_NAME_TOKEN(map_id_to_name)(const QUEX_TYPE_TOKEN_ID TokenID);
 QUEX_NAMESPACE_TOKEN_CLOSE
 
-#endif /* __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_PARSER__QUEX_TOKEN__ */
+#endif /* __QUEX_INCLUDE_GUARD__AUTO_TOKEN_IDS_QUEX_QUEXPARSER__QUEX_TOKEN__ */

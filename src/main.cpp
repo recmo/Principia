@@ -22,8 +22,6 @@
 #include <fstream>
 #include <cmath>
 
-#include "Interactive.h"
-
 /// TODO: Use alloca when we can
 
 /// TODO: Background thread to analyse the performance oprofile style

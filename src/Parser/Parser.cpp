@@ -1,5 +1,5 @@
 #include "Parser/Parser.h"
-#include "Parser/Parser.qx.h"
+#include "QuexParser.hpp"
 #include "SourceProperty.h"
 #include "ConstantProperty.h"
 #include "IdentifierProperty.h"
@@ -15,7 +15,7 @@ Parser::Parser()
 Parser& Parser::parse(const string& filename)
 {
 	_filename = filename;
-	_parser = new quex::Parser(encodeLocal(_filename), "utf8");
+	_parser = new quex::QuexParser(encodeLocal(_filename), "utf8");
 	readNext();
 	_tree = parseFile();
 	delete _parser;

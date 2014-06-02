@@ -1,4 +1,4 @@
-#include "Parser.hpp"
+#include "QuexParser.hpp"
 #include <quex/code_base/analyzer/C-adaptions.h>
 QUEX_NAMESPACE_MAIN_OPEN
 /* Global */QUEX_NAME(Mode)  QUEX_NAME(Program);
@@ -57,20 +57,20 @@ QUEX_NAME(Program_on_indentation)(QUEX_TYPE_ANALYZER*    me,
         ++(stack->back);
         if( stack->back == stack->memory_end ) QUEX_ERROR_EXIT("Indentation stack overflow.");
         *(stack->back) = Indentation;
-#   line 69 "src/Parser/Parser.qx"
+#   line 70 "src/Parser/QuexParser.qx"
     self_send(TokenBlockBegin);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 65 "Parser.cpp"
+#   line 65 "QuexParser.cpp"
 
         __QUEX_RETURN;
     }
     else if( Indentation == *(stack->back) ) {
-#   line 71 "src/Parser/Parser.qx"
+#   line 72 "src/Parser/QuexParser.qx"
     self_send(TokenStatementSeparator);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 74 "Parser.cpp"
+#   line 74 "QuexParser.cpp"
 
     }
     else  {
@@ -78,11 +78,11 @@ QUEX_NAME(Program_on_indentation)(QUEX_TYPE_ANALYZER*    me,
         --(stack->back);
 #       if ! defined(QUEX_OPTION_TOKEN_REPETITION_SUPPORT)
 #       define First true
-#   line 70 "src/Parser/Parser.qx"
+#   line 71 "src/Parser/QuexParser.qx"
     self_send(TokenBlockEnd);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 86 "Parser.cpp"
+#   line 86 "QuexParser.cpp"
 
 #       undef  First
 #       endif
@@ -90,11 +90,11 @@ QUEX_NAME(Program_on_indentation)(QUEX_TYPE_ANALYZER*    me,
             --(stack->back);
 #           if ! defined(QUEX_OPTION_TOKEN_REPETITION_SUPPORT)
 #           define First false
-#   line 70 "src/Parser/Parser.qx"
+#   line 71 "src/Parser/QuexParser.qx"
     self_send(TokenBlockEnd);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 98 "Parser.cpp"
+#   line 98 "QuexParser.cpp"
 
 #           undef  First
 #           endif
@@ -111,12 +111,12 @@ QUEX_NAME(Program_on_indentation)(QUEX_TYPE_ANALYZER*    me,
 #            define IndentationUpper     (*(stack->back))
 #            define IndentationLower     ((stack->back == stack->front) ? *(stack->front) : *(stack->back - 1))
 #            define ClosedN              (start - stack->back)
-#   line 91 "src/Parser/Parser.qx"
+#   line 92 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 120 "Parser.cpp"
+#   line 120 "QuexParser.cpp"
 
 #            undef IndentationStackSize 
 #            undef IndentationStack  
@@ -159,13 +159,13 @@ QUEX_NAME(Quotation_on_entry)(QUEX_TYPE_ANALYZER* me, const QUEX_NAME(Mode)* Fro
     QUEX_NAME(Quotation).has_entry_from(FromMode);
 #   endif
 
-#   line 101 "src/Parser/Parser.qx"
+#   line 102 "src/Parser/QuexParser.qx"
 
 		self.quote_depth = 1;
 		self_accumulator_clear();
 	
 
-#   line 169 "Parser.cpp"
+#   line 169 "QuexParser.cpp"
 }
 
 void
@@ -176,12 +176,12 @@ QUEX_NAME(Quotation_on_exit)(QUEX_TYPE_ANALYZER* me, const QUEX_NAME(Mode)* ToMo
     QUEX_NAME(Quotation).has_exit_to(ToMode);
 #   endif
 
-#   line 105 "src/Parser/Parser.qx"
+#   line 106 "src/Parser/QuexParser.qx"
 
 		self_accumulator_flush(TokenQuotation);
 	
 
-#   line 185 "Parser.cpp"
+#   line 185 "QuexParser.cpp"
 
 }
 
@@ -218,7 +218,7 @@ QUEX_NAME(Quotation_has_exit_to)(const QUEX_NAME(Mode)* Mode) {
 #undef __self_result_token_id
 QUEX_NAMESPACE_MAIN_CLOSE
 
-/* #include "Parser.hpp"*/
+/* #include "QuexParser.hpp"*/
 QUEX_NAMESPACE_MAIN_OPEN
 QUEX_TYPE_CHARACTER  QUEX_LEXEME_NULL_IN_ITS_NAMESPACE = (QUEX_TYPE_CHARACTER)0;
 #ifdef      __QUEX_COUNT_VOID
@@ -12788,11 +12788,11 @@ TERMINAL_345:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 75 "src/Parser/Parser.qx"
+#   line 76 "src/Parser/QuexParser.qx"
     self_send(TokenCall);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12796 "Parser.cpp"
+#   line 12796 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12802,11 +12802,11 @@ TERMINAL_346:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 76 "src/Parser/Parser.qx"
+#   line 77 "src/Parser/QuexParser.qx"
     self_send(TokenClosure);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12810 "Parser.cpp"
+#   line 12810 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12816,11 +12816,11 @@ TERMINAL_347:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 77 "src/Parser/Parser.qx"
+#   line 78 "src/Parser/QuexParser.qx"
     self_send(TokenBecause);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12824 "Parser.cpp"
+#   line 12824 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12830,11 +12830,11 @@ TERMINAL_348:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 78 "src/Parser/Parser.qx"
+#   line 79 "src/Parser/QuexParser.qx"
     self_send(TokenAxiom);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12838 "Parser.cpp"
+#   line 12838 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12844,11 +12844,11 @@ TERMINAL_349:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 79 "src/Parser/Parser.qx"
+#   line 80 "src/Parser/QuexParser.qx"
     self_send(TokenProofs);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12852 "Parser.cpp"
+#   line 12852 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12858,11 +12858,11 @@ TERMINAL_350:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 80 "src/Parser/Parser.qx"
+#   line 81 "src/Parser/QuexParser.qx"
     self_send(TokenTherefore);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12866 "Parser.cpp"
+#   line 12866 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12872,11 +12872,11 @@ TERMINAL_351:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 81 "src/Parser/Parser.qx"
+#   line 82 "src/Parser/QuexParser.qx"
     self_send(TokenBracketOpen);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12880 "Parser.cpp"
+#   line 12880 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12886,11 +12886,11 @@ TERMINAL_352:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 82 "src/Parser/Parser.qx"
+#   line 83 "src/Parser/QuexParser.qx"
     self_send(TokenBracketClose);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12894 "Parser.cpp"
+#   line 12894 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12900,11 +12900,11 @@ TERMINAL_353:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 83 "src/Parser/Parser.qx"
+#   line 84 "src/Parser/QuexParser.qx"
     self_send(TokenBracketValue);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12908 "Parser.cpp"
+#   line 12908 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12914,12 +12914,12 @@ TERMINAL_354:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(LexemeL);
     {
-#   line 84 "src/Parser/Parser.qx"
+#   line 85 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenIdentifier);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12923 "Parser.cpp"
+#   line 12923 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12929,12 +12929,12 @@ TERMINAL_355:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(LexemeL);
     {
-#   line 85 "src/Parser/Parser.qx"
+#   line 86 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenNumber);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12938 "Parser.cpp"
+#   line 12938 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12944,10 +12944,10 @@ TERMINAL_356:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 86 "src/Parser/Parser.qx"
+#   line 87 "src/Parser/QuexParser.qx"
     QUEX_NAME(push_mode)(&self, &Quotation);QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12951 "Parser.cpp"
+#   line 12951 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12957,12 +12957,12 @@ TERMINAL_357:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 87 "src/Parser/Parser.qx"
+#   line 88 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12966 "Parser.cpp"
+#   line 12966 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12972,12 +12972,12 @@ TERMINAL_358:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 88 "src/Parser/Parser.qx"
+#   line 89 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenIdentifier);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12981 "Parser.cpp"
+#   line 12981 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12998,11 +12998,11 @@ _490: /* TERMINAL: FAILURE */
     }
     __QUEX_COUNT_VOID(&self, LexemeBegin, LexemeEnd);
     {
-#   line 93 "src/Parser/Parser.qx"
+#   line 94 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     
-#   line 13006 "Parser.cpp"
+#   line 13006 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION_2;
@@ -13014,10 +13014,10 @@ __QUEX_IF_COUNT_SHIFT_VALUES();
     {
     QUEX_NAME(Program_on_indentation)(me, /*Indentation*/0, LexemeNull);
     
-#   line 94 "src/Parser/Parser.qx"
+#   line 95 "src/Parser/QuexParser.qx"
     self_send(TokenEndOfStream);
     
-#   line 13021 "Parser.cpp"
+#   line 13021 "QuexParser.cpp"
 
     }
     /* End of Stream causes a return from the lexical analyzer, so that no
@@ -13361,10 +13361,10 @@ TERMINAL_359:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 110 "src/Parser/Parser.qx"
+#   line 111 "src/Parser/QuexParser.qx"
         ++self.quote_depth; self_accumulator_add(LexemeBegin, LexemeEnd);
     
-#   line 13368 "Parser.cpp"
+#   line 13368 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13374,13 +13374,13 @@ TERMINAL_360:
     __QUEX_IF_COUNT_SHIFT_VALUES();
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
-#   line 111 "src/Parser/Parser.qx"
+#   line 112 "src/Parser/QuexParser.qx"
     
         if(--self.quote_depth == 0) self.pop_mode();
         else self_accumulator_add(LexemeBegin, LexemeEnd);
     
     
-#   line 13384 "Parser.cpp"
+#   line 13384 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13390,12 +13390,12 @@ TERMINAL_361:
     __QUEX_COUNT_VOID(&self, LexemeBegin, LexemeEnd);
     QUEX_LEXEME_TERMINATING_ZERO_SET(&me->buffer);
     {
-#   line 117 "src/Parser/Parser.qx"
+#   line 118 "src/Parser/QuexParser.qx"
     
         self_accumulator_add(Lexeme, LexemeEnd);
     
     
-#   line 13399 "Parser.cpp"
+#   line 13399 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13416,11 +13416,11 @@ _490: /* TERMINAL: FAILURE */
     }
     __QUEX_COUNT_VOID(&self, LexemeBegin, LexemeEnd);
     {
-#   line 122 "src/Parser/Parser.qx"
+#   line 123 "src/Parser/QuexParser.qx"
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     
-#   line 13424 "Parser.cpp"
+#   line 13424 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION_2;
@@ -13550,8 +13550,6 @@ __STATE_ROUTER:
      * MODE: Program
      * 
      *     PATTERN-ACTION PAIRS:
-     *       ON_FAILURE
-     *       ON_END_OF_STREAM
      *       (343) Program: {Newline}
      *       (344) Program: {Whitespace}
      *       (345) Program: {Call}
@@ -13568,16 +13566,18 @@ __STATE_ROUTER:
      *       (356) Program: {QuoteOpen}
      *       (357) Program: {QuoteClose}
      *       (358) Program: {Syntax}
+     *       ON_FAILURE
+     *       ON_END_OF_STREAM
      * 
      * 
      * MODE: Quotation
      * 
      *     PATTERN-ACTION PAIRS:
-     *       ON_END_OF_STREAM
-     *       ON_FAILURE
      *       (359) Quotation: {QuoteOpen}
      *       (360) Quotation: {QuoteClose}
      *       (361) Quotation: [:inverse({QuoteOpen},{QuoteClose}):]+
+     *       ON_END_OF_STREAM
+     *       ON_FAILURE
      * 
      * 
      * END: MODE PATTERNS

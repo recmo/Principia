@@ -5,19 +5,19 @@ sources := $(shell find -wholename './src/*.cpp')
 parsers := $(shell find -wholename './src/*.qx')
 
 # Header dependency finder
-finddeps := clang++ -Isrc -MM -MP
+finddeps := clang++ -I. -Isrc -MM -MP
 
 # C++11 Compiler
 compiler := clang++ -std=c++11 -g -fsanitize=address
 compiler := ${compiler} -Wall -Wextra -Wno-unused-parameter -Werror=return-type -Werror=switch
-compiler := ${compiler} -I. -Isrc -Ibuild/resources
+compiler := ${compiler} -Ibuild/quex -Isrc -Ibuild/resources
 
 # Linker
 linker := clang++ -fsanitize=address
 libs :=
 
 # LLVM library support
-# compiler := ${compiler} $(shell llvm-config --cxxflags)
+compiler := ${compiler} $(filter-out -fno-exceptions,$(shell llvm-config --cxxflags))
 compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 linker := ${linker} $(shell llvm-config --ldflags)  -L$(shell llvm-config --libdir)
@@ -36,15 +36,14 @@ quex := ${quex} --template-compression-uniform
 # quex := ${quex} --path-compression
 quex := ${quex} --template-compression
 quex := ${quex} --no-mode-transition-check
-compiler := ${compiler} -Iquex
 compiler := ${compiler} -DQUEX_OPTION_COMPUTED_GOTOS
 compiler := ${compiler} -DQUEX_OPTION_ASSERTS_DISABLED
 compiler := ${compiler} -DQUEX_OPTION_TOKEN_STAMPING_WITH_LINE_AND_COLUMN
 compiler := ${compiler} -DQUEX_SETTING_BUFFER_SIZE=32768
 
 # All object files
-objects := $(patsubst ./src/%.cpp, ./build/src/%.o, $(sources)) \
-	$(patsubst ./src/%.qx, ./build/resources/%.qx.o, $(parsers))
+objects := $(patsubst ./src/%.cpp, ./build/%.o, $(sources)) \
+	build/quex/QuexParser.o
 
 # Make the whole program by default (obviously)
 all: $(program)
@@ -56,22 +55,18 @@ all: $(program)
 -include $(patsubst ./src/%.cpp, ./build/resources/%.d, $(sources))
 
 # Build header dependency info
-build/resources/%.d: src/%.cpp
+build/%.d: src/%.cpp
 	@echo "Deps  " $*.cpp
 	@mkdir -p $(dir $@)
 	@$(finddeps) -MG -MF $@ -MT "build/src/$*.o build/src/$*.o  $@" $<
-	@sed "s_[^ ]*\.qx\.h_build/resources/\0_" -i $@
 
-build/resources/%.qx.h build/resources/%.qx.cpp: src/%.qx
+build/quex/QuexParser.hpp build/quex/QuexParser.cpp: src/Parser/QuexParser.qx
 	@echo "Queχ  " $*.qx
-	@mkdir -p $(dir $@)
-	$(quex) -i $< --analyzer-class $(basename $(notdir $<))
-	@cp $(notdir $*).hpp build/resources/$*.qx.h
-	@mv $(notdir $*).hpp build/resources/$*.hpp
-	@mv $(notdir $*)-token.hpp build/resources/$*-token.hpp
-	@mv $(notdir $*)-token_ids.hpp build/resources/$*-token_ids.hpp
-	@mv $(notdir $*)-configuration.hpp build/resources/$*-configuration.hpp
-	@mv $(notdir $*).cpp build/resources/$*.qx.cpp
+	mkdir -p build/quex
+	$(quex) -i $< \
+		--analyzer-class QuexParser \
+		--source-package build/quex
+	sed -i 's|std::string(Tok)|std::string(Tok.get_string())|' build/quex/QuexParser-token.hpp
 
 # Special rule for the two llvm passes that need to be compiled without rtti
 build/src/Passes/Llvm%Combine.o: src/Passes/Llvm%Combine.cpp
@@ -79,10 +74,15 @@ build/src/Passes/Llvm%Combine.o: src/Passes/Llvm%Combine.cpp
 	@mkdir -p $(dir $@)
 	@$(compiler) -fno-rtti -c $< -o $@
 
-build/%.o: %.cpp
+build/%.o: src/%.cpp build/quex/QuexParser.hpp
 	@echo "C++   " $*.cpp
 	@mkdir -p $(dir $@)
-	@$(compiler) -c $< -o $@
+	$(compiler) -c $< -o $@
+
+build/quex/%.o: build/quex/%.cpp
+	@echo "C++   " $*.cpp
+	@mkdir -p $(dir $@)
+	$(compiler) -c $< -o $@
 
 $(program): $(objects)
 	@echo "Link  " $@

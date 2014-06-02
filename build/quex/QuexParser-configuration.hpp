@@ -2,8 +2,8 @@
  *
  * (C) 2005-2009 Frank-Rene Schaefer
  * ABSOLUTELY NO WARRANTY                                                    */
-#ifndef __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____PARSER
-#define __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____PARSER
+#ifndef __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____QUEXPARSER
+#define __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____QUEXPARSER
 /* Additionally to the 'local' include guard, there is an include indicator 
  *
  *         __INCLUDE_INDICATOR_QUEX__CONFIGURATION
@@ -24,7 +24,7 @@
 #endif
 
 #define QUEX_SETTING_VERSION           "0.64.8"
-#define QUEX_SETTING_BUILD_DATE        "Sat Sep 14 22:36:50 2013"
+#define QUEX_SETTING_BUILD_DATE        "Mon Jun  2 17:01:15 2014"
 #define QUEX_SETTING_ANALYZER_VERSION  "0.0.0-pre-release"
 
 #ifndef    __QUEX_OPTION_PLAIN_C
@@ -294,20 +294,20 @@
 /* QUEX_TYPE_X  --> Type of X in global namespace 
  * QUEX_TYPE0_X --> Type of X in local namespace (namespace omitted) */
 #if defined(__QUEX_OPTION_PLAIN_C)
-#   define QUEX_FUNCTION_PREFIX        quex_Parser_
-#   define QUEX_FUNCTION_DEF_PREFIX    quex_Parser_
+#   define QUEX_FUNCTION_PREFIX        quex_QuexParser_
+#   define QUEX_FUNCTION_DEF_PREFIX    quex_QuexParser_
     /* In 'C' there are no namespaces, so namespaces are coded directly
      * into the type name. Both, global and local names are equal.       */
-#   define QUEX_TYPE0_ANALYZER         struct quex_Parser_tag
-#   define QUEX_TYPE_ANALYZER          struct quex_Parser_tag
-#   define QUEX_NAME_COMPLETE_ANALYZER quex_Parser
-#   define QUEX_TYPE_DERIVED_ANALYZER  struct quex_Parser_tag
+#   define QUEX_TYPE0_ANALYZER         struct quex_QuexParser_tag
+#   define QUEX_TYPE_ANALYZER          struct quex_QuexParser_tag
+#   define QUEX_NAME_COMPLETE_ANALYZER quex_QuexParser
+#   define QUEX_TYPE_DERIVED_ANALYZER  struct quex_QuexParser_tag
 
 #   define QUEX_TYPE0_TOKEN            struct quex_Token_tag
 #   define QUEX_TYPE_TOKEN             struct quex_Token_tag
 #   define QUEX_NAME_COMPLETE_TOKEN    quex_Token
 
-#   define QUEX_NAMESPACE_MAIN         quex_Parser
+#   define QUEX_NAMESPACE_MAIN         quex_QuexParser
 #   define QUEX_NAMESPACE_MAIN_OPEN   
 #   define QUEX_NAMESPACE_MAIN_CLOSE  
 
@@ -320,7 +320,7 @@
 #   define QUEX_LEXEME_NULL_IN_ITS_NAMESPACE   quex_LexemeNullObject
 #   define QUEX_LEXEME_NULL                    quex_LexemeNullObject
 
-#   define QUEX_NAME(NAME)             quex_Parser_ ## NAME
+#   define QUEX_NAME(NAME)             quex_QuexParser_ ## NAME
 #   define QUEX_NAME_TOKEN(NAME)       quex_Token_ ## NAME
 #   define QUEX_MEMBER(NAME)           void /* Undefined, not required */
     /* When creating a 'shared token class', macros are temporarily redefined.
@@ -328,18 +328,18 @@
      * that, the original macros need to be restored. Thus: Backup!          */  
 #   define QUEX_NAMESPACE_MAIN_OPEN_BACKUP   
 #   define QUEX_NAMESPACE_MAIN_CLOSE_BACKUP  
-#   define QUEX_FUNCTION_PREFIX_BACKUP       quex_Parser_
-#   define QUEX_FUNCTION_DEF_PREFIX_BACKUP   quex_Parser_
+#   define QUEX_FUNCTION_PREFIX_BACKUP       quex_QuexParser_
+#   define QUEX_FUNCTION_DEF_PREFIX_BACKUP   quex_QuexParser_
 
 #else
 #   define QUEX_FUNCTION_DEF_PREFIX    /* Supposed we are IN the namespace for definition. */
 #   define QUEX_FUNCTION_PREFIX        ::quex::
     /* Add namespaces for the global names of the classes of analyzer
      * and token.                                                        */
-#   define QUEX_TYPE0_ANALYZER         Parser
-#   define QUEX_TYPE_ANALYZER          ::quex::Parser
-#   define QUEX_NAME_COMPLETE_ANALYZER ::quex::Parser
-#   define QUEX_TYPE_DERIVED_ANALYZER  Parser
+#   define QUEX_TYPE0_ANALYZER         QuexParser
+#   define QUEX_TYPE_ANALYZER          ::quex::QuexParser
+#   define QUEX_NAME_COMPLETE_ANALYZER ::quex::QuexParser
+#   define QUEX_TYPE_DERIVED_ANALYZER  QuexParser
 
 #   define QUEX_TYPE0_TOKEN            Token
 #   define QUEX_TYPE_TOKEN             ::quex::Token
@@ -364,9 +364,9 @@
 #   define QUEX_LEXEME_NULL_IN_ITS_NAMESPACE   LexemeNullObject
 #   define QUEX_LEXEME_NULL                    ::quex::LexemeNullObject
 
-#   define QUEX_NAME(NAME)             Parser_ ## NAME
+#   define QUEX_NAME(NAME)             QuexParser_ ## NAME
 #   define QUEX_NAME_TOKEN(NAME)       Token_ ## NAME
-#   define QUEX_MEMBER(NAME)           Parser::NAME                
+#   define QUEX_MEMBER(NAME)           QuexParser::NAME                
     /* When creating a 'shared token class', macros are temporarily redefined.
      * This happens to generate converters in the token's namespace. After 
      * that, the original macros need to be restored. Thus: Backup!          */  
@@ -390,4 +390,4 @@
 
 #include <quex/code_base/analyzer/configuration/derived>
 
-#endif /* __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____PARSER */
+#endif /* __QUEX_INCLUDE_GUARD__ANALYZER__CONFIGURATION____QUEX____QUEXPARSER */

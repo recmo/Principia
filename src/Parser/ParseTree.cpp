@@ -1,4 +1,5 @@
 #include <Parser/ParseTree.h>
+#include <algorithm>
 
 ParseTree::ParseTree()
 : _top(new Scope)
@@ -110,6 +111,70 @@ void ParseTree::Node::insertChild(ParseTree::Node* child, uint position)
 		_children[i]->_indexInParent = i;
 }
 
+void ParseTree::Node::insertAfter(ParseTree::Node* child, ParseTree::Node* newChild)
+{
+	assert(child != nullptr);
+	insertChild(newChild, child->_indexInParent + 1);
+}
+
+void ParseTree::Node::insertBefore(ParseTree::Node* child, ParseTree::Node* newChild)
+{
+	assert(child != nullptr);
+	insertChild(newChild, child->_indexInParent);
+}
+
+void ParseTree::Node::removeChild(uint position)
+{
+	assert(position < _children.size());
+	ParseTree::Node* child = _children[position];
+	assert(child->_parent == this);
+	_children.erase(_children.begin() + position);
+	for(uint i = position; i < _children.size(); ++i)
+		_children[i]->_indexInParent = i;
+	child->_parent = nullptr;
+	child->_indexInParent = 0;
+}
+
+void ParseTree::Node::removeChild(ParseTree::Node* child)
+{
+	assert(child != nullptr);
+	assert(child->_parent == this);
+	auto i = std::find(_children.begin(), _children.end(), child);
+	assert(i != _children.end());
+	_children.erase(i);
+	for(uint i = 0; i < _children.size(); ++i)
+		_children[i]->_indexInParent = i;
+	child->_parent = nullptr;
+	child->_indexInParent = 0;
+}
+
+void ParseTree::Node::swapChild(uint position, ParseTree::Node* newChild)
+{
+	assert(newChild != nullptr);
+	assert(newChild->_parent == nullptr);
+	assert(position < _children.size());
+	_children[position]->_parent = nullptr;
+	_children[position]->_indexInParent = 0;
+	_children[position] = newChild;
+	_children[position]->_parent = this;
+	_children[position]->_indexInParent = position;
+}
+
+void ParseTree::Node::swapChild(ParseTree::Node* currentChild, ParseTree::Node* newChild)
+{
+	assert(currentChild != nullptr);
+	assert(currentChild->_parent == this);
+	assert(newChild != nullptr);
+	assert(newChild->_parent == nullptr);
+	auto i = std::find(_children.begin(), _children.end(), currentChild);
+	assert(i != _children.end());
+	*i = newChild;
+	newChild->_parent = this;
+	newChild->_indexInParent = i - _children.begin();
+	currentChild->_parent = nullptr;
+	currentChild->_indexInParent = 0;
+}
+
 bool ParseTree::Node::validate() const
 {
 	if(parent() && parent()->child(_indexInParent) != this)
@@ -172,6 +237,35 @@ bool ParseTree::Statement::isInline() const
 	if(!parent())
 		return false;
 	return !parent()->isA<Scope>();
+}
+
+ParseTree::Scope* ParseTree::Statement::associatedScope(bool create)
+{
+	if(!create) {
+		if(isInline())
+			return nullptr;
+		if(parent() == nullptr)
+			return nullptr;
+		if(!parent()->isA<ParseTree::Scope>())
+			return nullptr;
+	}
+	assert(!isInline());
+	assert(parent() != nullptr);
+	assert(parent()->isA<ParseTree::Scope>());
+	
+	// Check if there already is an associated scope
+	if(nextSibbling() != nullptr)
+		if(nextSibbling()->isA<ParseTree::Scope>())
+			return nextSibbling()->to<ParseTree::Scope>();
+	if(!create)
+		return nullptr;
+	
+	// Create one
+	ParseTree::Scope* scope = new ParseTree::Scope;
+	ParseTree::Scope* parent = _parent->to<ParseTree::Scope>();
+	parent->insertAfter(this, scope);
+	assert(scope->associatedStatement() == this);
+	return scope;
 }
 
 void ParseTree::Statement::print(std::wostream& out, uint indentation) const
@@ -238,4 +332,16 @@ std::vector<ParseTree::Node*> ParseTree::Statement::in() const
 		result.push_back(child);
 	}
 	return result;
+}
+
+void ParseTree::IdentifierVisible::print(std::wostream& out, uint indentation) const
+{
+	assert(_identifier);
+	out << L"→" << _identifier->name();
+}
+
+void ParseTree::IdentifierLookup::print(std::wostream& out, uint indentation) const
+{
+	assert(_identifier);
+	out << L"←" << _identifier->name();
 }

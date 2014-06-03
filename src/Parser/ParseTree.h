@@ -18,6 +18,8 @@ public:
 	class Identifier;
 	class Constant;
 	class Proposition;
+	class IdentifierVisible;
+	class IdentifierLookup;
 	
 	const Scope* top() const { return _top; }
 	Scope* top() { return _top; }
@@ -54,6 +56,12 @@ public:
 	
 	void appendChild(Node* child);
 	void insertChild(Node* child, uint position);
+	void insertBefore(Node* child, Node* newChild);
+	void insertAfter(Node* child, Node* newChild);
+	void removeChild(Node* child);
+	void removeChild(uint position);
+	void swapChild(Node* currentChild, Node* newChild);
+	void swapChild(uint position, Node* newChild);
 	
 	Scope* enclosingScope() const;
 	
@@ -96,7 +104,7 @@ public:
 	bool outbound() const { return _outbound; }
 	bool inbound() const { return !_outbound; }
 	Identifier& setOutbound() { _outbound = true; return *this; }
-	Identifier& setInbound() { _outbound = true; return *this; }
+	Identifier& setInbound() { _outbound = false; return *this; }
 	
 	Identifier* bindingSite() const { return _bindingSite; }
 	Identifier& bindingSite(Identifier* value) { _bindingSite = value; return *this; }
@@ -150,7 +158,6 @@ public:
 	Statement(): _type(NodeType::Call) { }
 	virtual ~Statement() { }
 	
-	
 	NodeType type() const { return _type; }
 	Statement& type(NodeType value) { _type = value; return *this; }
 	
@@ -162,10 +169,40 @@ public:
 	
 	bool isInline() const;
 	
+	Scope* associatedScope(bool create = false);
+	
 	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 private:
 	NodeType _type;
+};
+
+class ParseTree::IdentifierVisible: public Node
+{
+public:
+	IdentifierVisible(Identifier* identifier): _identifier(identifier) { }
+	virtual ~IdentifierVisible() { }
+	
+	Identifier* identifier() const { return _identifier; }
+	
+	virtual void print(std::wostream& out, uint indentation = 0) const;
+	
+private:
+	Identifier* _identifier;
+};
+
+class ParseTree::IdentifierLookup: public Node
+{
+public:
+	IdentifierLookup(Identifier* identifier): _identifier(identifier) { }
+	virtual ~IdentifierLookup() { }
+	
+	Identifier* identifier() const { return _identifier; }
+	
+	virtual void print(std::wostream& out, uint indentation = 0) const;
+	
+private:
+	Identifier* _identifier;
 };
 
 inline std::wostream& operator<<(std::wostream& out, const ParseTree::Node& node)

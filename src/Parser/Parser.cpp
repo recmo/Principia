@@ -192,7 +192,7 @@ ParseTree::Statement* Parser::parseInlineStatement()
 	
 	// Parse the out identifiers
 	while(token() == TokenIdentifier || token() == TokenBracketValue) {
-		// parseIdentifier will work on TokenBracketValue as well
+		// parseIdentifier will also work on TokenBracketValue
 		statement->addOut(parseIdentifier());
 		readNext();
 	}
@@ -221,7 +221,6 @@ ParseTree::Identifier* Parser::parseIdentifier()
 	ParseTree::Identifier* id = new ParseTree::Identifier;
 	id->source(source(true));
 	id->name(lexeme());
-	wcout << id->name() << endl;
 	return id;
 }
 

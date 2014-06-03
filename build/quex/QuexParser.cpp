@@ -12901,10 +12901,11 @@ TERMINAL_353:
 __QUEX_IF_COUNT_COLUMNS_ADD(1);
     {
 #   line 84 "src/Parser/QuexParser.qx"
+    QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenBracketValue);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12908 "QuexParser.cpp"
+#   line 12909 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12919,7 +12920,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(LexemeL);
     self_send(TokenIdentifier);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12923 "QuexParser.cpp"
+#   line 12924 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12934,7 +12935,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(LexemeL);
     self_send(TokenNumber);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12938 "QuexParser.cpp"
+#   line 12939 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12947,7 +12948,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(1);
 #   line 87 "src/Parser/QuexParser.qx"
     QUEX_NAME(push_mode)(&self, &Quotation);QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12951 "QuexParser.cpp"
+#   line 12952 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12962,7 +12963,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(1);
     self_send(TokenFailure);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12966 "QuexParser.cpp"
+#   line 12967 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -12977,7 +12978,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(1);
     self_send(TokenIdentifier);
     QUEX_SETTING_AFTER_SEND_CONTINUE_OR_RETURN();
     
-#   line 12981 "QuexParser.cpp"
+#   line 12982 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13002,7 +13003,7 @@ _490: /* TERMINAL: FAILURE */
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     
-#   line 13006 "QuexParser.cpp"
+#   line 13007 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION_2;
@@ -13017,7 +13018,7 @@ __QUEX_IF_COUNT_SHIFT_VALUES();
 #   line 95 "src/Parser/QuexParser.qx"
     self_send(TokenEndOfStream);
     
-#   line 13021 "QuexParser.cpp"
+#   line 13022 "QuexParser.cpp"
 
     }
     /* End of Stream causes a return from the lexical analyzer, so that no
@@ -13364,7 +13365,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(1);
 #   line 111 "src/Parser/QuexParser.qx"
         ++self.quote_depth; self_accumulator_add(LexemeBegin, LexemeEnd);
     
-#   line 13368 "QuexParser.cpp"
+#   line 13369 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13380,7 +13381,7 @@ __QUEX_IF_COUNT_COLUMNS_ADD(1);
         else self_accumulator_add(LexemeBegin, LexemeEnd);
     
     
-#   line 13384 "QuexParser.cpp"
+#   line 13385 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13395,7 +13396,7 @@ TERMINAL_361:
         self_accumulator_add(Lexeme, LexemeEnd);
     
     
-#   line 13399 "QuexParser.cpp"
+#   line 13400 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION;
@@ -13420,7 +13421,7 @@ _490: /* TERMINAL: FAILURE */
     QUEX_NAME_TOKEN(take_text)(self_write_token_p(), &self, self.buffer._lexeme_start_p, self.buffer._input_p);
     self_send(TokenFailure);
     
-#   line 13424 "QuexParser.cpp"
+#   line 13425 "QuexParser.cpp"
 
     }
     goto __REENTRY_PREPARATION_2;

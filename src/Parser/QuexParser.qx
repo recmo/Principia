@@ -81,7 +81,7 @@ mode Program: <indentation: "\t" => space 1; {Newline} => newline;>
 	{Therefore}      => TokenTherefore;
 	{BracketOpen}    => TokenBracketOpen;
 	{BracketClose}   => TokenBracketClose;
-	{BracketValue}   => TokenBracketValue;
+	{BracketValue}   => TokenBracketValue(Lexeme);
 	{Identifier}     => TokenIdentifier(Lexeme);
 	{Number}         => TokenNumber(Lexeme);
 	{QuoteOpen}      => GOSUB(Quotation);

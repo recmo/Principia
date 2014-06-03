@@ -9,6 +9,9 @@
 #include "Parser/IdentifierBinder.h"
 #include "Parser/DataFlowGraphCompiler.h"
 #include "Parser/MetaMath/MetaMathParser.h"
+#include "Parser/StatementUninliner.h"
+#include "Parser/ImplicitOutputAdder.h"
+#include "Parser/IdentifierScoper.h"
 #include "Passes/DotFileWriter.h"
 #include "Passes/ClosureCloser.h"
 #include "Passes/ConstantClosure.h"
@@ -198,8 +201,8 @@ sint32 Main(const vector<string>& args)
 	//return 0;
 	
 	wcerr << endl;
-	if(args.size() < 3) {
-		wcerr << "Usage: proglang source_file function [arguments]*" << endl;
+	if(args.size() < 1) {
+		wcerr << "Usage: proglang source_file [function [arguments]*]" << endl;
 		throw std::runtime_error("Not enough arguments.");
 	}
 	
@@ -207,16 +210,56 @@ sint32 Main(const vector<string>& args)
 	wcerr << L"Parsing file…" << flush;
 	Parser parser;
 	parser.parse(args[1]);
+	ParseTree* tree = parser.tree();
+	assert(tree->validate());
 	wcerr << endl;
 	
-	// Fetch the parse tree
-	ParseTree* tree = parser.tree();
+	wcout << "----------------------------" << endl;
+	tree->print(wcout);
+	wcout << "----------------------------" << endl;
+	
+	// Add implicit outputs
+	wcerr << L"Adding implicit outputs…" << flush;
+	ImplicitOutputAdder implicitOutputAdder(tree);
+	implicitOutputAdder.addImplicitOutputs();
+	assert(tree->validate());
+	wcerr << endl;
+	
+	wcout << "----------------------------" << endl;
+	tree->print(wcout);
+	wcout << "----------------------------" << endl;
+	
+	// Uninline inline statements
+	wcerr << L"Uninlining statements…" << flush;
+	StatementUninliner statementUninliner(tree);
+	statementUninliner.uninline();
+	assert(tree->validate());
+	wcerr << endl;
+	
+	wcout << "----------------------------" << endl;
+	tree->print(wcout);
+	wcout << "----------------------------" << endl;
+	
+	// Uninline inline statements
+	wcerr << L"Scope the identifiers…" << flush;
+	IdentifierScoper identifierScoper(tree);
+	identifierScoper.scope();
+	assert(tree->validate());
+	wcerr << endl;
+	
+	wcout << "----------------------------" << endl;
+	tree->print(wcout);
+	wcout << "----------------------------" << endl;
 	
 	// Bind the identifiers
 	wcerr << L"Binding identifiers…" << flush;
 	IdentifierBinder ib(tree);
 	ib.bind();
 	wcerr << endl;
+	
+	wcout << "----------------------------" << endl;
+	tree->print(wcout);
+	wcout << "----------------------------" << endl;
 	
 	//tree->uniqueifyNames();
 	//tree->print(wcerr);

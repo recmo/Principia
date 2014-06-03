@@ -4,5 +4,6 @@
 callgrind.out.*
 proglang
 proglang.debug
-.kdev*
+*.kdev*
+Principia
 

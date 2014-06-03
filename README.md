@@ -78,28 +78,6 @@ Statements can be scoped by
 		statement₅
 		⋮
 
-	out₁ out₂  … statement_kind₁ in₁ in₂ …
-		out₃ out₄  … statement_kind₂ in₃ in₄ …
-
-	func out₁ out₂ ↦ in₁ in₂
-		<body>
-
-	+func
-		+out₁
-		+out₂
-		<body>
-		-in₁
-		-in₂
-
-	out₁ out₂ ≔ func in₁ in₂
-		<body>
-
-		<body>
-		-func
-		-in₁
-		-in₂
-	+out₁
-	+out₂
 
 	… (out₁ · out₃  … statement_kind (a ↦ b) in₂ …) (≔ f out₃) out₁ …
 
@@ -108,6 +86,31 @@ Statements can be scoped by
 			tmp a ↦ b
 		d2 ≔ f out₃
 
+
+
+	func out₁ out₂ ↦ in₁ in₂
+		<body>
+
+	→func
+	func out₁ out₂ ↦ in₁ in₂
+		→out₁
+		→out₂
+		<body>
+		←in₁
+		←in₂
+
+
+
+	out₁ out₂ ≔ func in₁ in₂
+		<body>
+
+	out₁ out₂ ≔ func in₁ in₂
+		<body>
+		←func
+		←in₁
+		←in₂
+	→out₁
+	→out₂
 
 - If statement_kind₁ is a ↦, out₁ is visible to the root scope, all are visible
   in the nested scope. in₁ and in₂ are resolved at the end of the nested scope.

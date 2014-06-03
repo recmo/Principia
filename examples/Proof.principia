@@ -1,0 +1,55 @@
+
+c ↦ “Define Boolean as a property on a type”
+
+Boolean φ ↦ 0
+
+C φ ψ ↦ χ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
+	⊨ (≔ Boolean x)
+	∴ (≔ Boolean x)
+
+ax1 φ ψ ↦ χ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
+	χ  ≔ C φ (≔ C ψ φ)
+	⊨ χ
+	∴ (≔ Boolean χ)
+	∴ χ
+
+ax2 φ ψ χ ↦ η
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
+	∵ (≔ Boolean χ)
+	η ≔ C (≔ C φ (≔ C ψ χ)) (≔ C (≔ C φ ψ) (≔ C φ χ) )
+	⊨ η
+	∴ (≔ Boolean η)
+	∴ η
+
+ax3 φ ψ ↦ ψ
+	∵ (≔ Boolean φ)
+	∵ (≔ Boolean ψ)
+	∵ φ
+	∵ (≔ C φ ψ)
+	⊨ ψ
+	∴ (≔ Boolean ψ)
+	∴ ψ
+
+th1 φ ↦ ψ
+	∵ (≔ Boolean φ)
+	ψ ≔ C φ φ
+	a ≔ ax1 φ φ
+		⊢ (≔ C φ ψ)
+	b ≔ ax1 φ ψ
+		⊢ (≔ C φ (≔ C ψ φ))
+	c ≔ ax2 φ ψ φ
+		⊢ (≔ C (≔ C φ (≔ C ψ φ)) (≔ C (≔ C φ ψ) ψ))
+		⊢ (≔ C b (≔ C a ψ))
+	d ≔ ax3 b (≔ C a ψ)
+		⊢ (≔ C a ψ)
+	e ≔ ax3 a ψ
+		⊢ (≔ Boolean e)
+		⊢ e
+	∴ (≔ Boolean e)
+	∴ e
+

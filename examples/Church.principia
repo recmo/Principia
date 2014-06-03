@@ -5,7 +5,7 @@ true then else ↦ then
 false then else ↦ else
 
 comment ↦ “Now we can implement:”
-if condition value_if_true value_if_false ↦ result
+cif condition value_if_true value_if_false ↦ result
 	result ≔ condition value_if_true value_if_false
 
 not a ↦ (t f ↦ (≔ a f t))

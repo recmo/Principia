@@ -8,7 +8,7 @@
 #include <Passes/Builtins.h>
 #include <Verifier/PropositionProperty.h>
 
-#define debug true
+#define debug false
 
 DataFlowGraphCompiler::DataFlowGraphCompiler(ParseTree* parseTree)
 : _parseTree(parseTree)

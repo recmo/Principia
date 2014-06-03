@@ -214,9 +214,12 @@ sint32 Main(const vector<string>& args)
 	assert(tree->validate());
 	wcerr << endl;
 	
-	wcout << "----------------------------" << endl;
-	tree->print(wcout);
-	wcout << "----------------------------" << endl;
+	const bool parseDebug = false;
+	if(parseDebug) {
+		wcout << "----------------------------" << endl;
+		tree->print(wcout);
+		wcout << "----------------------------" << endl;
+	}
 	
 	// Add implicit outputs
 	wcerr << L"Adding implicit outputs…" << flush;
@@ -225,9 +228,11 @@ sint32 Main(const vector<string>& args)
 	assert(tree->validate());
 	wcerr << endl;
 	
-	wcout << "----------------------------" << endl;
-	tree->print(wcout);
-	wcout << "----------------------------" << endl;
+	if(parseDebug) {
+		wcout << "----------------------------" << endl;
+		tree->print(wcout);
+		wcout << "----------------------------" << endl;
+	}
 	
 	// Uninline inline statements
 	wcerr << L"Uninlining statements…" << flush;
@@ -236,9 +241,11 @@ sint32 Main(const vector<string>& args)
 	assert(tree->validate());
 	wcerr << endl;
 	
-	wcout << "----------------------------" << endl;
-	tree->print(wcout);
-	wcout << "----------------------------" << endl;
+	if(parseDebug) {
+		wcout << "----------------------------" << endl;
+		tree->print(wcout);
+		wcout << "----------------------------" << endl;
+	}
 	
 	// Uninline inline statements
 	wcerr << L"Scope the identifiers…" << flush;
@@ -247,9 +254,11 @@ sint32 Main(const vector<string>& args)
 	assert(tree->validate());
 	wcerr << endl;
 	
-	wcout << "----------------------------" << endl;
-	tree->print(wcout);
-	wcout << "----------------------------" << endl;
+	if(parseDebug) {
+		wcout << "----------------------------" << endl;
+		tree->print(wcout);
+		wcout << "----------------------------" << endl;
+	}
 	
 	// Bind the identifiers
 	wcerr << L"Binding identifiers…" << flush;
@@ -257,12 +266,11 @@ sint32 Main(const vector<string>& args)
 	ib.bind();
 	wcerr << endl;
 	
-	wcout << "----------------------------" << endl;
-	tree->print(wcout);
-	wcout << "----------------------------" << endl;
-	
-	//tree->uniqueifyNames();
-	//tree->print(wcerr);
+	if(parseDebug) {
+		wcout << "----------------------------" << endl;
+		tree->print(wcout);
+		wcout << "----------------------------" << endl;
+	}
 	
 	// Compile to a data flow graph
 	wcerr << L"Compiling data flow graph…" << flush;
@@ -285,14 +293,14 @@ sint32 Main(const vector<string>& args)
 	// - Take the DFG
 	// - Remove first out of closures
 	// - Contract Edges and Calls
-	// - Verify that the resulting graph is a tree
+	// - Verify that the resulting graph is a tree (closure tree?)
 	// - For each leaf:
 	//   - Take the strongly connected component containing the closure
 	//   - Verify that all cycles go through the closure
 	//   - Contract the strongly connected component to  
 	
 	// Validate
-	if(false) {
+	if(false) { /// @TODO
 		wcerr << L"Validating structure…" << flush;
 		Validator validator(dfg);
 		validator.validate();
@@ -302,7 +310,7 @@ sint32 Main(const vector<string>& args)
 	
 	// Close over closures
 	// Create constant closures
-	// Repeat untill fixed point
+	// Repeat until fixed point
 	ClosureCloser ll(dfg);
 	ConstantClosure cclosure(dfg);
 	ConstantCall ccall(dfg);
@@ -315,9 +323,10 @@ sint32 Main(const vector<string>& args)
 		cclosure.anotateClosures();
 		wcerr << endl;
 		
-		//wcerr << L"Constant call creation…" << flush;
+		wcerr << L"Constant call creation…" << flush;
+		/// @TODO: BUG
 		//ccall.anotateCalls();
-		//wcerr << endl;
+		wcerr << endl;
 		
 	} while (!(ll.fixedPoint() && cclosure.fixedPoint() && ccall.fixedPoint()));
 	
@@ -394,4 +403,3 @@ sint32 Main(const vector<string>& args)
 	
 	return 0;
 }
-

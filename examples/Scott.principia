@@ -3,7 +3,6 @@ title ↦ “Mogensen-Scott encoding”
 c↦“
 http://www.berniepope.id.au/docs/scott_encoding.txt
 
-
 C₁ x₁ x₂ ↦ (c₁ c₂ ↦ (≔ c₁ x₁ x₂))
 C₂ ↦ (c₁ c₂ ↦ (≔ c₂))
 …

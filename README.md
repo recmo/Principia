@@ -145,6 +145,20 @@ For the purposes of binding identifiers, the inline statement is considered to b
 
 **TODO:** Why limit `·` to outbounds, what happens if we allow inline statements to be used as *inbounds*?
 
+**TODO:** We can make it even more consise by defining […] and {…} to mean
+(≔ …) and (↦ …) respectively. Than we can write
+
+funcs k ↦ a b
+	a n ↦ (≔(≔ if n (↦ (≔ b (≔ sub n k))) (↦ 2)))
+	b n ↦ (≔(≔ if n (↦ (≔ a (≔ sub n k))) (↦ 3)))
+
+as
+
+	funcs k ↦ a b
+		a n ↦ [[if n {[b [sub n k]]} {2}]]
+		b n ↦ [[if n {[a [sub n k]]} {3}]]
+
+
 ### Binding rules (advanced)
 
 **To be written**

@@ -15,4 +15,3 @@ test k n ↦ r
 	A B ≔ funcs k
 	r ≔ A n
 
-

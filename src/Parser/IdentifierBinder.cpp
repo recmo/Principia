@@ -1,4 +1,5 @@
 #include "IdentifierBinder.h"
+#include <Passes/Builtins.h>
 
 #define debug true
 
@@ -23,6 +24,10 @@ void IdentifierBinder::bind(ParseTree::IdentifierLookup* lookup)
 	assert(lookup->identifier()->inbound());
 	auto visible = find(lookup->identifier()->name(), lookup);
 	if(visible == nullptr) {
+		// Check builtins
+		if(contains(builtins, lookup->identifier()->name())) {
+			return;
+		}
 		wcerr << "Could not find symbol: " << lookup->identifier()->name() << endl;
 		return;
 	}

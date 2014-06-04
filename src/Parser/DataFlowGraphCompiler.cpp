@@ -8,7 +8,7 @@
 #include <Passes/Builtins.h>
 #include <Verifier/PropositionProperty.h>
 
-#define debug false
+#define debug true
 
 DataFlowGraphCompiler::DataFlowGraphCompiler(ParseTree* parseTree)
 : _parseTree(parseTree)
@@ -27,6 +27,7 @@ void DataFlowGraphCompiler::compile()
 	connect(_parseTree->top());
 }
 
+// Declare pass, creates nodes for statements
 void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 {
 	if(node->isA<ParseTree::Statement>()) {
@@ -34,65 +35,33 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 		if(statement->type() == ParseTree::Statement::Call
 			|| statement->type() == ParseTree::Statement::Closure) {
 			
-		
 			if(debug) {
 				wcerr << "DECLARE ";
 				statement->print(wcerr);
 				wcerr << endl;
 			}
 			
-			// Sort inputs and outputs
-			std::vector<ParseTree::Identifier*> outs;
-			std::vector<ParseTree::Node*> ins;
-			bool customOutDot = false;
-			for(ParseTree::Node* child: statement->children()) {
-				if(child->isA<ParseTree::Identifier>()) {
-					ParseTree::Identifier* identifier = child->to<ParseTree::Identifier>();
-					if(identifier->outbound()) {
-						outs.push_back(identifier);
-						if(identifier->name() == L"·")
-							customOutDot = true;
-					} else {
-						ins.push_back(child);
-					}
-				} else {
-					ins.push_back(child);
-				}
-			}
-			if(statement->isInline() && !customOutDot) {
-				ParseTree::Identifier* implicitOut = new ParseTree::Identifier();
-				if(!statement->source().isEmpty())
-					implicitOut->source(statement->source());
-				implicitOut->name(L"·");
-				outs.insert(outs.begin(), implicitOut);
-			}
-			
 			// Create the node
 			NodeType type;
-			if(statement->type() == ParseTree::ParseTree::Statement::Call)
+			if(statement->type() == ParseTree::Statement::Call)
 				type = NodeType::Call;
 			else
 				type = NodeType::Closure;
-			Node* node = new Node(type, ins.size(), outs.size());
+			Node* node = new Node(type, statement->in().size(), statement->out().size());
 			if(!statement->source().isEmpty())
 				node->set(statement->source());
-			Edge* inlineValue = nullptr;
 			uint i = 0;
-			for(ParseTree::Identifier* out: outs) {
+			for(ParseTree::Identifier* out: statement->out()) {
 				node->out(i)->set(IdentifierProperty(out->name()));
 				if(!out->source().isEmpty())
 					node->out(i)->set(out->source());
 				_identifiers[out] = node->out(i);
-				if(statement->isInline() && out->name() == L"·")
-					inlineValue = node->out(i);
 				++i;
 			}
 			
 			// Remember the node
 			_dfg->addNode(node);
 			_declarations[statement] = node;
-			if(inlineValue)
-				_inlineValues[statement] = inlineValue;
 		}
 	}
 	
@@ -127,15 +96,18 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 				wcerr << endl;
 			}
 			
+			assert(statement->out().size() == 0);
+			assert(statement->in().size() == 1);
+			
 			// Find the statement associated with the proposition
 			ParseTree::Scope* scope = statement->enclosingScope();
 			assert(scope);
-			ParseTree::Statement* statement = scope->associatedStatement();
+			ParseTree::Statement* associate = scope->associatedStatement();
 			if(!statement) {
 				wcerr << "No statement associated to scope for proposition " << statement << endl;
 				return;
 			}
-			Node* target = _declarations[statement];
+			Node* target = _declarations[associate];
 			assert(target);
 			Edge* condition = edgeForExpression(statement->firstChild());
 			assert(condition);
@@ -174,13 +146,15 @@ Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
 			edge->set(ConstantProperty(Value(builtins[identifier->name()])));
 			return edge;
 		}
+		
 		wcerr << "Could bind identifier: ";
 		expression->print(wcerr);
 		wcerr << endl;
-		throw L"Could not bind identifier";
-	} else if(expression->isA<ParseTree::Statement>()) {
-		ParseTree::Statement* inlineStatement =  expression->to<ParseTree::Statement>();
-		return _inlineValues[inlineStatement];
+		
+		// Create a source free edge without a constant property
+		Edge* edge = new Edge(nullptr);
+		edge->set(IdentifierProperty(identifier->name()));
+		return edge;
 	} else if(expression->isA<ParseTree::Constant>()) {
 		ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
 		Edge* edge = new Edge(nullptr);

@@ -5,6 +5,12 @@
 
 BuiltinsStatic builtins;
 
+vector<Value> builtin_none(const vector<Value>& arg)
+{
+	vector<Value> ret;
+	return ret;
+}
+
 vector<Value> builtin_if(const vector<Value>& arg)
 {
 	assert(arg.size() == 3);
@@ -290,6 +296,7 @@ vector<Value> compose(const vector<Value>& arg)
 
 BuiltinsStatic::BuiltinsStatic()
 {
+	insert(value_type(L"none", &builtin_none));
 	insert(value_type(L"if", &builtin_if));
 	insert(value_type(L"add", &builtin_add));
 	insert(value_type(L"mul", &builtin_mul));

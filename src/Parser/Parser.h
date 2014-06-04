@@ -32,7 +32,6 @@ private:
 	ParseTree::Statement* parseStatement();
 	ParseTree::Statement* parseInlineStatement();
 	ParseTree::Scope* parseScope();
-	ParseTree::Proposition* parseProposition();
 	ParseTree::Node* parseExpression();
 	ParseTree::Identifier* parseIdentifier();
 	ParseTree::Constant* parseNumber();

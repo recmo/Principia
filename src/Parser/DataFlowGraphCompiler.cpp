@@ -31,59 +31,69 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 {
 	if(node->isA<ParseTree::Statement>()) {
 		ParseTree::Statement* statement = node->to<ParseTree::Statement>();
-		if(debug) {
-			wcerr << "DECLARE ";
-			statement->print(wcerr);
-			wcerr << endl;
-		}
+		if(statement->type() == ParseTree::Statement::Call
+			|| statement->type() == ParseTree::Statement::Closure) {
+			
 		
-		// Sort inputs and outputs
-		std::vector<ParseTree::Identifier*> outs;
-		std::vector<ParseTree::Node*> ins;
-		bool customOutDot = false;
-		for(ParseTree::Node* child: statement->children()) {
-			if(child->isA<ParseTree::Identifier>()) {
-				ParseTree::Identifier* identifier = child->to<ParseTree::Identifier>();
-				if(identifier->outbound()) {
-					outs.push_back(identifier);
-					if(identifier->name() == L"·")
-						customOutDot = true;
+			if(debug) {
+				wcerr << "DECLARE ";
+				statement->print(wcerr);
+				wcerr << endl;
+			}
+			
+			// Sort inputs and outputs
+			std::vector<ParseTree::Identifier*> outs;
+			std::vector<ParseTree::Node*> ins;
+			bool customOutDot = false;
+			for(ParseTree::Node* child: statement->children()) {
+				if(child->isA<ParseTree::Identifier>()) {
+					ParseTree::Identifier* identifier = child->to<ParseTree::Identifier>();
+					if(identifier->outbound()) {
+						outs.push_back(identifier);
+						if(identifier->name() == L"·")
+							customOutDot = true;
+					} else {
+						ins.push_back(child);
+					}
 				} else {
 					ins.push_back(child);
 				}
-			} else {
-				ins.push_back(child);
 			}
-		}
-		if(statement->isInline() && !customOutDot) {
-			ParseTree::Identifier* implicitOut = new ParseTree::Identifier();
+			if(statement->isInline() && !customOutDot) {
+				ParseTree::Identifier* implicitOut = new ParseTree::Identifier();
+				if(!statement->source().isEmpty())
+					implicitOut->source(statement->source());
+				implicitOut->name(L"·");
+				outs.insert(outs.begin(), implicitOut);
+			}
+			
+			// Create the node
+			NodeType type;
+			if(statement->type() == ParseTree::ParseTree::Statement::Call)
+				type = NodeType::Call;
+			else
+				type = NodeType::Closure;
+			Node* node = new Node(type, ins.size(), outs.size());
 			if(!statement->source().isEmpty())
-				implicitOut->source(statement->source());
-			implicitOut->name(L"·");
-			outs.insert(outs.begin(), implicitOut);
+				node->set(statement->source());
+			Edge* inlineValue = nullptr;
+			uint i = 0;
+			for(ParseTree::Identifier* out: outs) {
+				node->out(i)->set(IdentifierProperty(out->name()));
+				if(!out->source().isEmpty())
+					node->out(i)->set(out->source());
+				_identifiers[out] = node->out(i);
+				if(statement->isInline() && out->name() == L"·")
+					inlineValue = node->out(i);
+				++i;
+			}
+			
+			// Remember the node
+			_dfg->addNode(node);
+			_declarations[statement] = node;
+			if(inlineValue)
+				_inlineValues[statement] = inlineValue;
 		}
-		
-		// Create the node
-		Node* node = new Node(statement->type(), ins.size(), outs.size());
-		if(!statement->source().isEmpty())
-			node->set(statement->source());
-		Edge* inlineValue = nullptr;
-		uint i = 0;
-		for(ParseTree::Identifier* out: outs) {
-			node->out(i)->set(IdentifierProperty(out->name()));
-			if(!out->source().isEmpty())
-				node->out(i)->set(out->source());
-			_identifiers[out] = node->out(i);
-			if(statement->isInline() && out->name() == L"·")
-				inlineValue = node->out(i);
-			++i;
-		}
-		
-		// Remember the node
-		_dfg->addNode(node);
-		_declarations[statement] = node;
-		if(inlineValue)
-			_inlineValues[statement] = inlineValue;
 	}
 	
 	// Recurse on the parse tree
@@ -96,48 +106,52 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 	assert(node);
 	if(node->isA<ParseTree::Statement>()) {
 		ParseTree::Statement* statement = node->to<ParseTree::Statement>();
-		if(debug) {
-			wcerr << "CONNECT ";
-			statement->print(wcerr);
-			wcerr << endl;
-		}
 		
-		Node* node = _declarations[statement];
-		for(int i = 0; i < node->in().size(); ++i) {
-			Edge* efe = edgeForExpression(statement->in()[i]);
-			node->connect(i, efe);
+		if(statement->type() == ParseTree::Statement::Call
+		|| statement->type() == ParseTree::Statement::Closure) {
+			if(debug) {
+				wcerr << "CONNECT ";
+				statement->print(wcerr);
+				wcerr << endl;
+			}
+			
+			Node* node = _declarations[statement];
+			for(int i = 0; i < node->in().size(); ++i) {
+				Edge* efe = edgeForExpression(statement->in()[i]);
+				node->connect(i, efe);
+			}
+		} else {
+			if(debug) {
+				wcerr << "PROPOSITION ";
+				statement->print(wcerr);
+				wcerr << endl;
+			}
+			
+			// Find the statement associated with the proposition
+			ParseTree::Scope* scope = statement->enclosingScope();
+			assert(scope);
+			ParseTree::Statement* statement = scope->associatedStatement();
+			if(!statement) {
+				wcerr << "No statement associated to scope for proposition " << statement << endl;
+				return;
+			}
+			Node* target = _declarations[statement];
+			assert(target);
+			Edge* condition = edgeForExpression(statement->firstChild());
+			assert(condition);
+			PropositionProperty pp;
+			if(target->has<PropositionProperty>())
+				pp = target->get<PropositionProperty>();
+			switch(statement->type()) {
+				case ParseTree::Statement::Precondition: pp.precondition(condition); break;
+				case ParseTree::Statement::Axiom: pp.axiom(condition); break;
+				case ParseTree::Statement::Assertion: pp.assertion(condition); break;
+				case ParseTree::Statement::Postcondition: pp.postcondition(condition); break;
+				default:
+					throw L"Unimplement statement type";
+			}
+			target->set(pp);
 		}
-	} else if(node->isA<ParseTree::Proposition>()) {
-		ParseTree::Proposition* proposition = node->to<ParseTree::Proposition>();
-		if(debug) {
-			wcerr << "PROPOSITION ";
-			proposition->print(wcerr);
-			wcerr << endl;
-		}
-		
-		// Find the statement associated with the proposition
-		ParseTree::Scope* scope = proposition->enclosingScope();
-		assert(scope);
-		ParseTree::Statement* statement = scope->associatedStatement();
-		if(!statement) {
-			wcerr << "No statement associated to scope for proposition " << proposition << endl;
-			return;
-		}
-		Node* target = _declarations[statement];
-		assert(target);
-		Edge* condition = edgeForExpression(proposition->firstChild());
-		assert(condition);
-		PropositionProperty pp;
-		if(target->has<PropositionProperty>())
-			pp = target->get<PropositionProperty>();
-		switch(proposition->kind()) {
-		case ParseTree::Proposition::Precondition: pp.precondition(condition); break;
-		case ParseTree::Proposition::Axiom: pp.axiom(condition); break;
-		case ParseTree::Proposition::Assertion: pp.assertion(condition); break;
-		case ParseTree::Proposition::Postcondition: pp.postcondition(condition); break;
-		}
-		target->set(pp);
-		
 	}
 	
 	// Recurse on the parse tree

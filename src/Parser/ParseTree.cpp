@@ -219,19 +219,6 @@ ParseTree::Statement* ParseTree::Scope::associatedStatement() const
 	return prev->to<Statement>();
 }
 
-void ParseTree::Proposition::print(std::wostream& out, uint /*indentation*/) const
-{
-	switch(_kind) {
-	case Precondition: out << L"∵"; break;
-	case Postcondition: out << L"∴"; break;
-	case Axiom: out << L"⊨"; break;
-	case Assertion: out << L"⊢"; break;
-	}
-	out << " ";
-	if(firstChild())
-		firstChild()->print(out);
-}
-
 bool ParseTree::Statement::isInline() const
 {
 	if(!parent())
@@ -275,7 +262,15 @@ void ParseTree::Statement::print(std::wostream& out, uint indentation) const
 	bool outbounds = true;
 	for(Node* child: children()) {
 		if(outbounds && !(child->isA<Identifier>() && child->to<Identifier>()->outbound())) {
-			out << ((_type == NodeType::Call) ? L"≔ " : L"↦ ");
+			switch(_type) {
+				case Call: out << L"≔"; break;
+				case Closure: out << L"↦"; break;
+				case Precondition: out << L"∵"; break;
+				case Postcondition: out << L"∴"; break;
+				case Axiom: out << L"⊨"; break;
+				case Assertion: out << L"⊢"; break;
+			}
+			out << " ";
 			outbounds = false;
 		}
 		child->print(out, indentation);

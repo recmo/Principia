@@ -112,42 +112,17 @@ ParseTree::Scope* Parser::parseScope()
 	case TokenIdentifier:
 	case TokenCall:
 	case TokenClosure:
-		scope->appendChild(parseStatement());
-		continue;
 	case TokenBecause:
 	case TokenAxiom:
 	case TokenProofs:
 	case TokenTherefore:
-		scope->appendChild(parseProposition());
+		scope->appendChild(parseStatement());
 		continue;
 	case TokenBlockEnd: return scope;
 	default: parseFailure(L"scope"); delete scope; return 0;
 	}
 }
 
-ParseTree::Proposition* Parser::parseProposition()
-{
-	ParseTree::Proposition* prop = nullptr;
-	switch(token()) {
-	case TokenBecause: prop = new ParseTree::Proposition(ParseTree::Proposition::Precondition); break;
-	case TokenAxiom: prop = new ParseTree::Proposition(ParseTree::Proposition::Axiom); break;
-	case TokenProofs: prop = new ParseTree::Proposition(ParseTree::Proposition::Assertion); break;
-	case TokenTherefore: prop = new ParseTree::Proposition(ParseTree::Proposition::Postcondition); break;
-	default: parseFailure(L"proposition"); return nullptr;
-	}
-	prop->source(source(false));
-	readNext();
-	switch(token()) {
-	case TokenIdentifier: prop->appendChild(parseIdentifier()); break;
-	case TokenBracketOpen: prop->appendChild(parseInlineStatement()); break;
-	case TokenNumber: prop->appendChild(parseNumber()); break;
-	case TokenQuotation: prop->appendChild(parseQuotation()); break;
-	default:
-		parseFailure(L"proposition condition");
-		return nullptr;
-	}
-	return prop;
-}
 
 ParseTree::Statement* Parser::parseStatement()
 {
@@ -162,9 +137,13 @@ ParseTree::Statement* Parser::parseStatement()
 	
 	// Parse the statement type
 	switch(token()) {
-	case TokenCall: statement->type(NodeType::Call); break;
-	case TokenClosure: statement->type(NodeType::Closure); break;
-	default: parseFailure(L"statement type"); delete statement; return 0;
+		case TokenCall: statement->type(ParseTree::Statement::Call); break;
+		case TokenClosure: statement->type(ParseTree::Statement::Closure); break;
+		case TokenBecause: statement->type(ParseTree::Statement::Precondition); break;
+		case TokenAxiom: statement->type(ParseTree::Statement::Axiom); break;
+		case TokenProofs: statement->type(ParseTree::Statement::Assertion); break;
+		case TokenTherefore: statement->type(ParseTree::Statement::Postcondition); break;
+		default: parseFailure(L"statement type"); delete statement; return 0;
 	}
 	readNext();
 	
@@ -199,9 +178,9 @@ ParseTree::Statement* Parser::parseInlineStatement()
 	
 	// Parse the statement type
 	switch(token()) {
-	case TokenCall: statement->type(NodeType::Call); break;
-	case TokenClosure: statement->type(NodeType::Closure); break;
-	default: parseFailure(L"inline statement type"); delete statement; return nullptr;
+		case TokenCall: statement->type(ParseTree::Statement::Call); break;
+		case TokenClosure: statement->type(ParseTree::Statement::Closure); break;
+		default: parseFailure(L"inline statement type"); delete statement; return nullptr;
 	}
 	readNext();
 	

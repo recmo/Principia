@@ -17,7 +17,6 @@ public:
 	class Scope;
 	class Identifier;
 	class Constant;
-	class Proposition;
 	class IdentifierVisible;
 	class IdentifierLookup;
 	
@@ -132,34 +131,23 @@ private:
 	Value _value;
 };
 
-class ParseTree::Proposition: public Node
+class ParseTree::Statement: public Node
 {
 public:
-	enum Kind {
+	enum Type {
+		Call,
+		Closure,
 		Precondition,
 		Postcondition,
 		Axiom,
 		Assertion
 	};
 	
-	Proposition(Kind kind): _kind(kind) { }
-	virtual ~Proposition() { }
-	virtual void print(std::wostream& out, uint indentation = 0) const;
-	
-	Kind kind() const { return _kind; }
-	
-protected:
-	Kind _kind;
-};
-
-class ParseTree::Statement: public Node
-{
-public:
-	Statement(): _type(NodeType::Call) { }
+	Statement(Type type = Call): _type(type) { }
 	virtual ~Statement() { }
 	
-	NodeType type() const { return _type; }
-	Statement& type(NodeType value) { _type = value; return *this; }
+	Type type() const { return _type; }
+	Statement& type(Type value) { _type = value; return *this; }
 	
 	std::vector<Identifier*> out() const;
 	std::vector<Node*> in() const;
@@ -174,7 +162,7 @@ public:
 	virtual void print(std::wostream& out, uint indentation = 0) const;
 	
 private:
-	NodeType _type;
+	Type _type;
 };
 
 class ParseTree::IdentifierVisible: public Node

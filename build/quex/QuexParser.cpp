@@ -13551,6 +13551,8 @@ __STATE_ROUTER:
      * MODE: Program
      * 
      *     PATTERN-ACTION PAIRS:
+     *       ON_END_OF_STREAM
+     *       ON_FAILURE
      *       (343) Program: {Newline}
      *       (344) Program: {Whitespace}
      *       (345) Program: {Call}
@@ -13567,18 +13569,16 @@ __STATE_ROUTER:
      *       (356) Program: {QuoteOpen}
      *       (357) Program: {QuoteClose}
      *       (358) Program: {Syntax}
-     *       ON_FAILURE
-     *       ON_END_OF_STREAM
      * 
      * 
      * MODE: Quotation
      * 
      *     PATTERN-ACTION PAIRS:
+     *       ON_END_OF_STREAM
+     *       ON_FAILURE
      *       (359) Quotation: {QuoteOpen}
      *       (360) Quotation: {QuoteClose}
      *       (361) Quotation: [:inverse({QuoteOpen},{QuoteClose}):]+
-     *       ON_END_OF_STREAM
-     *       ON_FAILURE
      * 
      * 
      * END: MODE PATTERNS

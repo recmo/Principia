@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Attributes.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Analysis/MemoryBuiltins.h>
-#include <llvm/Analysis/Verifier.h>
 #include <llvm/Analysis/Passes.h>
 #include <llvm/PassManager.h>
 #include <llvm/Support/TargetSelect.h>
@@ -79,7 +79,7 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 void LlvmCompiler::compile()
 {
 	// Declare the functions
-	foreach(const Node* closure, _dfg->nodes()) {
+	for(const Node* closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		
@@ -92,14 +92,14 @@ void LlvmCompiler::compile()
 	}
 	
 	// Build the functions
-	foreach(const Node* closure, _dfg->nodes()) {
+	for(const Node* closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		buildFunctionBody(closure);
 	}
 	
 	// Build wrappers to call from C++
-	foreach(const Node* closure, _dfg->nodes()) {
+	for(const Node* closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		if(!closure->out(0)->has<IdentifierProperty>())
@@ -130,15 +130,14 @@ void LlvmCompiler::compile()
 	mpm.add(llvm::createEarlyCSEPass());
 	mpm.add(llvm::createDeadStoreEliminationPass());
 	mpm.add(llvm::createInstructionCombiningPass());
-	
-	// mpm.add(llvm::createPromoteMemoryToRegisterPass());
-	// mpm.add(llvm::createReassociatePass());
-	// mpm.add(llvm::createScalarReplAggregatesPass());
-	// mpm.add(llvm::createFunctionInliningPass());
-	// mpm.add(llvm::createTailCallEliminationPass());
+	mpm.add(llvm::createPromoteMemoryToRegisterPass());
+	mpm.add(llvm::createReassociatePass());
+	mpm.add(llvm::createScalarReplAggregatesPass());
+	mpm.add(llvm::createFunctionInliningPass());
+	mpm.add(llvm::createTailCallEliminationPass());
 	mpm.run(*_module);
 	
-	if(debug) {
+	if(debug || true) {
 		// Print the result
 		wcerr << endl << endl << "==============================================================================" << endl;
 		_module->dump();
@@ -147,10 +146,9 @@ void LlvmCompiler::compile()
 	
 	// Construct the JIT
 	std::string error;
-	llvm::ExecutionEngine* ee = llvm::EngineBuilder(_module)
+	llvm::ExecutionEngine* ee = llvm::EngineBuilder(std::unique_ptr<llvm::Module>(_module))
 	.setErrorStr(&error)
 	.setEngineKind(llvm::EngineKind::JIT)
-	.setUseMCJIT(true)
 	.setOptLevel(llvm::CodeGenOpt::Aggressive)
 	.create();
 	
@@ -175,7 +173,7 @@ void LlvmCompiler::compile()
 	if(debug)
 		wcerr << "Compiling to native" << endl;
 	ee->finalizeObject();
-	foreach(Node* closure, _dfg->nodes()) {
+	for(Node* closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		if(!closure->out(0)->has<IdentifierProperty>())
@@ -344,7 +342,7 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	}
 	
 	// Construct the function body
-	foreach(const StackMachineProperty::Instruction* instruction, closureNode->get<StackMachineProperty>().instructions())
+	for(const StackMachineProperty::Instruction* instruction: closureNode->get<StackMachineProperty>().instructions())
 		buildInstruction(instruction);
 }
 

@@ -12,7 +12,6 @@
 #include<iterator>
 #include<algorithm>
 #include<typeinfo>
-#include<boost/foreach.hpp>
 
 /// @brief Assert implementation that throws exceptions
 #define DEBUG
@@ -21,24 +20,6 @@
 #else
 #define assert(expr) ;
 #endif
-
-/// @brief Foreach implementation using boost
-#define foreach BOOST_FOREACH
-/*
-/// Given a STL style collection with begin() and end()
-/// and a variable name var it will itterate trough all
-/// items and set var to each item, as a value.
-/// Additionally the current itterator and current numerical
-/// index can be accessed at var_itterator and var_index.
-/// No nonexisting itterators are dereferenced
-/// The expression collection is evaluated only once
-/// begin() and end() are called only once
-/// Does not break case lables since there are no local vars
-/// Supports break and continue statements
-/// All overhead easily optimized away
-/// Requires "auto"
-// #define foreach(var, collection) for(auto var##_collection = collection, var##_begin = var##_collection.begin(), var##_end = var##_collection.end(), var##_itterator = var##_begin, var##_outer_run = true; var##_outer_run; var##_outer_run = false) if(var##_itterator != var##_end) for(auto var = *var##_itterator, var##_index = 0; var##_itterator != var##_end; var = (++var##_itterator != var##_end) ? *var##_itterator : var, ++var##_index)
-*/
 
 /// @brief Define a zero pointer
 #define null 0
@@ -166,7 +147,7 @@ bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
 template<class T>
 void insertUnion(set<T>& target, const set<T>& insert)
 {
-	foreach(T element, insert)
+	for(T element: insert)
 		target.insert(element);
 }
 
@@ -181,7 +162,7 @@ template<class T>
 set<T> intersection(const set<T>& a, const set<T>& b)
 {
 	set<T> i;
-	foreach(T e, a)
+	for(T e: a)
 		if(contains<T>(b, e))
 			i.insert(e);
 	return i;
@@ -191,7 +172,7 @@ template<class T>
 set<T> setMinus(const set<T>& a, const set<T>& b)
 {
 	set<T> i;
-	foreach(T e, a)
+	for(T e: a)
 		if(!contains<T>(b, e))
 			i.insert(e);
 	return i;

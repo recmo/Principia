@@ -10,7 +10,7 @@
 void ConstantClosure::anotateClosures()
 {
 	_fixedPoint = true;
-	foreach(Node* node, _dfg->nodes()) {
+	for(Node* node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		if(!node->has<ClosureProperty>())
@@ -48,7 +48,7 @@ bool ConstantClosure::isRecursiveClosure(vector<Node*>& seen, Node* current)
 	if(!current->has<ClosureProperty>())
 		return false;
 	seen.push_back(current);
-	foreach(const Edge* edge, current->get<ClosureProperty>().edges()) {
+	for(const Edge* edge: current->get<ClosureProperty>().edges()) {
 		Node* source = edge->source();
 		if(!source)
 			continue;

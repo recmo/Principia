@@ -12,7 +12,7 @@
 void ClosureCloser::anotateClosures()
 {
 	_fixedPoint = true;
-	foreach(Node* node, _dfg->nodes()) {
+	for(Node* node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		anotateClosure(node);
@@ -27,7 +27,7 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	vector<Node*> internalNodes;
 	internalNodes.push_back(closureNode);
 	for(uint i = 1; i < closureNode->outArity(); ++i) {
-		foreach(Node* sink, closureNode->out(i)->sinks())
+		for(Node* sink: closureNode->out(i)->sinks())
 			recurseOut(sink, &internalNodes);
 	}
 	recurseOut(closureNode, &internalNodes);
@@ -43,8 +43,8 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		
 		// Calculate the direct source nodes
 		vector<Node*> directSources;
-		foreach(Node* lazy, lazySet) {
-			foreach(const Edge* edge, lazy->in()) {
+		for(Node* lazy: lazySet) {
+			for(const Edge* edge: lazy->in()) {
 				if(!edge->source() && edge->has<ConstantProperty>())
 					continue;
 				Node* directSource = edge->source();
@@ -62,7 +62,7 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		}
 		
 		// For each direct source node
-		foreach(Node* direct, directSources) {
+		for(Node* direct: directSources) {
 			
 			if(debug)
 				wcerr << "Considering adding " << direct << " to the lazy list." << endl;
@@ -71,8 +71,8 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 			/// @todo As many call nodes as possible are included, this is not at all lazy,
 			/// but we must try to create closures that are minimal
 			bool abort = false;
-			foreach(const Edge* sink, direct->out()) {
-				foreach(Node* sinkNode, sink->sinks()) {
+			for(const Edge* sink: direct->out()) {
+				for(Node* sinkNode: sink->sinks()) {
 					if(!contains(lazySet, sinkNode)) {
 						if(debug)
 							wcerr << "Result escapes from: " << direct << " through " << sink << " into " << sinkNode << endl;
@@ -97,8 +97,8 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	
 	// Calculate the border
 	vector<const Edge*> border;
-	foreach(Node* lazyNode, lazySet) {
-		foreach(const Edge* in, lazyNode->in()) {
+	for(Node* lazyNode: lazySet) {
+		for(const Edge* in: lazyNode->in()) {
 			if(in->has<ConstantProperty>())
 				continue;
 			assert(in->source());
@@ -119,7 +119,7 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		// Check if they are identical
 		if(oldList.size() == border.size()) {
 			bool same = true;
-			foreach(const Edge* edge, oldList) {
+			for(const Edge* edge: oldList) {
 				if(!contains(border, edge)) {
 					same = false;
 					break;
@@ -143,7 +143,7 @@ void ClosureCloser::recurseOut(Edge* edge, vector<Edge*>* edges)
 	if(contains(*edges, edge))
 		return;
 	edges->push_back(edge);
-	foreach(Node* node, edge->sinks())
+	for(Node* node: edge->sinks())
 		recurseOut(node, edges);
 }
 
@@ -159,7 +159,7 @@ void ClosureCloser::recurseOut(Node* node, vector<Node*>* nodes)
 		return;
 	nodes->push_back(node);
 	for(uint i = 0; i < node->outArity(); ++i) {
-		foreach(Node* sink, node->out(i)->sinks())
+		for(Node* sink: node->out(i)->sinks())
 			recurseOut(sink, nodes);
 	}
 }

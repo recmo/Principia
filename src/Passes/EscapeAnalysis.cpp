@@ -6,7 +6,7 @@
 
 void EscapeAnalysis::analyse()
 {
-	foreach(Node* node, _dfg->nodes()) {
+	for(Node* node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		analyse(node);
@@ -15,7 +15,7 @@ void EscapeAnalysis::analyse()
 
 void EscapeAnalysis::analyse(Node* closure)
 {
-	foreach(StackMachineProperty::Instruction* instruction, closure->get<StackMachineProperty>().instructions()) {
+	for(StackMachineProperty::Instruction* instruction: closure->get<StackMachineProperty>().instructions()) {
 		StackMachineProperty::AllocateInstruction* alloc = dynamic_cast<StackMachineProperty::AllocateInstruction*>(instruction);
 		if(!alloc)
 			continue;
@@ -27,7 +27,7 @@ void EscapeAnalysis::analyse(Node* closure)
 		
 		int closureStackPos = indexOf(closure->get<StackMachineProperty>().stack(), allocEdge);
 		bool escapes = false;
-		foreach(StackMachineProperty::Instruction* instruction, closure->get<StackMachineProperty>().instructions()) {
+		for(StackMachineProperty::Instruction* instruction: closure->get<StackMachineProperty>().instructions()) {
 			if(StackMachineProperty::CallInstruction* call = dynamic_cast<StackMachineProperty::CallInstruction*>(instruction)) {
 				/// Anywhere but the first argument (which is the function to be called)
 				/// TODO: Functions returning themselves.
@@ -48,7 +48,7 @@ void EscapeAnalysis::analyse(Node* closure)
 				}
 			}
 			if(StackMachineProperty::ReturnInstruction* ret = dynamic_cast<StackMachineProperty::ReturnInstruction*>(instruction)) {
-				foreach(int stackPos, ret->returns()) {
+				for(int stackPos: ret->returns()) {
 					if(stackPos == closureStackPos) {
 						if(debug)
 							wcerr << "May escape through " << ret << endl;

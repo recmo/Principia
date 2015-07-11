@@ -9,7 +9,7 @@
 
 void StackCompiler::sortClosures()
 {
-	foreach(Node* node, _dfg->nodes()) {
+	for(Node* node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		
@@ -29,14 +29,14 @@ void StackCompiler::sortClosure()
 		wcerr << endl << L"Compiling closure " << _closure << endl;
 	
 	// Initialize the stack with the closure and the arguments
-	foreach(const Edge* edge, _closure->get<ClosureProperty>().edges())
+	for(const Edge* edge: _closure->get<ClosureProperty>().edges())
 		_stack.push_back(edge);
 	for(uint i = 1; i < _closure->outArity(); ++i)
 		_stack.push_back(_closure->out(i));
 	
 	// Start from the returns
 	StackMachineProperty::ReturnInstruction* returnInst = new StackMachineProperty::ReturnInstruction(_closure);
-	foreach(const Edge* edge, _closure->in()) {
+	for(const Edge* edge: _closure->in()) {
 		if(edge->has<ConstantProperty>()) {
 			returnInst->addReturnValue(-1);
 			continue;
@@ -93,7 +93,7 @@ void StackCompiler::sortClosureNode(Node* node)
 	
 	// Recurse on the sources
 	int i = 0;
-	foreach(const Edge* edge, sources) {
+	for(const Edge* edge: sources) {
 		int valueIndex = -1;
 		if(!edge->has<ConstantProperty>()) {
 			if(!contains(_stack, edge))
@@ -117,7 +117,7 @@ void StackCompiler::sortClosureNode(Node* node)
 		_order.push_back(call);
 		
 		// Pass all the returns on the stack
-		foreach(const Edge* edge, node->out())
+		for(const Edge* edge: node->out())
 			_stack.push_back(edge);
 	}
 }

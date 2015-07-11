@@ -34,16 +34,16 @@ vector<Value> NativeProperty::call(const vector<Value>& closure, const vector<Va
 	assert(closure.size() == _numClosure);
 	assert(inputs.size() == _numInputs);
 	vector<int64_t> closureVec;
-	foreach(const Value& value, closure)
+	for(const Value& value: closure)
 		closureVec.push_back(value.integer());
 	vector<int64_t> inputVec;
-	foreach(const Value& value, inputs)
+	for(const Value& value: inputs)
 		inputVec.push_back(value.integer());
 	vector<int64_t> outputVec;
 	outputVec.resize(_numOutputs);
 	_function(0, inputVec.data(), outputVec.data());
 	vector<Value> outputs;
-	foreach(int64_t value, outputVec)
+	for(int64_t value: outputVec)
 		outputs.push_back(value);
 	return outputs;
 }

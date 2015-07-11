@@ -1,5 +1,6 @@
 #include <Parser/ParseTree.h>
 #include <algorithm>
+#include <functional>
 
 ParseTree::ParseTree()
 : _top(new Scope)

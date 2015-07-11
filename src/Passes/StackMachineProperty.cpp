@@ -9,20 +9,20 @@ StackMachineProperty::StackMachineProperty(const StackMachineProperty& copy)
 , _stack(copy._stack)
 , _instructions()
 {
-	foreach(Instruction* instruction, copy._instructions)
+	for(Instruction* instruction: copy._instructions)
 		_instructions.push_back(instruction->clone());
 }
 
 StackMachineProperty::~StackMachineProperty()
 {
-	foreach(Instruction* instruction, _instructions)
+	for(Instruction* instruction: _instructions)
 		delete instruction;
 }
 
 void StackMachineProperty::print(std::wostream& out) const
 {
 	out << L"Stack: " << _stack << endl;
-	foreach(Instruction* instruction, _instructions)
+	for(Instruction* instruction: _instructions)
 		instruction->print(out);
 }
 

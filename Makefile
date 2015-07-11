@@ -8,12 +8,12 @@ parsers := $(shell find -wholename './src/*.qx')
 finddeps := clang++ -I. -Isrc -MM -MP
 
 # C++11 Compiler
-compiler := clang++ -std=c++11 -g -fsanitize=address
+compiler := clang++ -std=c++11
 compiler := ${compiler} -Wall -Wextra -Wno-unused-parameter -Werror=return-type -Werror=switch
 compiler := ${compiler} -Ibuild/quex -Isrc -Ibuild/resources
 
 # Linker
-linker := clang++ -fsanitize=address
+linker := clang++
 libs :=
 
 # LLVM library support

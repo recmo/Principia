@@ -22,6 +22,7 @@ compiler := ${compiler} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 finddeps := ${finddeps} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 linker := ${linker} $(shell llvm-config --ldflags)  -L$(shell llvm-config --libdir)
 libs :=  ${libs} $(shell llvm-config --libs all core analysis mcjit native)
+libs :=  ${libs} $(shell llvm-config --system-libs)
 
 # Queχ
 quex := quex

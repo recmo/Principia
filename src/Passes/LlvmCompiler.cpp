@@ -39,7 +39,7 @@ std::wostream& operator<<(std::wostream& out, const llvm::StringRef& string)
 
 std::wostream& operator<<(std::wostream& out, const llvm::Twine& string)
 {
-	out << string.str().data();
+	out << string;
 	return out;
 }
 
@@ -137,7 +137,7 @@ void LlvmCompiler::compile()
 	mpm.add(llvm::createTailCallEliminationPass());
 	mpm.run(*_module);
 	
-	if(debug || true) {
+	if(debug) {
 		// Print the result
 		wcerr << endl << endl << "==============================================================================" << endl;
 		_module->dump();

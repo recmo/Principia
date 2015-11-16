@@ -22,10 +22,14 @@ Node::Node(NodeType type, int incommingArity, int outgoingArity)
 
 Node::~Node()
 {
-	for(Edge* incomming: _incomming)
+	for(Edge* incomming: _incomming) {
+		assert(incomming != nullptr);
 		incomming->delSink(this);
-	for(Edge* outgoing: _outgoing)
+	}
+	for(Edge* outgoing: _outgoing) {
+		assert(outgoing != nullptr);
 		delete outgoing;
+	}
 }
 
 void Node::forgetEdge(const Edge* edge)

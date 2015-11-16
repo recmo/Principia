@@ -3,6 +3,21 @@
 #include "Passes/Builtins.h"
 #include "Closure.h"
 
+bool Value::operator==(const Value& other) const
+{
+	if(kind != other.kind)
+		return false;
+	switch(kind) {
+		case Value::None: return true;
+		case Value::Function: throw runtime_error(L"Unimplemented");
+		case Value::Integer: return integer() == other.integer();
+		case Value::Real: return real() == other.real();
+		case Value::Builtin: throw runtime_error(L"Unimplemented");
+		case Value::String: return stringValue() == other.stringValue();
+		default: throw runtime_error(L"Unimplemented");
+	}
+}
+
 std::wostream& operator<<(std::wostream& out, const Value& value)
 {
 	switch(value.kind) {
@@ -36,3 +51,4 @@ std::wostream& operator<<(std::wostream& out, const Value& value)
 	}
 	return out;
 }
+

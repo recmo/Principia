@@ -1,6 +1,5 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyType.h"
+#include <DFG/PropertyType.h>
 
 class Property
 {

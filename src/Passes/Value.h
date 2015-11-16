@@ -15,6 +15,7 @@ public:
 	Value(const BuiltinFunction value) : kind(Builtin), _builtin(value) {}
 	Value(const string& value) : kind(String), _string(new string(value)) {}
 	
+	bool operator==(const Value& other) const;
 	const Closure* closure() const { assert(kind == Function); return _closure; }
 	sint64 integer() const { assert(kind == Integer); return _integer; }
 	double real() const { assert(kind == Real); return _real; }
@@ -33,8 +34,7 @@ public:
 	Kind kind;
 	
 private:
-	union
-	{
+	union {
 		const Closure* _closure;
 		sint64 _integer;
 		double _real;
@@ -45,4 +45,7 @@ private:
 
 std::wostream& operator<<(std::wostream& out, const Value& value);
 
-
+inline std::ostream& operator<<(std::ostream& out, const Value& value)
+{
+	return out << encodeLocal(toString(value));
+}

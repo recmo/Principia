@@ -2,8 +2,6 @@
 *.d
 *~
 callgrind.out.*
-proglang
-proglang.debug
 *.kdev*
+test
 Principia
-

@@ -34,7 +34,7 @@ const Property* PropertyMap::get(const PropertyType type) const
 {
 	auto it = _propertyMap.find(type);
 	if(it == _propertyMap.end()) {
-		wcerr << "Could not retrieve property " << type.toString() << endl;
+		wcerr << "Could not retrieve property " << type << endl;
 		throw L"Could not retrieve property.";
 	}
 	Property* prop = (*it).second;

@@ -1,19 +1,19 @@
 #include "DFG/PropertyType.h"
 
-string PropertyType::toString() const
+std::wostream& operator<<(std::wostream& out, const PropertyType& propertyType)
 {
-	switch(value) {
-		case PropertyType::Identifier: return L"Identifier";
-		case PropertyType::Source: return L"Source";
-		case PropertyType::Constant: return L"Constant";
-		case PropertyType::Closure: return L"Closure";
-		case PropertyType::Order: return L"Order";
-		case PropertyType::Stack: return L"Stack";
-		case PropertyType::ReturnStack: return L"ReturnStack";
-		case PropertyType::Native: return L"Native";
-		case PropertyType::StackVM: return L"StackVM";
-		case PropertyType::Escape: return L"Escape";
-		case PropertyType::Proposition: return L"Proposition";
-		default: return L"Illegal value";
+	switch(propertyType) {
+		case PropertyType::Identifier: return out << L"Identifier";
+		case PropertyType::Source: return out << L"Source";
+		case PropertyType::Constant: return out << L"Constant";
+		case PropertyType::Closure: return out << L"Closure";
+		case PropertyType::Order: return out << L"Order";
+		case PropertyType::Stack: return out << L"Stack";
+		case PropertyType::ReturnStack: return out << L"ReturnStack";
+		case PropertyType::Native: return out << L"Native";
+		case PropertyType::StackVM: return out << L"StackVM";
+		case PropertyType::Escape: return out << L"Escape";
+		case PropertyType::Proposition: return out << L"Proposition";
+		default: throw std::domain_error("Illegal enum value.");
 	}
 }

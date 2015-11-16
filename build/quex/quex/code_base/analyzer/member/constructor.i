@@ -116,7 +116,7 @@ QUEX_NAME(construct_istream)(QUEX_TYPE_ANALYZER* me,
                              bool                ByteOrderReversionF   /* = false */)
 {
     if( p_input_stream == NULL )     QUEX_ERROR_EXIT("Error: received NULL as pointer to input stream.");
-    if( p_input_stream == std::cin ) QUEX_ERROR_EXIT(__QUEX_MESSAGE_STDIN_IN_CONSTRUCTOR);
+    if( p_input_stream == &(std::cin) ) QUEX_ERROR_EXIT(__QUEX_MESSAGE_STDIN_IN_CONSTRUCTOR);
     QUEX_NAME(constructor_core)(me, p_input_stream, 
                                 CharacterEncodingName, ByteOrderReversionF, 
                                 0x0,  QUEX_SETTING_BUFFER_SIZE, 0x0);

@@ -1,8 +1,33 @@
 #pragma once
 #include <ostream>
+#include <memory>
 #include <vector>
 #include <set>
 #include <map>
+
+template<class T>
+std::wostream& operator<<(std::wostream& out, const std::unique_ptr<T>& p)
+{
+	if(p == nullptr)
+		return out << L"null";
+	else
+		return out << *p;
+}
+
+template<class T>
+std::wostream& operator<<(std::wostream& out, const std::shared_ptr<T>& p)
+{
+	if(p == nullptr)
+		return out << L"null";
+	else
+		return out << *p;
+}
+
+template<class T>
+std::wostream& operator<<(std::wostream& out, const std::weak_ptr<T>& p)
+{
+	return out << p.lock();
+}
 
 template<class T>
 std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)

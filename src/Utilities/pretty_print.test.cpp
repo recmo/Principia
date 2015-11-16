@@ -8,6 +8,13 @@ using std::set;
 
 SUITE(Utilities) {
 
+TEST(NullPointers)
+{
+	CHECK_EQUAL(string(L"null"), toString(std::unique_ptr<int>()));
+	CHECK_EQUAL(string(L"null"), toString(std::shared_ptr<int>()));
+	CHECK_EQUAL(string(L"null"), toString(std::weak_ptr<int>()));
+}
+
 TEST(EmptyIntVector)
 {
 	const vector<int> test{};

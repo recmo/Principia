@@ -1,6 +1,4 @@
-#include "Passes/NativeProperty.h"
-
-PropertyType NativeProperty::classType = PropertyType::Native;
+#include "NativeProperty.h"
 
 NativeProperty::NativeProperty(NativeProperty::Function function, int numClosure, int numInputs, int numOutputs)
 : _numClosure(numClosure)

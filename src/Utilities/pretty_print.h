@@ -6,8 +6,6 @@
 #include <map>
 #include <typeinfo>
 
-std::wostream& operator<<(std::wostream& out, const std::type_info& p);
-
 template<class T, class D>
 std::wostream& operator<<(std::wostream& out, const std::unique_ptr<T,D>& p)
 {
@@ -76,3 +74,5 @@ std::wostream& operator<<(std::wostream& out, const std::map<K,V,C,A>& v)
 	out << L"}";
 	return out;
 }
+
+std::wostream& operator<<(std::wostream& out, const std::type_info& p);

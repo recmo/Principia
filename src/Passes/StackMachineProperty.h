@@ -1,10 +1,10 @@
 #pragma once
-#include <DFG/Property.h>
+#include <DFG/PropertyMap.h>
 #include <vector>
 class Edge;
 class Node;
 
-class StackMachineProperty: public Property
+class StackMachineProperty: public PropertyMap::Property
 {
 public:
 	class Instruction;
@@ -17,12 +17,7 @@ public:
 	StackMachineProperty(const std::vector<const Edge*>& stack, const std::vector<Instruction*>& order): Property(), _stack(stack), _instructions(order) { }
 	StackMachineProperty(const StackMachineProperty& copy);
 	virtual ~StackMachineProperty();
-	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	virtual StackMachineProperty* clone() const { return new StackMachineProperty(*this); }
-	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out) const override;
 	
 	std::vector<const Edge*>& stack() { return _stack; }
 	void stack(const std::vector<const Edge*>& value) { _stack = value; }

@@ -1,21 +1,14 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyType.h"
-#include "DFG/Property.h"
-#include "Passes/Value.h"
+#include <DFG/PropertyMap.h>
+#include <Passes/Value.h>
 
-class ConstantProperty: public Property
+class ConstantProperty: public PropertyMap::Property
 {
 public:
 	ConstantProperty(const ConstantProperty& copy);
 	ConstantProperty(const Value& value);
 	virtual ~ConstantProperty();
-	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	virtual ConstantProperty* clone() const { return new ConstantProperty(*this); }
-	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out) const  override;
 	
 	const Value& value() const { return _value; }
 	

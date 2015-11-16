@@ -1,7 +1,8 @@
-#include "Parser/SourceProperty.h"
+#include "SourceProperty.h"
+#include <Unicode/convert.h>
 #include <fstream>
 
-PropertyType SourceProperty::classType = PropertyType::Source;
+using std::endl;
 
 SourceProperty::SourceProperty(const SourceProperty& copy)
 : Property(copy)

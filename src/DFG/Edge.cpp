@@ -70,7 +70,11 @@ void Edge::print(std::wostream& out) const
 
 bool Edge::isFunction() const
 {
-	if(has<ConstantProperty>() && get<ConstantProperty>().type() == Value::Builtin)
+	if(has<ConstantProperty>()
+		&& get<ConstantProperty>().value().kind == Value::Builtin) {
 		return true;
-	return _source->type() == NodeType::Closure && _source->outArity() >= 1 && _source->out(0) == this;
+	}
+	return _source->type() == NodeType::Closure
+		&& _source->outArity() >= 1
+		&& _source->out(0) == this;
 }

@@ -1,6 +1,4 @@
-#include "Parser/ConstantProperty.h"
-
-PropertyType ConstantProperty::classType = PropertyType::Constant;
+#include "ConstantProperty.h"
 
 ConstantProperty::ConstantProperty(const Value& value)
 : Property()

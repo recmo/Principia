@@ -1,20 +1,14 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyType.h"
-#include "DFG/Property.h"
+#include <DFG/PropertyMap.h>
+#include <Unicode/string.h>
 
-class IdentifierProperty: public Property
+class IdentifierProperty: public PropertyMap::Property
 {
 public:
 	IdentifierProperty(const IdentifierProperty& copy);
 	IdentifierProperty(const string& identifier);
 	virtual ~IdentifierProperty();
-	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	virtual IdentifierProperty* clone() const { return new IdentifierProperty(*this); }
-	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out) const override;
 	
 	string value() const { return _identifier; }
 	 

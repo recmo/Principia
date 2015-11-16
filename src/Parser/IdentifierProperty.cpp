@@ -1,6 +1,4 @@
-#include "Parser/IdentifierProperty.h"
-
-PropertyType IdentifierProperty::classType = PropertyType::Identifier;
+#include "IdentifierProperty.h"
 
 IdentifierProperty::IdentifierProperty(const IdentifierProperty& copy)
 : Property(copy)

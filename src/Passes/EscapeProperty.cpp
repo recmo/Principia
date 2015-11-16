@@ -1,6 +1,4 @@
-#include <Passes/EscapeProperty.h>
-
-PropertyType EscapeProperty::classType = PropertyType::Escape;
+#include "EscapeProperty.h"
 
 void EscapeProperty::print(std::wostream& out) const
 {

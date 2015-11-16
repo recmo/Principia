@@ -1,8 +1,6 @@
-#include <Passes/StackMachineProperty.h>
+#include "StackMachineProperty.h"
 #include <DFG/Node.h>
 #include <DFG/Edge.h>
-
-PropertyType StackMachineProperty::classType = PropertyType::StackVM;
 
 StackMachineProperty::StackMachineProperty(const StackMachineProperty& copy)
 : Property()

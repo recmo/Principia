@@ -1,4 +1,5 @@
 #pragma once
+#include <Utilities/pretty_print.h>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -13,12 +14,6 @@ std::wstring toString(const T& value)
 	std::wstringstream ss;
 	ss << value;
 	return ss.str();
-}
-
-template<class T>
-std::wstring typeName()
-{
-	return toString(typeid(T));
 }
 
 template<class T>
@@ -44,4 +39,10 @@ T parse(const std::wstring &string)
 		throw parse_error{};
 	}
 	return value;
+}
+
+template<class T>
+std::wstring typeName()
+{
+	return toString(typeid(T));
 }

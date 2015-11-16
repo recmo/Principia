@@ -1,7 +1,5 @@
-#include "Verifier/PropositionProperty.h"
+#include "PropositionProperty.h"
 #include <DFG/Node.h>
-
-PropertyType PropositionProperty::classType = PropertyType::Proposition;
 
 PropositionProperty::PropositionProperty()
 : _preconditions()

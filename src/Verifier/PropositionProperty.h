@@ -1,20 +1,15 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyType.h"
-#include "DFG/Property.h"
+#include <DFG/PropertyMap.h>
 class Edge;
 
-class PropositionProperty: public Property
+class PropositionProperty: public PropertyMap::Property
 {
 public:
 	PropositionProperty();
 	PropositionProperty(const PropositionProperty& copy);
 	virtual ~PropositionProperty();
 	PropositionProperty& operator=(const PropositionProperty& copy);
-	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	virtual PropositionProperty* clone() const { return new PropositionProperty(*this); }
+	virtual void print(std::wostream& out) const override;
 	
 	const std::vector<Edge*>& preconditions() const { return _preconditions; }
 	const std::vector<Edge*>& axioms() const { return _axioms; }
@@ -26,7 +21,6 @@ public:
 	void assertion(Edge* value) { _assertions.push_back(value); }
 	void postcondition(Edge* value) { _postconditions.push_back(value); }
 	
-	virtual void print(std::wostream& out) const;
 	
 protected:
 	std::vector<Edge*> _preconditions;

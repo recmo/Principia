@@ -1,8 +1,9 @@
-#include <DFG/Property.h>
+#pragma once
+#include <DFG/PropertyMap.h>
 #include <fixups.h>
 #include <Passes/Value.h>
 
-class NativeProperty: public Property
+class NativeProperty: public PropertyMap::Property
 {
 public:
 	typedef void (*Function)(const int64_t*, const int64_t*, int64_t*);
@@ -10,12 +11,7 @@ public:
 	NativeProperty(const NativeProperty& copy);
 	NativeProperty(Function function, int numClosure, int numInputs, int numOutputs);
 	virtual ~NativeProperty(); 
-	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	NativeProperty* clone() const { return new NativeProperty(*this); }
-	
-	virtual void print(std::wostream& out) const;
+	virtual void print(std::wostream& out) const override;
 	
 	Function function() const { return _function; }
 	vector<Value> call(const vector<Value>& closure, const vector<Value>& inputs) const;

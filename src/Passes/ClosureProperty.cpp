@@ -1,7 +1,5 @@
-#include "Passes/ClosureProperty.h"
+#include "ClosureProperty.h"
 #include <DFG/Edge.h>
-
-PropertyType ClosureProperty::classType = PropertyType::Closure;
 
 ClosureProperty::ClosureProperty(const ClosureProperty& copy)
 : _edges(copy._edges)

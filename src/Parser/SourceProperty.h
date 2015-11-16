@@ -1,21 +1,16 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyType.h"
-#include "DFG/Property.h"
+#include <DFG/PropertyMap.h>
+#include <Unicode/string.h>
 
-class SourceProperty: public Property
+class SourceProperty: public PropertyMap::Property
 {
 public:
 	SourceProperty(): _filename(), _fromLine(0), _toLine(0), _fromColumn(0), _toColumn(0) { }
 	SourceProperty(const SourceProperty& copy);
 	SourceProperty(const string& file, int fromLine, int fromColumn, int toLine , int toColumn);
 	virtual ~SourceProperty();
+	virtual void print(std::wostream& out) const override;
 	
-	static PropertyType classType;
-	virtual PropertyType type() const { return classType; }
-	virtual SourceProperty* clone() const { return new SourceProperty(*this); }
-	
-	virtual void print(std::wostream& out) const;
 	void printLocation(std::wostream& out) const;
 	void printContent(std::wostream& out) const;
 	void printCaret(std::wostream& out) const;

@@ -16,6 +16,12 @@ std::wstring toString(const T& value)
 }
 
 template<class T>
+std::wstring typeName()
+{
+	return toString(typeid(T));
+}
+
+template<class T>
 std::wstring& operator<<(std::wstring& out, const T& value)
 {
 	out.append(toString(value));

@@ -4,9 +4,12 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <typeinfo>
 
-template<class T>
-std::wostream& operator<<(std::wostream& out, const std::unique_ptr<T>& p)
+std::wostream& operator<<(std::wostream& out, const std::type_info& p);
+
+template<class T, class D>
+std::wostream& operator<<(std::wostream& out, const std::unique_ptr<T,D>& p)
 {
 	if(p == nullptr)
 		return out << L"null";
@@ -29,10 +32,10 @@ std::wostream& operator<<(std::wostream& out, const std::weak_ptr<T>& p)
 	return out << p.lock();
 }
 
-template<class T>
-std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)
+template<class T, class A>
+std::wostream& operator<<(std::wostream& out, const std::vector<T,A>& v)
 {
-	typename std::vector<T>::const_iterator it = v.begin();
+	typename std::vector<T,A>::const_iterator it = v.begin();
 	out << L"[";
 	if(it != v.end()) for(;;) {
 		out << *it;
@@ -44,10 +47,10 @@ std::wostream& operator<<(std::wostream& out, const std::vector<T>& v)
 	return out;
 }
 
-template<class T>
-std::wostream& operator<<(std::wostream& out, const std::set<T>& v)
+template<class T, class C, class A>
+std::wostream& operator<<(std::wostream& out, const std::set<T,C,A>& v)
 {
-	typename std::set<T>::const_iterator it = v.begin();
+	typename std::set<T,C,A>::const_iterator it = v.begin();
 	out << L"{";
 	if(it != v.end()) for(;;)
 	{
@@ -59,10 +62,10 @@ std::wostream& operator<<(std::wostream& out, const std::set<T>& v)
 	return out;
 }
 
-template<class K, class V>
-std::wostream& operator<<(std::wostream& out, const std::map<K,V>& v)
+template<class K, class V, class C, class A>
+std::wostream& operator<<(std::wostream& out, const std::map<K,V,C,A>& v)
 {
-	typename std::map<K,V>::const_iterator it = v.begin();
+	typename std::map<K,V,C,A>::const_iterator it = v.begin();
 	out << L"{";
 	if(it != v.end()) for(;;)
 	{

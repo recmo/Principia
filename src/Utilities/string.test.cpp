@@ -63,6 +63,15 @@ TEST(ToStringTest)
 	CHECK_EQUAL(string{L"{1, 2, 3}"}, toString(set<int>{3,1,2}));
 }
 
+class SomeClass { };
+
+TEST(TypeNameTest)
+{
+	CHECK_EQUAL(string{L"int"}, typeName<int>());
+	CHECK_EQUAL(string{L"float"}, typeName<float>());
+	CHECK_EQUAL(string{L"SuiteUtilities::SomeClass"}, typeName<SomeClass>());
+}
+
 TEST(ParseTest)
 {
 	CHECK_EQUAL(string{L"FooBar"}, parse<string>(L"FooBar"));

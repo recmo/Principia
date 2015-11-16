@@ -6,6 +6,7 @@
 #include <Utilities/string.h>
 #include <map>
 #include <memory>
+#include <type_traits>
 #include <UnitTest++/UnitTest++.h>
 
 class PropertyMap
@@ -14,14 +15,7 @@ public:
 	class Property {
 	public:
 		virtual ~Property() { }
-		string name() const { return _name; };
 		virtual void print(std::wostream& out) const = 0;
-		
-	protected:
-		explicit Property(string name) : _name(std::move(name)) { }
-		
-	private:
-		const string _name;
 	};
 	
 	template<class T> bool has() const;
@@ -39,21 +33,25 @@ inline std::wostream& operator<<(std::wostream& out, const PropertyMap& map)
 	return out << map._map;
 }
 
-inline std::wostream& operator<<(std::wostream& out, const PropertyMap::Property& propterty)
+inline std::wostream& operator<<(std::wostream& out, const PropertyMap::Property& property)
 {
-	propterty.print(out);
+	property.print(out);
 	return out;
 }
 
 template<class T>
 bool PropertyMap::has() const
 {
-	if(!contains(_map, T::name))
+	static_assert(std::is_base_of<Property, T>::value,
+		"Type must inherit from PropertyMap::Property");
+	static const string key = typeName<T>();
+	
+	if(!contains(_map, key))
 		return false;
 	
 	// The name exists, but check that it is of the requested type
 	// This should succeed unless we have name collisions.
-	if(dynamic_cast<const T*>(_map.at(T::name).get()) == nullptr)
+	if(dynamic_cast<const T*>(_map.at(key).get()) == nullptr)
 		throw std::logic_error{"Name collision in property classes."};
 	return true;
 }
@@ -61,26 +59,28 @@ bool PropertyMap::has() const
 template<class T>
 void PropertyMap::set(const T& prop)
 {
-	const Property& base = static_cast<const Property&>(prop);
-	if(base.name() != T::name) {
-		throw std::logic_error("Static name differs from name"
-			" passed to Property constructor.");
-	}
+	static_assert(std::is_base_of<Property, T>::value,
+		"Type must inherit from PropertyMap::Property");
+	static const string key = typeName<T>();
 	
 	// Call has<T>() to run the name collision check
 	has<T>();
 	
 	// Store the new value
-	_map[T::name] = std::make_unique<T>(prop);
+	_map[key] = std::make_unique<T>(prop);
 }
 
 template<class T>
 const T& PropertyMap::get() const
 {
-	if(!contains(_map, T::name))
+	static_assert(std::is_base_of<Property, T>::value,
+		"Type must inherit from PropertyMap::Property");
+	static const string key = typeName<T>();
+	
+	if(!contains(_map, key))
 		throw not_found{};
 	
-	const std::unique_ptr<Property>& ptr = _map.at(T::name);
+	const std::unique_ptr<Property>& ptr = _map.at(key);
 	if(dynamic_cast<const T*>(ptr.get()) == nullptr)
 		throw std::logic_error{"Name collision in property classes."};
 	return *dynamic_cast<const T*>(ptr.get());
@@ -89,10 +89,14 @@ const T& PropertyMap::get() const
 template<class T>
 T& PropertyMap::get()
 {
-	if(!contains(_map, T::name))
+	static_assert(std::is_base_of<Property, T>::value,
+		"Type must inherit from PropertyMap::Property");
+	static const string key = typeName<T>();
+	
+	if(!contains(_map, key))
 		throw not_found{};
 	
-	std::unique_ptr<Property>& ptr = _map.at(T::name);
+	std::unique_ptr<Property>& ptr = _map.at(key);
 	if(dynamic_cast<T*>(ptr.get()) == nullptr)
 		throw std::logic_error{"Name collision in property classes."};
 	return *dynamic_cast<T*>(ptr.get());
@@ -104,9 +108,8 @@ SUITE(PropertyMap) {
 class TestProperty: public PropertyMap::Property
 {
 public:
-	static const string name;
-	TestProperty(): Property(name) { }
-	TestProperty(int v): Property(name), value(v) { }
+	TestProperty() { }
+	TestProperty(int v): value(v) { }
 	
 	bool operator==(const TestProperty& other) const {
 		return value == other.value;
@@ -127,8 +130,6 @@ inline std::ostream& operator<<(std::ostream& out, const TestProperty& property)
 {
 	return out << "Test property " << property.value;
 }
-
-const string TestProperty::name{L"TestProperty"};
 
 TEST(Construct)
 {
@@ -170,14 +171,13 @@ TEST(PropertyMapString)
 	PropertyMap p;
 	const PropertyMap& constp = p;
 	p.set(TestProperty{4});
-	CHECK_EQUAL(string(L"{TestProperty: Test property 4}"), toString(constp));
+	CHECK_EQUAL(string(L"{SuitePropertyMap::TestProperty: Test property 4}"), toString(constp));
 }
 
 class ConstructedProperty: public PropertyMap::Property
 {
 public:
-	static const string name;
-	explicit ConstructedProperty(int code): Property(name) { }
+	explicit ConstructedProperty(int code) { }
 	
 	bool operator==(const ConstructedProperty& other) const {
 		return true;
@@ -197,8 +197,6 @@ inline std::ostream& operator<<(std::ostream& out, const ConstructedProperty& pr
 	return out << "Constructed property";
 }
 
-const string ConstructedProperty::name{L"ConstructedProperty"};
-
 TEST(NoDefaultConstructor)
 {
 	PropertyMap p;
@@ -208,60 +206,6 @@ TEST(NoDefaultConstructor)
 	p.set(cp);
 	CHECK_EQUAL(true, p.has<ConstructedProperty>());
 	CHECK_EQUAL(cp, p.get<ConstructedProperty>());
-}
-
-class WrongProperty: public PropertyMap::Property
-{
-public:
-	static const string name;
-	WrongProperty(): Property(L"WrongName") { }
-	
-	friend std::wostream& operator<<(std::wostream& out, const WrongProperty& property);
-	virtual void print(std::wostream& out) const override { out << *this; }
-};
-
-inline std::wostream& operator<<(std::wostream& out, const WrongProperty& property)
-{
-	return out << L"Collide property";
-}
-
-const string WrongProperty::name{L"WrongProperty"};
-
-TEST(NameFailure)
-{
-	PropertyMap p;
-	WrongProperty wp;
-	CHECK_THROW(p.set(wp), std::logic_error);
-}
-
-class CollideProperty: public PropertyMap::Property
-{
-public:
-	static const string name;
-	CollideProperty(): Property(name) { }
-	
-	friend std::wostream& operator<<(std::wostream& out, const CollideProperty& property);
-	virtual void print(std::wostream& out) const override { out << *this; }
-};
-
-inline std::wostream& operator<<(std::wostream& out, const CollideProperty& property)
-{
-	return out << L"Collide property";
-}
-
-const string CollideProperty::name{L"TestProperty"};
-
-TEST(NameCollision)
-{
-	PropertyMap p;
-	TestProperty tp;
-	p.set(tp);
-	CHECK_EQUAL(true, p.has<TestProperty>());
-	
-	CollideProperty cp;
-	CHECK_THROW(p.has<CollideProperty>(), std::logic_error);
-	CHECK_THROW(p.set(cp), std::logic_error);
-	CHECK_THROW(p.get<CollideProperty>(), std::logic_error);
 }
 
 } // SUITE

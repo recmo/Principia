@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-template<class T>
-bool eraseByValue(std::vector<T>& v, const T& value)
+template<class T, class A>
+bool eraseByValue(std::vector<T,A>& v, const T& value)
 {
 	auto it = std::find(v.begin(), v.end(), value);
 	if(it == v.end()) return false;
@@ -14,20 +14,20 @@ bool eraseByValue(std::vector<T>& v, const T& value)
 	return true;
 }
 
-template<class T>
-bool contains(const std::vector<T>& v, const T& value)
+template<class T, class A>
+bool contains(const std::vector<T,A>& v, const T& value)
 {
 	return std::find(v.begin(), v.end(), value) != v.end();
 }
 
-template<class T>
-bool contains(const std::set<T>& v, const T& value)
+template<class T, class C, class A>
+bool contains(const std::set<T,C,A>& v, const T& value)
 {
 	return std::find(v.begin(), v.end(), value) != v.end();
 }
 
-template<class Key, class Value>
-bool contains(const std::map<Key, Value>& map, const Key& key)
+template<class K, class V, class C, class A>
+bool contains(const std::map<K,V,C,A>& map, const K& key)
 {
 	return map.find(key) != map.end();
 }
@@ -38,8 +38,8 @@ public:
 	not_found(): out_of_range("Could not find item.") { }
 };
 
-template<typename T>
-int indexOf(const std::vector<T>& list, const T& item)
+template<class T, class A>
+int indexOf(const std::vector<T,A>& list, const T& item)
 {
 	auto i = std::find(list.begin(), list.end(), item);
 	if(i == list.end())
@@ -47,20 +47,21 @@ int indexOf(const std::vector<T>& list, const T& item)
 	return std::distance(list.begin(), i);
 }
 
-template<class Key, class Value>
-bool tryGet(const std::map<Key, Value>& map, const Key& key, Value& value)
+template<class K, class V, class C, class A>
+bool tryGet(const std::map<K,V,C,A>& map, const K& key, V& value)
 {
-	typename std::map<Key, Value>::const_iterator it = map.find(key);
+	typename std::map<K,V,C,A>::const_iterator it = map.find(key);
 	if(it == map.end())
 		return false;
 	value = it->second;
 	return true;
 }
 
-template<class Key, class Value>
-bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
+template<class K, class V, class C, class A>
+bool tryGetKey(const std::map<K,V,C,A>& map, const V& value, K& key)
 {
-	for(typename std::map<Key, Value>::const_iterator it = map.begin(); it != map.end(); ++it) {
+	for(typename std::map<K,V,C,A>::const_iterator it = map.begin();
+		it != map.end(); ++it) {
 		if(it->second == value) {
 			key = it->first;
 			return true;
@@ -69,37 +70,36 @@ bool tryGetKey(const std::map<Key, Value>& map, const Value& value, Key& key)
 	return false;
 }
 
-
-template<class T>
-void insertUnion(std::set<T>& target, const std::set<T>& insert)
+template<class T, class C, class A>
+void insertUnion(std::set<T,C,A>& target, const std::set<T,C,A>& insert)
 {
 	for(T element: insert)
 		target.insert(element);
 }
 
-template<class T>
-std::set<T> setUnion(const std::set<T>& a, const std::set<T>& b)
+template<class T, class C, class A>
+std::set<T,C,A> setUnion(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
 {
-	std::set<T> u = a;
-	return insertUnion<T>(u, b);
+	std::set<T,C,A> u = a;
+	return insertUnion<T,C,A>(u, b);
 }
 
-template<class T>
-std::set<T> intersection(const std::set<T>& a, const std::set<T>& b)
+template<class T, class C, class A>
+std::set<T,C,A> intersection(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
 {
-	std::set<T> i;
+	std::set<T,C,A> i;
 	for(T e: a)
-		if(contains<T>(b, e))
+		if(contains<T,C,A>(b, e))
 			i.insert(e);
 	return i;
 }
 
-template<class T>
-std::set<T> setMinus(const std::set<T>& a, const std::set<T>& b)
+template<class T, class C, class A>
+std::set<T,C,A> setMinus(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
 {
-	std::set<T> i;
+	std::set<T,C,A> i;
 	for(T e: a)
-		if(!contains<T>(b, e))
+		if(!contains<T,C,A>(b, e))
 			i.insert(e);
 	return i;
 }

@@ -14,21 +14,21 @@ public:
 	class ReturnInstruction;
 	
 	StackMachineProperty(): Property(), _stack(), _instructions() { }
-	StackMachineProperty(const std::vector<const Edge*>& stack, const std::vector<Instruction*>& order): Property(), _stack(stack), _instructions(order) { }
+	StackMachineProperty(const std::vector<std::shared_ptr<Edge>>& stack, const std::vector<Instruction*>& order): Property(), _stack(stack), _instructions(order) { }
 	StackMachineProperty(const StackMachineProperty& copy);
 	virtual ~StackMachineProperty();
 	virtual void print(std::wostream& out) const override;
 	
-	std::vector<const Edge*>& stack() { return _stack; }
-	void stack(const std::vector<const Edge*>& value) { _stack = value; }
-	const std::vector<const Edge*>& stack() const { return _stack; }
+	std::vector<std::shared_ptr<Edge>>& stack() { return _stack; }
+	void stack(const std::vector<std::shared_ptr<Edge>>& value) { _stack = value; }
+	const std::vector<std::shared_ptr<Edge>>& stack() const { return _stack; }
 	
 	std::vector<Instruction*>& instructions() { return _instructions; }
 	void instructions(const std::vector<Instruction*>& value) { _instructions = value; }
 	const std::vector<Instruction*>& instructions() const { return _instructions; }
 
 private:
-	std::vector<const Edge*> _stack;
+	std::vector<std::shared_ptr<Edge>> _stack;
 	std::vector<Instruction*> _instructions;
 };
 
@@ -59,13 +59,13 @@ inline std::wostream& operator<<(std::wostream& out, const StackMachineProperty:
 class StackMachineProperty::CallInstruction: public StackMachineProperty::Instruction
 {
 public:
-	CallInstruction(const Node* node): _node(node), _arguments() { }
+	CallInstruction(std::shared_ptr<Node> node): _node(node), _arguments() { }
 	CallInstruction(const CallInstruction& other): _node(other._node), _arguments(other._arguments), _numReturns(other._numReturns) { }
 	virtual ~CallInstruction() { }
 	virtual CallInstruction* clone() const { return new CallInstruction(*this); }
 	virtual void print(std::wostream& out) const;
 	
-	const Node* node() const { return _node; }
+	std::shared_ptr<Node> node() const { return _node; }
 	
 	void addArgument(int value) { _arguments.push_back(value); }
 	const std::vector<int>& arguments() const { return _arguments; }
@@ -74,7 +74,7 @@ public:
 	void numReturns(int value) { _numReturns = value; }
 	
 private:
-	const Node* _node;
+	std::shared_ptr<Node> _node;
 	std::vector<int> _arguments;
 	int _numReturns;
 };
@@ -82,16 +82,16 @@ private:
 class StackMachineProperty::AllocateInstruction: public StackMachineProperty::Instruction
 {
 public:
-	AllocateInstruction(Node* closure): _closure(closure) { }
+	AllocateInstruction(std::shared_ptr<Node> closure): _closure(closure) { }
 	AllocateInstruction(const AllocateInstruction& other): _closure(other._closure) { }
 	virtual ~AllocateInstruction() { }
 	virtual AllocateInstruction* clone() const { return new AllocateInstruction(*this); }
 	virtual void print(std::wostream& out) const;
 	
-	Node* closure() const { return _closure; }
+	std::shared_ptr<Node> closure() const { return _closure; }
 	
 private:
-	Node* _closure;
+	std::shared_ptr<Node> _closure;
 };
 
 class StackMachineProperty::StoreInstruction: public StackMachineProperty::Instruction
@@ -116,19 +116,19 @@ private:
 class StackMachineProperty::ReturnInstruction: public StackMachineProperty::Instruction
 {
 public:
-	ReturnInstruction(const Node* closure): _closure(closure), _returns() { }
+	ReturnInstruction(std::shared_ptr<Node> closure): _closure(closure), _returns() { }
 	ReturnInstruction(const ReturnInstruction& other): _closure(other._closure), _returns(other._returns) { }
 	virtual ~ReturnInstruction() { }
 	virtual ReturnInstruction* clone() const { return new ReturnInstruction(*this); }
 	virtual void print(std::wostream& out) const;
 	
-	const Node* closure() const { return _closure; }
+	std::shared_ptr<Node> closure() const { return _closure; }
 	
 	void addReturnValue(int value) { _returns.push_back(value); }
 	const std::vector<int>& returns() const { return _returns; }
 	
 private:
-	const Node* _closure;
+	std::shared_ptr<Node> _closure;
 	std::vector<int> _returns;
 };
 

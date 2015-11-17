@@ -1,13 +1,14 @@
 #pragma once
 #include <vector>
+#include <memory>
 class DataFlowGraph;
 class Node;
 class Edge;
 
-/// Anotate the DFG with ClosureProperties
+/// Annotates the DFG with ClosureProperties
 class ClosureCloser {
 public:
-	ClosureCloser(DataFlowGraph* dfg): _dfg(dfg), _fixedPoint(true) { }
+	ClosureCloser(DataFlowGraph& dfg): _dfg(dfg), _fixedPoint(true) { }
 	~ClosureCloser() { }
 	
 	void anotateClosures();
@@ -15,15 +16,15 @@ public:
 	bool fixedPoint() const { return _fixedPoint; }
 	
 protected:
-	DataFlowGraph* _dfg;
+	DataFlowGraph const& _dfg;
 	bool _fixedPoint;
 	
-	void anotateClosure(Node* closureNode);
-	void recurseOut(Edge* edge, std::vector<Edge*>* edges);
-	void recurseOut(Node* node, std::vector<Edge*>* edges);
-	void recurseOut(Node* node, std::vector<Node*>* nodes);
-	void recurseIn(Edge* edge, std::vector<Edge*>* edges);
-	void recurseIn(Node* node, std::vector<Edge*>* edges);
+	void anotateClosure(std::shared_ptr<Node> closureNode);
+	void recurseOut(std::shared_ptr<Edge> edge, std::vector<std::shared_ptr<Edge>>* edges);
+	void recurseOut(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Edge>>* edges);
+	void recurseOut(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Node>>* nodes);
+	void recurseIn(std::shared_ptr<Edge> edge, std::vector<std::shared_ptr<Edge>>* edges);
+	void recurseIn(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Edge>>* edges);
 };
 
 // internal nodes are call or closure nodes

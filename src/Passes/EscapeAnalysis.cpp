@@ -6,20 +6,20 @@
 
 void EscapeAnalysis::analyse()
 {
-	for(Node* node: _dfg->nodes()) {
+	for(auto node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		analyse(node);
 	}
 }
 
-void EscapeAnalysis::analyse(Node* closure)
+void EscapeAnalysis::analyse(std::shared_ptr<Node> closure)
 {
 	for(StackMachineProperty::Instruction* instruction: closure->get<StackMachineProperty>().instructions()) {
 		StackMachineProperty::AllocateInstruction* alloc = dynamic_cast<StackMachineProperty::AllocateInstruction*>(instruction);
 		if(!alloc)
 			continue;
-		const Edge* allocEdge = alloc->closure()->out(0);
+		auto allocEdge = alloc->closure()->out(0);
 		if(debug) {
 			wcerr << "Does " << allocEdge << " escape " << closure << " ?" << endl;
 			wcerr << "Stack " << closure->get<StackMachineProperty>().stack() << endl;

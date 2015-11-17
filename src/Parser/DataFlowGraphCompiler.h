@@ -22,8 +22,8 @@ private:
 	
 	void declare(ParseTree::Node* node);
 	void connect(ParseTree::Node* node);
-	Edge* edgeForExpression(ParseTree::Node* expression);
+	std::shared_ptr<Edge> edgeForExpression(ParseTree::Node* expression);
 	
-	std::map<ParseTree::Statement*, Node*> _declarations;
-	std::map<ParseTree::Identifier*, Edge*> _identifiers;
+	std::map<ParseTree::Statement*, std::shared_ptr<Node>> _declarations;
+	std::map<ParseTree::Identifier*, std::shared_ptr<Edge>> _identifiers;
 };

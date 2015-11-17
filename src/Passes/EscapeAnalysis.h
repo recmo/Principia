@@ -12,6 +12,6 @@ public:
 private:
 	DataFlowGraph *_dfg;
 	
-	void analyse(Node* closure);
+	void analyse(std::shared_ptr<Node> closure);
 };
 

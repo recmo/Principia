@@ -6,7 +6,7 @@ ClosureProperty::ClosureProperty(const ClosureProperty& copy)
 {
 }
 
-ClosureProperty::ClosureProperty(const std::vector<const Edge*>& edges)
+ClosureProperty::ClosureProperty(const std::vector<std::shared_ptr<Edge>>& edges)
 : _edges(edges)
 {
 }

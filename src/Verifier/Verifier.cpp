@@ -9,7 +9,7 @@
 
 void Verifier::verify()
 {
-	for(const Node* node: _dfg->nodes()) {
+	for(auto node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		verify(node);
@@ -18,7 +18,7 @@ void Verifier::verify()
 
 /// @todo Verify arity of calls
 /// @todo Verify totality of closures
-void Verifier::verify(const Node* closure)
+void Verifier::verify(std::shared_ptr<Node> closure)
 {
 	_propositions.clear();
 	assert(closure->type() == NodeType::Closure);
@@ -34,9 +34,9 @@ void Verifier::verify(const Node* closure)
 		wcerr << endl << "Verifying " << closure << endl;
 	
 	// Assume all prepositions and axioms are true
-	for(const Edge* edge: pp.preconditions())
+	for(auto edge: pp.preconditions())
 		assume(edge);
-	for(const Edge* edge: pp.axioms())
+	for(auto edge: pp.axioms())
 		assume(edge);
 	
 	// Check all calls
@@ -44,10 +44,10 @@ void Verifier::verify(const Node* closure)
 		const StackMachineProperty::CallInstruction* call = dynamic_cast<const StackMachineProperty::CallInstruction*>(instruction);
 		if(!call)
 			continue;
-		const Node* callNode = call->node();
+		std::shared_ptr<Node> callNode = call->node();
 		
 		// Find the call's closure
-		const Node* callClosure = callNode->constIn().front()->source();
+		std::shared_ptr<Node> callClosure = callNode->in().front()->source();
 		if(!callClosure) {
 			wcerr << "No closure for " << callNode << endl;
 			continue;
@@ -75,32 +75,32 @@ void Verifier::verify(const Node* closure)
 		}
 		
 		// Verify the preconditions
-		for(const Edge* precondition: ppc.preconditions())
+		for(auto precondition: ppc.preconditions())
 			verify(precondition, connections);
 		
 		// Assume the postconditions
-		for(const Edge* postcondition: ppc.postconditions())
+		for(auto postcondition: ppc.postconditions())
 			assume(postcondition, connections);
 		
 		// Check assertions on the call site
 		if(callNode->has<PropositionProperty>())
-			for(const Edge* assertion: callNode->get<PropositionProperty>().assertions())
+			for(auto assertion: callNode->get<PropositionProperty>().assertions())
 				verify(assertion);
 	}
 	
 	// Check the postconditions
-	for(const Edge* postcondition: pp.postconditions())
+	for(auto postcondition: pp.postconditions())
 		verify(postcondition);
 }
 
-void Verifier::assume(const Edge* statement, const Connections& connections)
+void Verifier::assume(std::shared_ptr<Edge> statement, const Connections& connections)
 {
 	if(debug)
 		wcerr << L"∴ " << statement << " " << connections << endl;
-	_propositions.push_back(std::pair<const Edge*, Connections>(statement, connections));
+	_propositions.push_back(std::pair<std::shared_ptr<Edge>, Connections>(statement, connections));
 }
 
-void Verifier::verify(const Edge* statement, const Connections& connections)
+void Verifier::verify(std::shared_ptr<Edge> statement, const Connections& connections)
 {
 	if(debug)
 		wcerr << L"∵ " << statement << " " << connections << endl;

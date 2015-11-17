@@ -11,13 +11,13 @@ public:
 	
 	void validate();
 	
-	int indexOf(Node* node);
+	int indexOf(std::shared_ptr<Node> node);
 	
 	void print();
 	
 	void depthFirstSearch();
 	void visit(int i);
-	void visit(Node* node);
+	void visit(std::shared_ptr<Node> node);
 	
 private:
 	DataFlowGraph* _program;

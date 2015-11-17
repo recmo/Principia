@@ -1,5 +1,6 @@
 #include "PropositionProperty.h"
 #include <DFG/Node.h>
+#include <DFG/Edge.h>
 
 PropositionProperty::PropositionProperty()
 : _preconditions()

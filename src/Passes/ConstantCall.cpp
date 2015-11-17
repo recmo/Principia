@@ -8,7 +8,7 @@
 void ConstantCall::anotateCalls()
 {
 	_fixedPoint = true;
-	for(Node* node: _dfg->nodes()) {
+	for(auto node: _dfg->nodes()) {
 		if(node->type() != NodeType::Call)
 			continue;
 		if(node->has<ConstantProperty>())

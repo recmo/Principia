@@ -9,7 +9,7 @@
 
 void StackCompiler::sortClosures()
 {
-	for(Node* node: _dfg->nodes()) {
+	for(auto node: _dfg->nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		
@@ -29,14 +29,14 @@ void StackCompiler::sortClosure()
 		wcerr << endl << L"Compiling closure " << _closure << endl;
 	
 	// Initialize the stack with the closure and the arguments
-	for(const Edge* edge: _closure->get<ClosureProperty>().edges())
+	for(auto edge: _closure->get<ClosureProperty>().edges())
 		_stack.push_back(edge);
-	for(uint i = 1; i < _closure->outArity(); ++i)
-		_stack.push_back(_closure->out(i));
+	for(auto out: _closure->out())
+		_stack.push_back(out);
 	
 	// Start from the returns
 	StackMachineProperty::ReturnInstruction* returnInst = new StackMachineProperty::ReturnInstruction(_closure);
-	for(const Edge* edge: _closure->in()) {
+	for(auto edge: _closure->in()) {
 		if(edge->has<ConstantProperty>()) {
 			returnInst->addReturnValue(-1);
 			continue;
@@ -60,13 +60,13 @@ void StackCompiler::sortClosure()
 	_closure->set(svmp);
 }
 
-void StackCompiler::sortClosureNode(Node* node)
+void StackCompiler::sortClosureNode(std::shared_ptr<Node> node)
 {
 	if(debug)
 		wcerr << L"Compiling node " << node << endl;
 	
 	int closureIndex = -1;
-	vector<const Edge*> sources;
+	vector<std::shared_ptr<Edge>> sources;
 	StackMachineProperty::CallInstruction* call;
 	if(node->type() == NodeType::Closure) {
 		// Add the closure node before its dependencies are evaluated
@@ -86,14 +86,14 @@ void StackCompiler::sortClosureNode(Node* node)
 		call->numReturns(node->outArity());
 		
 		// Find the nodes sources
-		sources = node->constIn();
+		sources = node->in();
 	}
 	if(debug)
 		wcerr << node << " sources " << sources << endl;
 	
 	// Recurse on the sources
 	int i = 0;
-	for(const Edge* edge: sources) {
+	for(std::shared_ptr<Edge> edge: sources) {
 		int valueIndex = -1;
 		if(!edge->has<ConstantProperty>()) {
 			if(!contains(_stack, edge))
@@ -117,7 +117,7 @@ void StackCompiler::sortClosureNode(Node* node)
 		_order.push_back(call);
 		
 		// Pass all the returns on the stack
-		for(const Edge* edge: node->out())
+		for(std::shared_ptr<Edge> edge: node->out())
 			_stack.push_back(edge);
 	}
 }

@@ -79,7 +79,7 @@ LlvmCompiler::LlvmCompiler(DataFlowGraph* dfg)
 void LlvmCompiler::compile()
 {
 	// Declare the functions
-	for(const Node* closure: _dfg->nodes()) {
+	for(auto closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		
@@ -92,14 +92,14 @@ void LlvmCompiler::compile()
 	}
 	
 	// Build the functions
-	for(const Node* closure: _dfg->nodes()) {
+	for(auto closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		buildFunctionBody(closure);
 	}
 	
 	// Build wrappers to call from C++
-	for(const Node* closure: _dfg->nodes()) {
+	for(auto closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		if(!closure->out(0)->has<IdentifierProperty>())
@@ -173,7 +173,7 @@ void LlvmCompiler::compile()
 	if(debug)
 		wcerr << "Compiling to native" << endl;
 	ee->finalizeObject();
-	for(Node* closure: _dfg->nodes()) {
+	for(auto closure: _dfg->nodes()) {
 		if(closure->type() != NodeType::Closure)
 			continue;
 		if(!closure->out(0)->has<IdentifierProperty>())
@@ -191,7 +191,7 @@ void LlvmCompiler::compile()
 		wcerr << "DONE!" << endl;
 }
 
-void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
+void LlvmCompiler::buildDeclareFunction(std::shared_ptr<Node> closureNode)
 {
 	if(debug)
 		wcerr << "DEC FUNC " << closureNode << endl;
@@ -218,7 +218,7 @@ void LlvmCompiler::buildDeclareFunction(const Node* closureNode)
 	_declarations[closureNode] = function;
 }
 
-void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
+void LlvmCompiler::buildDefaultClosure(std::shared_ptr<Node> closureNode)
 {
 	// The closure is in this case a pointer to a structure
 	// containing only a pointer to the function all cast to
@@ -239,7 +239,7 @@ void LlvmCompiler::buildDefaultClosure(const Node* closureNode)
 	_closures[closureNode] = closurePtrInt;
 }
 
-void LlvmCompiler::buildWrapper(const Node* closureNode)
+void LlvmCompiler::buildWrapper(std::shared_ptr<Node> closureNode)
 {
 	// Build a wrapper using safe calling conventions
 	// void function_wrapper(int64* closure, int64* inputs, int64* outputs);
@@ -309,7 +309,7 @@ void LlvmCompiler::buildWrapper(const Node* closureNode)
 	_builder.CreateRetVoid();
 }
 
-void LlvmCompiler::buildFunctionBody(const Node* closureNode)
+void LlvmCompiler::buildFunctionBody(std::shared_ptr<Node> closureNode)
 {
 	if(debug)
 		wcerr << "FUNC " << endl;
@@ -324,7 +324,7 @@ void LlvmCompiler::buildFunctionBody(const Node* closureNode)
 	
 	// Add the closure to the stack
 	llvm::Argument* arg0 = function->arg_begin();
-	const vector<const Edge*> closureEdges = closureNode->get<ClosureProperty>().edges();
+	const vector<std::shared_ptr<Edge>> closureEdges = closureNode->get<ClosureProperty>().edges();
 	for(uint i = 0; i < closureEdges.size(); ++i) {
 		// The first element of the closure is always the function pointer,
 		// the closure edges start at index 1
@@ -373,7 +373,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 		wcerr << "CALL " << call->node() << endl;
 	
 	// Fetch the argument values
-	vector<const Edge*> inputs = call->node()->constIn();
+	vector<std::shared_ptr<Edge>> inputs = call->node()->in();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(uint i = 0; i < stackPositions.size(); ++i) {
@@ -389,7 +389,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	// Fetch the function pointer
 	llvm::Value* funcPtr;
 	if(call->node()->in(0)->has<ConstantProperty>()) {
-		const Node* closureNode = call->node()->in(0)->get<ConstantProperty>().value().closure()->node();
+		std::shared_ptr<Node> closureNode = call->node()->in(0)->get<ConstantProperty>().value().closure()->node();
 		funcPtr = _declarations[closureNode];
 	} else {
 		
@@ -427,7 +427,7 @@ void LlvmCompiler::buildAlloc(const StackMachineProperty::AllocateInstruction* a
 	if(debug)
 		wcerr << "CLOSURE " << alloc->closure() << endl;
 	
-	const vector<const Edge*>& inputs = alloc->closure()->get<ClosureProperty>().edges();
+	const vector<std::shared_ptr<Edge>>& inputs = alloc->closure()->get<ClosureProperty>().edges();
 	if(debug)
 		wcerr << "closure edges = " <<  inputs << endl;
 	
@@ -501,7 +501,7 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 		wcerr << "BUILTIN " << call->node() << endl;
 	
 	// Construct the arguments
-	vector<const Edge*> inputs = call->node()->constIn();
+	vector<std::shared_ptr<Edge>> inputs = call->node()->in();
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(uint i = 1; i < stackPositions.size(); ++i) {
@@ -566,7 +566,7 @@ llvm::Value* LlvmCompiler::buildConstant(const Value& value)
 	case Value::Integer:
 		return _builder.getInt64(value.integer());
 	case Value::Function: {
-		const Node* closureNode = value.closure()->node();
+		std::shared_ptr<Node> closureNode = value.closure()->node();
 		assert(closureNode->get<ClosureProperty>().edges().empty());
 		return _closures[closureNode];
 	}

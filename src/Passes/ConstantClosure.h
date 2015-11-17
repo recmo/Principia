@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 class DataFlowGraph;
 class Node;
 class Edge;
@@ -17,5 +18,5 @@ public:
 protected:
 	DataFlowGraph* _dfg;
 	bool _fixedPoint;
-	bool isRecursiveClosure(std::vector<Node*>& seen, Node* current);
+	bool isRecursiveClosure(std::vector<std::shared_ptr<Node>>& seen, std::shared_ptr<Node> current);
 };

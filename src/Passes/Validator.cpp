@@ -2,6 +2,8 @@
 #include <Parser/IdentifierProperty.h>
 #include <Parser/SourceProperty.h>
 
+/*
+
 Validator::Validator(DataFlowGraph* program)
 : _program(program)
 , _preorderCounter(0)
@@ -23,15 +25,6 @@ void Validator::validate()
 {
 	// http://en.wikipedia.org/wiki/Cheriyan–Mehlhorn/Gabow_algorithm
 	depthFirstSearch();
-}
-
-int Validator::indexOf(Node* node)
-{
-	for(uint i = 0; i < _program->nodes().size(); ++i)
-		if(_program->nodes()[i] == node)
-			return i;
-	assert(!"Found");
-	return -1;
 }
 
 void Validator::depthFirstSearch()
@@ -60,7 +53,7 @@ void Validator::visit(int i)
 	_undetermined.push_back(i);
 	
 	// For each edge from v to a neighboring vertex w:
-	Node* node = _program->nodes()[i];
+	std::shared_ptr<Node> node = _program->nodes()[i];
 	for(uint j = 0; j < node->outArity(); ++j) {
 		Edge* out = node->out(j);
 		
@@ -68,7 +61,7 @@ void Validator::visit(int i)
 		//	continue;
 		
 		for(uint k = 0; k < out->sinks().size(); ++k) {
-			Node* child = out->sinks()[k];
+			std::shared_ptr<Node> child = out->sinks()[k];
 			int child_index = indexOf(child);
 			
 			// If the preorder number of w has not yet been assigned, recursively search w;
@@ -104,7 +97,7 @@ void Validator::visit(int i)
 	assert(_preorder[i] != -1);
 }
 
-void Validator::visit(Node* node)
+void Validator::visit(std::shared_ptr<Node> node)
 {
 	wcerr << node;
 }
@@ -133,3 +126,4 @@ void Validator::print()
 	wcerr << endl;
 }
 
+*/

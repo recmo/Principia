@@ -47,7 +47,7 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 				type = NodeType::Call;
 			else
 				type = NodeType::Closure;
-			Node* node = new Node(type, statement->in().size(), statement->out().size());
+			std::shared_ptr<Node> node = Node::make_shared(type, statement->in().size(), statement->out().size());
 			if(!statement->source().isEmpty())
 				node->set(statement->source());
 			uint i = 0;
@@ -84,9 +84,9 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 				wcerr << endl;
 			}
 			
-			Node* node = _declarations[statement];
+			std::shared_ptr<Node> node = _declarations[statement];
 			for(int i = 0; i < node->in().size(); ++i) {
-				Edge* efe = edgeForExpression(statement->in()[i]);
+				std::shared_ptr<Edge> efe = edgeForExpression(statement->in()[i]);
 				node->connect(i, efe);
 			}
 		} else {
@@ -107,9 +107,9 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 				wcerr << "No statement associated to scope for proposition " << statement << endl;
 				return;
 			}
-			Node* target = _declarations[associate];
+			std::shared_ptr<Node> target = _declarations[associate];
 			assert(target);
-			Edge* condition = edgeForExpression(statement->firstChild());
+			std::shared_ptr<Edge> condition = edgeForExpression(statement->firstChild());
 			assert(condition);
 			PropositionProperty pp;
 			if(target->has<PropositionProperty>())
@@ -131,7 +131,7 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 		connect(child);
 }
 
-Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
+std::shared_ptr<Edge> DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
 {
 	assert(expression);
 	if(expression->isA<ParseTree::Identifier>()) {
@@ -141,7 +141,7 @@ Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
 		} else if(contains(builtins, identifier->name())) {
 			if(debug)
 				wcerr << "GLOBAL " << identifier->name() << endl;
-			Edge* edge = new Edge(nullptr);
+			std::shared_ptr<Edge> edge = std::make_shared<Edge>();
 			edge->set(IdentifierProperty(identifier->name()));
 			edge->set(ConstantProperty(Value(builtins[identifier->name()])));
 			return edge;
@@ -152,12 +152,12 @@ Edge* DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
 		wcerr << endl;
 		
 		// Create a source free edge without a constant property
-		Edge* edge = new Edge(nullptr);
+		std::shared_ptr<Edge> edge = std::make_shared<Edge>();
 		edge->set(IdentifierProperty(identifier->name()));
 		return edge;
 	} else if(expression->isA<ParseTree::Constant>()) {
 		ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
-		Edge* edge = new Edge(nullptr);
+		std::shared_ptr<Edge> edge = std::make_shared<Edge>();
 		if(!constant->source().isEmpty())
 			edge->set(constant->source());
 		edge->set(ConstantProperty(constant->value()));

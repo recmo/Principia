@@ -17,10 +17,10 @@ public:
 	
 private:
 	DataFlowGraph* _dfg;
-	Node* _closure;
-	std::vector<const Edge*> _stack;
+	std::shared_ptr<Node> _closure;
+	std::vector<std::shared_ptr<Edge>> _stack;
 	std::vector<StackMachineProperty::Instruction*> _order;
 	
 	void sortClosure();
-	void sortClosureNode(Node* node);
+	void sortClosureNode(std::shared_ptr<Node> node);
 };

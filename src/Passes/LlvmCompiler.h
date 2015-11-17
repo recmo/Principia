@@ -24,12 +24,12 @@ private:
 	llvm::Function* _malloc;
 	llvm::Function* _trace;
 	std::vector<llvm::Value*> _stack;
-	std::map<const Node*, llvm::Function*> _declarations;
-	std::map<const Node*, llvm::Function*> _wrappers;
-	std::map<const Node*, llvm::Value*> _closures;
+	std::map<std::shared_ptr<Node>, llvm::Function*> _declarations;
+	std::map<std::shared_ptr<Node>, llvm::Function*> _wrappers;
+	std::map<std::shared_ptr<Node>, llvm::Value*> _closures;
 	
-	void buildDeclareFunction(const Node* closureNode);
-	void buildFunctionBody(const Node* closureNode);
+	void buildDeclareFunction(std::shared_ptr<Node> closureNode);
+	void buildFunctionBody(std::shared_ptr<Node> closureNode);
 	void buildInstruction(const StackMachineProperty::Instruction* instruction);
 	void buildCall(const StackMachineProperty::CallInstruction* call);
 	void buildAlloc(const StackMachineProperty::AllocateInstruction* alloc);
@@ -37,8 +37,8 @@ private:
 	void buildRet(const StackMachineProperty::ReturnInstruction* ret);
 	void buildBuiltin(const StackMachineProperty::CallInstruction* call);
 	
-	void buildDefaultClosure(const Node* closureNode);
-	void buildWrapper(const Node* closureNode);
+	void buildDefaultClosure(std::shared_ptr<Node> closureNode);
+	void buildWrapper(std::shared_ptr<Node> closureNode);
 	llvm::Value* buildConstant(const Value& value);
 	llvm::FunctionType* buildFunctionType(int inArity, int outArity);
 	void buildTrace(uint64 value) { buildTrace(_builder.getInt64(value)); }

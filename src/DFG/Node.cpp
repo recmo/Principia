@@ -93,8 +93,8 @@ std::wostream& operator<<(std::wostream& out, const Node& node)
 		sp.print(out);
 	} else {
 		if(node.type() == NodeType::Closure
-			&& node[0]->has<IdentifierProperty>()) {
-			out << L"<" << node[0]->get<IdentifierProperty>().value() << L">";
+			&& node.out(0)->has<IdentifierProperty>()) {
+			out << L"<" << node.out(0)->get<IdentifierProperty>().value() << L">";
 		} else if(node.type() == NodeType::Call) {
 			std::shared_ptr<Edge> in = node.in(0);
 			if(in != nullptr && in->has<IdentifierProperty>()) {

@@ -12,23 +12,23 @@
 void ClosureCloser::anotateClosures()
 {
 	_fixedPoint = true;
-	for(Node* node: _dfg->nodes()) {
+	for(auto node: _dfg.nodes()) {
 		if(node->type() != NodeType::Closure)
 			continue;
 		anotateClosure(node);
 	}
 }
 
-void ClosureCloser::anotateClosure(Node* closureNode)
+void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 {
 	assert(closureNode->type() == NodeType::Closure);
 	
 	// Calculate internal nodes
-	vector<Node*> internalNodes;
+	vector<std::shared_ptr<Node>> internalNodes;
 	internalNodes.push_back(closureNode);
-	for(uint i = 1; i < closureNode->outArity(); ++i) {
-		for(Node* sink: closureNode->out(i)->sinks())
-			recurseOut(sink, &internalNodes);
+	for(auto edge: closureNode->out()) {
+		for(auto sink: edge->sinks())
+			recurseOut(sink.target.lock(), &internalNodes);
 	}
 	recurseOut(closureNode, &internalNodes);
 	
@@ -37,17 +37,17 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	
 	// Calculate the lazy set
 	bool fixedpoint = false;
-	vector<Node*> lazySet = internalNodes;
+	vector<std::shared_ptr<Node>> lazySet = internalNodes;
 	while(!fixedpoint) {
 		fixedpoint = true;
 		
 		// Calculate the direct source nodes
-		vector<Node*> directSources;
-		for(Node* lazy: lazySet) {
-			for(const Edge* edge: lazy->in()) {
+		vector<std::shared_ptr<Node>> directSources;
+		for(std::shared_ptr<Node> lazy: lazySet) {
+			for(const std::shared_ptr<Edge> edge: lazy->in()) {
 				if(!edge->source() && edge->has<ConstantProperty>())
 					continue;
-				Node* directSource = edge->source();
+				std::shared_ptr<Node> directSource = edge->source();
 				if(!directSource)
 					wcerr << edge << " has no source" << endl;
 				assert(directSource);
@@ -62,7 +62,7 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		}
 		
 		// For each direct source node
-		for(Node* direct: directSources) {
+		for(std::shared_ptr<Node> direct: directSources) {
 			
 			if(debug)
 				wcerr << "Considering adding " << direct << " to the lazy list." << endl;
@@ -71,11 +71,15 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 			/// @todo As many call nodes as possible are included, this is not at all lazy,
 			/// but we must try to create closures that are minimal
 			bool abort = false;
-			for(const Edge* sink: direct->out()) {
-				for(Node* sinkNode: sink->sinks()) {
+			for(auto out: direct->out()) {
+				for(auto sink: out->sinks()) {
+					auto sinkNode = sink.target.lock();
 					if(!contains(lazySet, sinkNode)) {
-						if(debug)
-							wcerr << "Result escapes from: " << direct << " through " << sink << " into " << sinkNode << endl;
+						if(debug) {
+							wcerr << "Result escapes from: ";
+							wcerr << direct << " through " << out;
+							wcerr << " into " << sinkNode << endl;
+						}
 						abort = direct->type() == NodeType::Closure;
 						break;
 					}
@@ -96,9 +100,9 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 		wcerr << closureNode << " lazy set " << lazySet << endl;
 	
 	// Calculate the border
-	vector<const Edge*> border;
-	for(Node* lazyNode: lazySet) {
-		for(const Edge* in: lazyNode->in()) {
+	vector<std::shared_ptr<Edge>> border;
+	for(auto lazyNode: lazySet) {
+		for(auto in: lazyNode->in()) {
 			if(in->has<ConstantProperty>())
 				continue;
 			assert(in->source());
@@ -114,19 +118,19 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	
 	// Check if it already has a closure list
 	if(closureNode->has<ClosureProperty>()) {
-		const vector<const Edge*>& oldList = closureNode->get<ClosureProperty>().edges();
+		const auto& oldList = closureNode->get<ClosureProperty>().edges();
 		
 		// Check if they are identical
 		if(oldList.size() == border.size()) {
 			bool same = true;
-			for(const Edge* edge: oldList) {
+			for(auto edge: oldList) {
 				if(!contains(border, edge)) {
 					same = false;
 					break;
 				}
 			}
 			
-			// Return without chaning anything
+			// Return without changing anything
 			if(same)
 				return;
 		}
@@ -138,33 +142,33 @@ void ClosureCloser::anotateClosure(Node* closureNode)
 	_fixedPoint = false;
 }
 
-void ClosureCloser::recurseOut(Edge* edge, vector<Edge*>* edges)
+void ClosureCloser::recurseOut(std::shared_ptr<Edge> edge, vector<std::shared_ptr<Edge>>* edges)
 {
 	if(contains(*edges, edge))
 		return;
 	edges->push_back(edge);
-	for(Node* node: edge->sinks())
-		recurseOut(node, edges);
+	for(auto sink: edge->sinks())
+		recurseOut(sink.target.lock(), edges);
 }
 
-void ClosureCloser::recurseOut(Node* node, vector<Edge*>* edges)
+void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Edge>>* edges)
 {
-	for(uint i = 0; i < node->outArity(); ++i)
-		recurseOut(node->out(i), edges);
+	for(auto out: node->out())
+		recurseOut(out, edges);
 }
 
-void ClosureCloser::recurseOut(Node* node, vector<Node*>* nodes)
+void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Node>>* nodes)
 {
 	if(contains(*nodes, node))
 		return;
 	nodes->push_back(node);
-	for(uint i = 0; i < node->outArity(); ++i) {
-		for(Node* sink: node->out(i)->sinks())
-			recurseOut(sink, nodes);
+	for(auto out: node->out()) {
+		for(auto sink: out->sinks())
+			recurseOut(sink.target.lock(), nodes);
 	}
 }
 
-void ClosureCloser::recurseIn(Edge* edge, std::vector<Edge*>* edges)
+void ClosureCloser::recurseIn(std::shared_ptr<Edge> edge, std::vector<std::shared_ptr<Edge>>* edges)
 {
 	if(contains(*edges, edge))
 		return;
@@ -172,7 +176,7 @@ void ClosureCloser::recurseIn(Edge* edge, std::vector<Edge*>* edges)
 	recurseIn(edge->source(), edges);
 }
 
-void ClosureCloser::recurseIn(Node* node, std::vector<Edge*>* edges)
+void ClosureCloser::recurseIn(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Edge>>* edges)
 {
 	if(!node || !edges)
 		return;

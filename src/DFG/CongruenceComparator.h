@@ -2,7 +2,6 @@
 #include <vector>
 #include <map>
 #include <memory>
-class Edge;
 class Node;
 class Value;
 
@@ -14,7 +13,7 @@ class Value;
 class CongruenceComparator
 {
 public:
-	typedef std::map<std::shared_ptr<Edge>, std::shared_ptr<Edge>> Connections;
+	typedef std::map<std::shared_ptr<OutPort>, std::shared_ptr<OutPort>> Connections;
 	
 	void connectLeft(const Connections& connections) { _connectLeft = connections; }
 	void connectRight(const Connections& connections) { _connectRight = connections; }

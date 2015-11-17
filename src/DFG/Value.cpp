@@ -1,5 +1,7 @@
 #include "Value.h"
 #include <Utilities/exceptions.h>
+#include <Utilities/string.h>
+#include <Unicode/convert.h>
 
 bool Value::operator==(const Value& other) const
 {
@@ -56,4 +58,9 @@ std::wostream& operator<<(std::wostream& out, const Value& value)
 		default: throw invalid_enum{};
 	}
 	return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Value& value)
+{
+	return out << encodeLocal(toString(value));
 }

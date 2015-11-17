@@ -1,5 +1,4 @@
 #pragma once
-#include <DFG/NodeType.h>
 #include <DFG/Node.h>
 #include "SourceProperty.h"
 #include <Passes/Value.h>

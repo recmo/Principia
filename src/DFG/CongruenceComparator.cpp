@@ -7,6 +7,7 @@ using std::wcerr;
 using std::endl;
 
 #define debug false
+
 /*
 
 bool CongruenceComparator::compareEdges(
@@ -122,4 +123,5 @@ bool CongruenceComparator::compareValues(const Value& left, const Value& right)
 		wcerr << L"Comparing " << left << L" ≡₃ " << right << endl;
 	return left == right;
 }
+
 */

@@ -48,3 +48,5 @@ private:
 std::wostream& operator<<(std::wostream& out, Value::Kind value);
 
 std::wostream& operator<<(std::wostream& out, const Value& value);
+
+std::ostream& operator<<(std::ostream& out, const Value& value);

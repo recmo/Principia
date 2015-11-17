@@ -2,6 +2,7 @@
 #include <UnitTest++/UnitTest++.h>
 #include <DFG/Value.h>
 #include <DFG/Builtin.h>
+#include <DFG/ConstantProperty.h>
 #include <Utilities/exceptions.h>
 
 SUITE(Node) {
@@ -78,20 +79,38 @@ TEST(Construct)
 
 TEST(Connect)
 {
-	Node node1(Node::Closure, 1, 1);
-	node1.in(0) << node1.out(0);
+	auto node1 = std::make_shared<Node>(Node::Closure, 1, 1);
+	node1->in(0) << node1->out(0);
+	CHECK_EQUAL(1, node1->out(0).sinks().size());
+	CHECK(nullptr != node1->in(0).source());
 	
-	Node node2(Node::Closure, 1, 1);
-	node2.in(0) << node1.out(0);
-	node1.in(0) << node2.out(0);
+	auto node2 = std::make_shared<Node>(Node::Closure, 1, 1);
+	node2->in(0) << node1->out(0);
+	node1->in(0) << node2->out(0);
+	CHECK_EQUAL(1, node1->out(0).sinks().size());
+	CHECK_EQUAL(1, node2->out(0).sinks().size());
+	CHECK(nullptr != node1->in(0).source());
+	CHECK(nullptr != node2->in(0).source());
 	
-	Node node3(Node::Closure, 1, 1);
-	node3.in(0) << node2.out(0);
-	node1.in(0) << node3.out(0);
+	auto node3 = std::make_shared<Node>(Node::Closure, 1, 1);
+	node3->in(0) << node2->out(0);
+	node1->in(0) << node3->out(0);
+	CHECK_EQUAL(1, node1->out(0).sinks().size());
+	CHECK_EQUAL(1, node2->out(0).sinks().size());
+	CHECK_EQUAL(1, node3->out(0).sinks().size());
+	CHECK(nullptr != node1->in(0).source());
+	CHECK(nullptr != node2->in(0).source());
+	CHECK(nullptr != node3->in(0).source());
 	
-	node1.in(0) << node1.out(0);
-	node2.in(0) << node1.out(0);
-	node3.in(0) << node1.out(0);
+	node1->in(0) << node1->out(0);
+	node2->in(0) << node1->out(0);
+	node3->in(0) << node1->out(0);
+	CHECK_EQUAL(3, node1->out(0).sinks().size());
+	CHECK_EQUAL(0, node2->out(0).sinks().size());
+	CHECK_EQUAL(0, node3->out(0).sinks().size());
+	CHECK(nullptr != node1->in(0).source());
+	CHECK(nullptr != node2->in(0).source());
+	CHECK(nullptr != node3->in(0).source());
 }
 
 TEST(ConnectValues)
@@ -101,7 +120,11 @@ TEST(ConnectValues)
 	node.in(1) << Value{1L};
 	node.in(2) << Value{1.0};
 	node.in(3) << Builtin::if_;
-	node.in(3) << Value{L"Test"};
+	node.in(4) << Value{L"Test"};
+	CHECK_EQUAL(Value{}, node.in(0).get<ConstantProperty>().value());
+	CHECK_EQUAL(Value{1L}, node.in(1).get<ConstantProperty>().value());
+	CHECK_EQUAL(Value{1.0}, node.in(2).get<ConstantProperty>().value());
+	CHECK_EQUAL(Value{L"Test"}, node.in(4).get<ConstantProperty>().value());
 }
 
 TEST(Factorial)

@@ -7,12 +7,11 @@ class InPort;
 class OutPort: public Port, public std::enable_shared_from_this<OutPort>
 {
 public:
+	typedef std::set<std::weak_ptr<InPort>, std::owner_less<std::weak_ptr<InPort>>> SinkSet;
+	
 	OutPort(Node& parent, uint index): Port(parent, index) { }
 	
-	std::set<std::weak_ptr<InPort>, std::owner_less<std::weak_ptr<InPort>>>&
-	sinks() { return _sinks; }
-	const std::set<std::weak_ptr<InPort>, std::owner_less<std::weak_ptr<InPort>>>&
-	sinks() const { return _sinks; }
+	const SinkSet& sinks() const { return _sinks; }
 	
 protected:
 	friend class InPort;
@@ -20,5 +19,5 @@ protected:
 	void del_sink(InPort& sink);
 	
 private:
-	std::set<std::weak_ptr<InPort>, std::owner_less<std::weak_ptr<InPort>>> _sinks;
+	SinkSet _sinks;
 };

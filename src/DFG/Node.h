@@ -1,82 +1,36 @@
 #pragma once
-#include "fixups.h"
-#include <limits>
-#include <set>
-#include "DFG/PropertyMap.h"
-#include "DFG/NodeType.h"
-#include "DFG/Edge.h"
+#include <DFG/PropertyMap.h>
+#include <DFG/NodeType.h>
+#include <vector>
+#include <memory>
+class Edge;
 
 class Node: public PropertyMap
 {
 public:
-	static const uint noIndex = std::numeric_limits<uint>::max();
-	
-	Node(NodeType type, int incommingArity, int outgoingArity);
-	~Node();
+	static std::shared_ptr<Node> make_shared(NodeType type,
+		int incomingArity, int outgoingArity);
+		
+	Node(NodeType type, int incomingArity, int outgoingArity);
 	
 	NodeType type() const { return _type; }
-	uint inArity() const { return _incomming.size(); }
+	uint inArity() const { return _incoming.size(); }
 	uint outArity() const { return _outgoing.size(); }
 	
-	const Edge* in(uint index) const;
-	Edge* in(uint index);
-	std::vector<const Edge*> constIn() const;
-	std::vector<Edge*> in();
-	uint inIndexOf(const Edge* edge) const;
+	std::shared_ptr<Edge> out(uint index) const;
+	std::shared_ptr<Edge> in(uint index) const;
+	void connect(uint index, std::shared_ptr<Edge> edge);
 	
-	const Edge* out(uint index) const;
-	Edge* out(uint index);
-	std::vector<const Edge*> constOut() const;
-	std::vector<Edge*> out();
-	uint outIndexOf(const Edge* edge) const;
+	const std::vector<std::shared_ptr<Edge>>& out() const;
+	std::vector<std::shared_ptr<Edge>> in() const;
 	
-	void connect(uint index, Edge* edge);
-	void forgetEdge(const Edge* edge);
-	void replaceEdge(const Edge* from, Edge* to);
+private:
+	const NodeType _type;
+	std::weak_ptr<Node> _self;
+	std::vector<std::shared_ptr<Edge>> _outgoing;
+	std::vector<std::weak_ptr<Edge>> _incoming;
 	
-	void print(std::wostream& out) const;
-	
-	std::set<Node*> outNodes(bool ignoreFunctional);
-	std::set<Node*> outClosures(bool ignoreFunctional);
-	
-protected:
-	NodeType _type;
-	std::vector<Edge*> _incomming;
-	std::vector<Edge*> _outgoing;
+	void createEdges();
 };
 
-inline std::wostream& operator<<(std::wostream& out, const Node& node)
-{
-	node.print(out);
-	return out;
-}
-
-inline std::wostream& operator<<(std::wostream& out, const Node* node)
-{
-	return (node) ? out << *node : out << L"nullNode";
-}
-
-inline Edge* Node::out(uint index)
-{
-	assert(index < outArity());
-	return _outgoing[index];
-}
-
-inline const Edge* Node::out(uint index) const
-{
-	assert(index < outArity());
-	return _outgoing[index];
-}
-
-inline Edge* Node::in(uint index)
-{
-	assert(index < inArity());
-	return _incomming[index];
-}
-
-inline const Edge* Node::in(uint index) const
-{
-	assert(index < inArity());
-	return _incomming[index];
-}
-
+std::wostream& operator<<(std::wostream& out, const Node& node);

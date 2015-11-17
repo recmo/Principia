@@ -1,43 +1,34 @@
 #pragma once
-#include "fixups.h"
-#include "DFG/PropertyMap.h"
-
+#include <DFG/PropertyMap.h>
 class Node;
 
 class Edge: public PropertyMap
 {
 public:
-	Edge(Node* source);
-	~Edge();
+	struct Sink {
+		std::weak_ptr<Node> target;
+		uint index;
+		bool operator==(const Sink& other) const;
+		bool operator<(const Sink& other) const;
+	};
 	
-	Node* source() const { return _source; }
-	uint sourceIndex() const;
-	const vector<Node*>& sinks() const { return _sinks; }
+	Edge() { }
+	Edge(std::shared_ptr<Node> source, uint index);
+	Edge(const Edge& copy) = delete;
+	Edge& operator=(const Edge& copy) = delete;
 	
-	void addSink(Node* node);
-	void delSink(const Node* node);
+	std::shared_ptr<Node> source() const;
+	uint index() const { return _index; }
+	const std::set<Sink>& sinks() const { return _sinks; }
 	
-	void print(std::wostream& out) const;
-	
-	void replaceWith(Edge* edge);
-	
+	void replaceWith(std::shared_ptr<Edge> edge);
 	bool isFunction() const;
 	
 private:
-	Edge(const Edge& copy);
-	void operator=(const Edge& copy);
-	
-	Node* _source;
-	vector<Node*> _sinks;
+	friend class Node;
+	const std::weak_ptr<Node> _source{};
+	const uint _index = 0;
+	std::set<Sink> _sinks;
 };
 
-inline std::wostream& operator<<(std::wostream& out, const Edge& edge)
-{
-	edge.print(out);
-	return out;
-}
-
-inline std::wostream& operator<<(std::wostream& out, const Edge* edge)
-{
-	return (edge) ? out << *edge: out << L"nullEdge";
-}
+std::wostream& operator<<(std::wostream& out, const Edge& edge);

@@ -1,27 +1,18 @@
 #include "CongruenceComparator.h"
-#include "Edge.h"
-#include "Node.h"
+#include <DFG/Node.h>
+#include <DFG/Edge.h>
 #include <Parser/ConstantProperty.h>
+#include <Unicode/exceptions.h>
 
 #define debug false
 
-CongruenceComparator::CongruenceComparator()
-: _connectLeft()
-, _connectRight()
-, _recursionPairs()
-{
-}
-
-CongruenceComparator::~CongruenceComparator()
-{
-}
-
-bool CongruenceComparator::compareEdges(const Edge* left, const Edge* right)
+bool CongruenceComparator::compareEdges(
+	std::shared_ptr<Edge> left, std::shared_ptr<Edge> right)
 {
 	if(debug)
 		wcerr << L"Comparing " << left << L" ≡₁ " << right << endl;
 	
-	if(!left || !right)
+	if(left == nullptr || right == nullptr)
 		return false;
 	if(left == right)
 		return true;
@@ -35,35 +26,36 @@ bool CongruenceComparator::compareEdges(const Edge* left, const Edge* right)
 		right = rightMap->second;
 	
 	// Sourceless edges (for example constants)
-	if(!left->source() || !right->source()) {
+	if(left->source() == nullptr || right->source() == nullptr ) {
 		if(left->source() != right->source())
 			return false;
-		if(left->has<ConstantProperty>() && right->has<ConstantProperty>())
-			return compareValues(left->get<ConstantProperty>().value(), right->get<ConstantProperty>().value());
-		if(debug)
-			wcerr << L"Incomparable edges detected, assuming different." << endl;
-		return false;
+		if(left->has<ConstantProperty>() && right->has<ConstantProperty>()) {
+			return compareValues(
+				left->get<ConstantProperty>().value(),
+				right->get<ConstantProperty>().value());
+		}
+		throw runtime_error(L"Unimplemented");
 	}
 	
 	// Same output in the defining node
-	if(left->sourceIndex() != right->sourceIndex())
+	if(left->index() != right->index())
 		return false;
 	
 	// Recursion pairs
-	for(const std::pair<const Edge*, const Edge*> pair: _recursionPairs)
-		if(left == pair.first && right == pair.second)
-			return true;
+	if(contains(_recursionPairs, std::make_pair(left, right)))
+		return true;
 	
 	// Compare the defining nodes
 	return compareNodes(left->source(), right->source());
 }
 
-bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
+bool CongruenceComparator::compareNodes(
+	std::shared_ptr<Node> left, std::shared_ptr<Node> right)
 {
 	if(debug)
 		wcerr << L"Comparing " << left << L" ≡₂ " << right << endl;
 	
-	if(!left || !right)
+	if(left == nullptr|| right == nullptr)
 		return false;
 	if(left == right)
 		return true;
@@ -85,17 +77,17 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		return true;
 	}
 	
-	// Closures are equal iff their incoming edges are equal assuming their outgoing edges are equal
+	// Closures are equal iff their incoming edges are equal under the
+	// assumption that their outgoing edges are equal.
 	if(left->type() == NodeType::Closure) {
 		
-		// Push the equality of the parameters on the stack
+		// Push the equality of the outgoing edges on the stack
 		for(uint i = 0; i < left->outArity(); ++i) {
-			if(debug)
-				wcerr << "Pushing " << left->out(i) << " ≡ " << right->out(i) << endl;
-			std::pair<const Edge*, const Edge*> recursionPair;
-			recursionPair.first = left->out(i);
-			recursionPair.second = right->out(i);
-			_recursionPairs.push_back(recursionPair);
+			if(debug) {
+				wcerr << "Pushing " << left->out(i);
+				wcerr << " ≡ " << right->out(i) << endl;
+			}
+			_recursionPairs.push_back(std::make_pair(left->out(i), right->out(i)));
 		}
 		
 		// Compare the output of the closure
@@ -111,6 +103,8 @@ bool CongruenceComparator::compareNodes(const Node* left, const Node* right)
 		for(uint i = 0; i < left->outArity(); ++i) {
 			if(debug)
 				wcerr << "Poping " << left->out(i) << " ≡ " << right->out(i) << endl;
+			const auto pair = std::make_pair(left->out(i), right->out(i));
+			assert(_recursionPairs.back() == pair);
 			_recursionPairs.pop_back();
 		}
 		return equal;
@@ -123,16 +117,5 @@ bool CongruenceComparator::compareValues(const Value& left, const Value& right)
 {
 	if(debug)
 		wcerr << L"Comparing " << left << L" ≡₃ " << right << endl;
-	
-	if(left.kind != right.kind)
-		return false;
-	switch(left.kind) {
-	case Value::Integer: return left.integer() == right.integer();
-	case Value::Real: return left.real() == right.real();
-	case Value::String: return left.stringValue() == right.stringValue();
-	case Value::Builtin: return left.builtin() == right.builtin();
-	default:
-		wcerr << L"Incomparable values detected, assuming different." << endl;
-		return false;
-	}
+	return left == right;
 }

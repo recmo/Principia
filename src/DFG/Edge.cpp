@@ -1,71 +1,48 @@
-#include "DFG/Edge.h"
-#include "Node.h"
-#include "Parser/SourceProperty.h"
-#include "Parser/IdentifierProperty.h"
+#include "Edge.h"
+#include <DFG/Node.h>
+#include <Parser/SourceProperty.h>
+#include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
 
-Edge::Edge(Node* source)
-: PropertyMap()
-, _source(source)
-, _sinks()
+Edge::Edge(std::shared_ptr<Node> source, uint index)
+: _source(std::move(source))
+, _index(index)
 {
+	assert(source != nullptr);
 }
 
-Edge::~Edge()
+std::shared_ptr<Node> Edge::source() const
 {
-	for(auto it = _sinks.begin(); it != _sinks.end(); ++it)
-		(*it)->forgetEdge(this);
+	std::shared_ptr<Node> source = _source.lock();
+	assert(source != nullptr);
+	return source;
 }
 
-uint Edge::sourceIndex() const
+void Edge::replaceWith(std::shared_ptr<Edge> edge)
 {
-	assert(_source);
-	uint index = _source->outIndexOf(this);
-	assert(index < _source->outArity());
-	return index;
-}
-
-void Edge::addSink(Node* node)
-{
-	for(auto it = _sinks.begin(); it != _sinks.end(); ++it)
-		if(*it == node)
-			return;
-	_sinks.push_back(node);
-}
-
-void Edge::delSink(const Node* node)
-{
-	assert(node);
-	auto it = _sinks.begin();
-	for(; it != _sinks.end(); ++it) {
-		Node* n = *it;
-		assert(n);
-		if(n == node)
-			break;
+	const std::set<Sink> sinks = _sinks;
+	for(Sink sink: sinks) {
+		std::shared_ptr<Node> target = sink.target.lock();
+		if(target == nullptr)
+			continue;
+		target->connect(sink.index, edge);
 	}
-	assert(it != _sinks.end());
-	_sinks.erase(it);
+	assert(_sinks.size() == 0);
 }
 
-void Edge::replaceWith(Edge* edge)
+std::wostream& operator<<(std::wostream& out, const Edge& edge)
 {
-	for(auto it = _sinks.begin(); it != _sinks.end(); ++it)
-		(*it)->replaceEdge(this, edge);
-	_sinks.empty();
-}
-
-void Edge::print(std::wostream& out) const
-{
-	if(has<IdentifierProperty>() && get<IdentifierProperty>().value() != L"·")
-		out << get<IdentifierProperty>().value();
-	else if(has<ConstantProperty>())
-		out << get<ConstantProperty>().value();
-	else if(has<SourceProperty>()) {
-		SourceProperty sp = get<SourceProperty>();
+	if(edge.has<IdentifierProperty>() && edge.get<IdentifierProperty>().value() != L"·")
+		out << edge.get<IdentifierProperty>().value();
+	else if(edge.has<ConstantProperty>())
+		out << edge.get<ConstantProperty>().value();
+	else if(edge.has<SourceProperty>()) {
+		SourceProperty sp = edge.get<SourceProperty>();
 		sp.print(out);
 	} else {
-		out << L"<" << uint64(this) << ">";
+		out << L"<" << reinterpret_cast<uint64>(&edge) << ">";
 	}
+	return out;
 }
 
 bool Edge::isFunction() const
@@ -74,7 +51,24 @@ bool Edge::isFunction() const
 		&& get<ConstantProperty>().value().kind == Value::Builtin) {
 		return true;
 	}
-	return _source->type() == NodeType::Closure
-		&& _source->outArity() >= 1
-		&& _source->out(0) == this;
+	std::shared_ptr<Node> s = source();
+	return index() == 0 && s != nullptr && s->type() == NodeType::Closure;
+}
+
+bool Edge::Sink::operator==(const Edge::Sink& other) const
+{
+	if(index != other.index)
+		return false;
+	std::shared_ptr<Node> ours = target.lock();
+	std::shared_ptr<Node> theirs = other.target.lock();
+	return ours == theirs;
+}
+
+bool Edge::Sink::operator<(const Edge::Sink& other) const
+{
+	if(index != other.index)
+		return index < other.index;
+	std::shared_ptr<Node> ours = target.lock();
+	std::shared_ptr<Node> theirs = other.target.lock();
+	return ours.get() < theirs.get();
 }

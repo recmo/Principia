@@ -1,12 +1,11 @@
-#include "DFG/NodeType.h"
+#include "NodeType.h"
+#include <Unicode/exceptions.h>
 
-string NodeType::toString() const
+std::wostream& operator<<(std::wostream& out, const NodeType& nodetype)
 {
-	switch(value)
-	{
-		case NodeType::Call: return L"Call";
-		case NodeType::Closure: return L"Closure";
-		default: return L"Invalid value";
+	switch(nodetype) {
+		case NodeType::Call: return out << L"Call";
+		case NodeType::Closure: return out << L"Closure";
+		default: throw logic_error(L"Invalid enum value.");
 	}
 }
-

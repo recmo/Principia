@@ -21,9 +21,9 @@ bool contains(const std::vector<T,A>& v, const T& value)
 }
 
 template<class T, class C, class A>
-bool contains(const std::set<T,C,A>& v, const T& value)
+bool contains(const std::set<T,C,A>& set, const T& value)
 {
-	return std::find(v.begin(), v.end(), value) != v.end();
+	return set.find(value) != set.end();
 }
 
 template<class K, class V, class C, class A>

@@ -1,112 +1,110 @@
 #include "Node.h"
-#include <DFG/Edge.h>
+#include <DFG/OutPort.h>
+#include <DFG/InPort.h>
 #include <Parser/IdentifierProperty.h>
 #include <Parser/SourceProperty.h>
 #include <Utilities/assert.h>
+#include <Utilities/exceptions.h>
+#include <Unicode/exceptions.h>
 
-std::shared_ptr<Node> Node::make_shared(NodeType type, int in, int out)
-{
-	std::shared_ptr<Node> node = std::make_shared<Node>(type, in, out);
-	node->_self = node;
-	node->createEdges();
-	return std::move(node);
-}
-
-Node::Node(NodeType type, int incomingArity, int outgoingArity)
+Node::Node(NodeType type, uint outgoingArity, uint incomingArity)
 : PropertyMap()
 , _type(type)
-, _outgoing(outgoingArity)
-, _incoming(incomingArity)
+, _outgoing(createOutgoing(outgoingArity))
+, _incoming(createIncoming(incomingArity))
 {
-	assert(type.isValid());
-	assert(inArity() >= (type == NodeType::Call) ? 1 : 0);
-	assert(outArity() >= (type == NodeType::Closure)? 1 : 0);
+	assert(type == Call || type == Closure);
+	assert(outgoingArity >= (type == NodeType::Closure)? 1 : 0);
+	assert(incomingArity >= (type == NodeType::Call) ? 1 : 0);
 }
 
-void Node::createEdges()
+std::vector<Node::OutPortPtr> Node::createOutgoing(uint arity)
 {
-	std::shared_ptr<Node> self = _self.lock();
-	assert(self != nullptr);
-	assert(self.get() == this);
-	for(uint i = 0; i < outArity(); ++i)
-		_outgoing[i] = std::move(std::make_shared<Edge>(self, i));
+	std::vector<OutPortPtr> result;
+	result.reserve(arity);
+	for(uint i = 0; i < arity; ++i)
+		result.push_back(std::make_shared<OutPort>(*this, i));
+	assert(result.size() == arity);
+	return result;
 }
 
-std::shared_ptr<Edge> Node::out(uint index) const
+std::vector<Node::InPortPtr> Node::createIncoming(uint arity)
+{
+	std::vector<InPortPtr> result;
+	result.reserve(arity);
+	for(uint i = 0; i < arity; ++i)
+		result.push_back(std::make_shared<InPort>(*this, i));
+	assert(result.size() == arity);
+	return result;
+}
+
+OutPort& Node::out(uint index)
 {
 	if(index >= _outgoing.size())
-		throw out_of_range(L"Index out of range.");
-	std::shared_ptr<Edge> edge = _outgoing[index];
-	assert(edge != nullptr);
-	return edge;
+		throw index_out_of_range{};
+	OutPort* const ptr = _outgoing.at(index).get().get();
+	return *ptr;
 }
 
-std::shared_ptr<Edge> Node::in(uint index) const
+const OutPort& Node::out(uint index) const
+{
+	if(index >= _outgoing.size())
+		throw index_out_of_range{};
+	const OutPort* const ptr = _outgoing.at(index).get().get();
+	return *ptr;
+}
+
+InPort& Node::in(uint index)
 {
 	if(index >= _incoming.size())
-		throw out_of_range(L"Index out of range.");
-	return _incoming[index].lock();
+		throw index_out_of_range{};
+	InPort* const ptr = _incoming.at(index).get().get();
+	return *ptr;
 }
 
-void Node::connect(uint index, std::shared_ptr<Edge> edge)
+const InPort& Node::in(uint index) const
 {
 	if(index >= _incoming.size())
-		throw out_of_range(L"Index out of range.");
-	
-	// Switch the connection, updating Edge::_sinks in the process.
-	const Edge::Sink sink{_self, index};
-	std::weak_ptr<Edge>& in = _incoming[index];
-	std::shared_ptr<Edge> old = in.lock();
-	if(old != nullptr) {
-		assert(contains(old->_sinks, sink));
-		old->_sinks.erase(sink);
-	}
-	in = edge;
-	if(edge != nullptr) {
-		assert(!contains(edge->_sinks, sink));
-		edge->_sinks.insert(sink);
-	}
+		throw index_out_of_range{};
+	const InPort* const ptr = _incoming.at(index).get().get();
+	return *ptr;
 }
 
-const vector<std::shared_ptr<Edge>>& Node::out() const
+std::wostream& operator<<(std::wostream& out, Node::NodeType nodeType)
 {
-	return _outgoing;
-}
-
-vector<std::shared_ptr<Edge>> Node::in() const
-{
-	vector<std::shared_ptr<Edge>> result;
-	result.reserve(_incoming.size());
-	for(const auto& in: _incoming)
-		result.push_back(in.lock());
-	return result;
+	switch(nodeType) {
+		case Node::Call: return out << L"Call";
+		case Node::Closure: return out << L"Closure";
+		default: throw invalid_enum{};
+	};
 }
 
 std::wostream& operator<<(std::wostream& out, const Node& node)
 {
-	if(node.type() == NodeType::Call)
+	if(node.type() == Node::Call)
 		out << L"≔";
 	if(node.has<IdentifierProperty>()) {
-		out << node.get<IdentifierProperty>().value();
+		out << node.get<IdentifierProperty>();
 	} else if(node.has<SourceProperty>()) {
-		SourceProperty sp = node.get<SourceProperty>();
-		sp.print(out);
+		out << node.get<SourceProperty>();
 	} else {
-		if(node.type() == NodeType::Closure
-			&& node.out(0)->has<IdentifierProperty>()) {
-			out << L"<" << node.out(0)->get<IdentifierProperty>().value() << L">";
-		} else if(node.type() == NodeType::Call) {
-			std::shared_ptr<Edge> in = node.in(0);
-			if(in != nullptr && in->has<IdentifierProperty>()) {
-				out << L"<" << in->get<IdentifierProperty>().value() << L">";
+		if(node.type() == Node::Closure) {
+			const OutPort& outp = node.out(0);
+			if(outp.has<IdentifierProperty>()) {
+				out << L"<" << outp.get<IdentifierProperty>() << L">";
 			} else {
 				out << L"<anonymous>";
 			}
-		} else {
-			out << L"<anonymous>";
+		} else if(node.type() == Node::Call) {
+			const InPort& inp = node.in(0);
+			if(inp.has<IdentifierProperty>()) {
+				out << L"<" << inp.get<IdentifierProperty>() << L">";
+			} else {
+				out << L"<anonymous>";
+			}
 		}
 	}
-	if(node.type() == NodeType::Closure)
+	if(node.type() == Node::Closure)
 		out << L"↦";
 	return out;
 }

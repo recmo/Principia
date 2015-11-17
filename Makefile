@@ -3,14 +3,20 @@ program := Principia
 # Find all source files
 sources := $(shell find -wholename './src/*.cpp')
 parsers := $(shell find -wholename './src/*.qx')
-
-# Header dependency finder
-finddeps := clang++ -std=c++14 -I. -Isrc -MM -MP
+sources := $(filter-out ./src/Passes/%.cpp, $(sources))
+sources := $(filter-out ./src/Parser/%.cpp, $(sources))
+sources := $(filter-out ./src/Verifier/%.cpp, $(sources))
+sources := $(sources) ./src/Parser/IdentifierProperty.cpp
+sources := $(sources) ./src/Parser/SourceProperty.cpp
 
 # C++11 Compiler
-compiler := clang++ -std=c++14
+compiler := clang++ -std=c++14 -ggdb
 compiler := ${compiler} -Wall -Wextra -Wno-unused-parameter -Werror=return-type -Werror=switch
 compiler := ${compiler} -Ibuild/quex -Isrc -Ibuild/resources
+compiler := ${compiler} -ftemplate-backtrace-limit=0
+
+# Header dependency finder
+finddeps := ${compiler} -MM -MP
 
 # Linker
 linker := clang++
@@ -101,3 +107,6 @@ run-tests: test
 
 clean:
 	@rm -Rf build/* $(program)
+
+asd:
+	echo $(sources)

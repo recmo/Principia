@@ -1,10 +1,13 @@
 #include "CongruenceComparator.h"
 #include <DFG/Node.h>
-#include <DFG/Edge.h>
-#include <Parser/ConstantProperty.h>
+#include <DFG/ConstantProperty.h>
 #include <Unicode/exceptions.h>
+#include <iostream>
+using std::wcerr;
+using std::endl;
 
 #define debug false
+/*
 
 bool CongruenceComparator::compareEdges(
 	std::shared_ptr<Edge> left, std::shared_ptr<Edge> right)
@@ -69,7 +72,7 @@ bool CongruenceComparator::compareNodes(
 		return false;
 	
 	// Calls are structurally equal iff all their inputs are equal
-	if(left->type() == NodeType::Call) {
+	if(left->type() == Node::Call) {
 		for(uint i = 0; i < left->inArity(); ++i) {
 			if(!compareEdges(left->in(i), right->in(i)))
 				return false;
@@ -79,7 +82,7 @@ bool CongruenceComparator::compareNodes(
 	
 	// Closures are equal iff their incoming edges are equal under the
 	// assumption that their outgoing edges are equal.
-	if(left->type() == NodeType::Closure) {
+	if(left->type() == Node::Closure) {
 		
 		// Push the equality of the outgoing edges on the stack
 		for(uint i = 0; i < left->outArity(); ++i) {
@@ -119,3 +122,4 @@ bool CongruenceComparator::compareValues(const Value& left, const Value& right)
 		wcerr << L"Comparing " << left << L" ≡₃ " << right << endl;
 	return left == right;
 }
+*/

@@ -18,6 +18,10 @@ public:
 		virtual void print(std::wostream& out) const = 0;
 	};
 	
+	PropertyMap() = default;
+	PropertyMap(const PropertyMap& copy) = delete;
+	PropertyMap& operator=(const PropertyMap& other) = delete;
+	
 	template<class T> bool has() const;
 	template<class T> const T& get() const;
 	template<class T> T& get();

@@ -9,7 +9,6 @@
 #include "EscapeProperty.h"
 #include <Parser/IdentifierProperty.h>
 #include <Parser/ConstantProperty.h>
-#include <stdint.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Attributes.h>
 #include <llvm/IR/Verifier.h>
@@ -28,6 +27,9 @@
 #include <llvm/CodeGen/Passes.h>
 #include <Passes/LlvmPtrtointInttoptrCombine.h>
 #include <Passes/LlvmStoreLoadCombine.h>
+
+// Reset assert macro
+#include <Utilities/assert.h>
 
 #define debug false
 
@@ -115,10 +117,12 @@ void LlvmCompiler::compile()
 	}
 	
 	// Verify the code
+	/* TODO
 	if(llvm::verifyModule(*_module)) {
 		wcerr << "ERRORS!!!" << endl;
 		throw L"Errors in produced LLVM code";
 	}
+	*/
 	
 	// Optimize
 	llvm::PassManager mpm;
@@ -311,6 +315,7 @@ void LlvmCompiler::buildWrapper(std::shared_ptr<Node> closureNode)
 
 void LlvmCompiler::buildFunctionBody(std::shared_ptr<Node> closureNode)
 {
+	assert(closureNode != nullptr);
 	if(debug)
 		wcerr << "FUNC " << endl;
 	llvm::Function* function = _declarations[closureNode];
@@ -364,6 +369,7 @@ void LlvmCompiler::buildInstruction(const StackMachineProperty::Instruction* ins
 
 void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 {
+	assert(call->node()->in(0) != nullptr);
 	if(call->node()->in(0)->has<ConstantProperty>() && call->node()->in(0)->get<ConstantProperty>().value().kind == Value::Builtin) {
 		buildBuiltin(call);
 		return;
@@ -377,10 +383,12 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(uint i = 0; i < stackPositions.size(); ++i) {
-		if(stackPositions[i] == -1)
+		if(stackPositions[i] == -1) {
+			assert(inputs[i] != nullptr);
 			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
-		else
+		} else {
 			args.push_back(_stack[stackPositions[i]]);
+		}
 	}
 	
 	// Cast the first argument to closure pointer
@@ -388,6 +396,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	
 	// Fetch the function pointer
 	llvm::Value* funcPtr;
+	assert(call->node()->in(0) != nullptr);
 	if(call->node()->in(0)->has<ConstantProperty>()) {
 		std::shared_ptr<Node> closureNode = call->node()->in(0)->get<ConstantProperty>().value().closure()->node();
 		funcPtr = _declarations[closureNode];
@@ -403,6 +412,7 @@ void LlvmCompiler::buildCall(const StackMachineProperty::CallInstruction* call)
 	
 	// Create the call
 	std::string name = "";
+	assert(call->node()->in(0) != nullptr);
 	if(call->node()->in(0)->has<IdentifierProperty>())
 		name = encodeUtf8(call->node()->in(0)->get<IdentifierProperty>().value());
 	llvm::CallInst* result = _builder.CreateCall(funcPtr, args, name);
@@ -439,6 +449,7 @@ void LlvmCompiler::buildAlloc(const StackMachineProperty::AllocateInstruction* a
 	}
 	
 	// Allocate the closure
+	assert(alloc->closure());
 	int closureSize = alloc->closure()->get<ClosureProperty>().edges().size() + 1;
 	llvm::Value* closure = 0;
 	if(alloc->closure()->has<EscapeProperty>() && !alloc->closure()->get<EscapeProperty>().escapes()) {
@@ -472,21 +483,24 @@ void LlvmCompiler::buildRet(const StackMachineProperty::ReturnInstruction* ret)
 {
 	// Construct the return value
 	if(debug)
-		wcerr << "RETURNS" << endl;
+		wcerr << "RETURNS " << ret->returns() << endl;
 	const vector<int>& resultStackpos = ret->returns();
 	if(resultStackpos.size() == 1) {
-		if(resultStackpos[0] == -1)
+		if(resultStackpos[0] == -1) {
+			assert(ret->closure()->in(0) != nullptr);
 			_builder.CreateRet(buildConstant(ret->closure()->in(0)->get<ConstantProperty>().value()));
-		else {
+		} else {
+			assert(resultStackpos[0] >= 0);
 			assert(resultStackpos[0] < _stack.size());
 			_builder.CreateRet(_stack[resultStackpos[0]]);
 		}
 	} else {
 		vector<llvm::Value*> results;
 		for(int i = 0; i < ret->closure()->inArity(); ++i) {
-			if(resultStackpos[i] == -1)
+			if(resultStackpos[i] == -1) {
+				assert(ret->closure()->in(i) != nullptr);
 				results.push_back(buildConstant(ret->closure()->in(i)->get<ConstantProperty>().value()));
-			else {
+			} else {
 				assert(resultStackpos[i] < _stack.size());
 				results.push_back(_stack[resultStackpos[i]]);
 			}
@@ -505,13 +519,16 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 	const vector<int>& stackPositions = call->arguments();
 	vector<llvm::Value*> args;
 	for(uint i = 1; i < stackPositions.size(); ++i) {
-		if(stackPositions[i] == -1)
+		if(stackPositions[i] == -1) {
+			assert(inputs[i] != nullptr);
 			args.push_back(buildConstant(inputs[i]->get<ConstantProperty>().value()));
-		else
+		} else {
 			args.push_back(_stack[stackPositions[i]]);
+		}
 	}
 	
 	// Dispatch on the name
+	assert(call->node()->in(0) != nullptr);
 	std::wstring name = call->node()->in(0)->get<IdentifierProperty>().value();
 	if(name == L"if") {
 		std::string name;

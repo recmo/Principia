@@ -21,6 +21,7 @@ void ClosureCloser::anotateClosures()
 
 void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 {
+	assert(closureNode != nullptr);
 	assert(closureNode->type() == NodeType::Closure);
 	
 	// Calculate internal nodes
@@ -45,12 +46,16 @@ void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 		vector<std::shared_ptr<Node>> directSources;
 		for(std::shared_ptr<Node> lazy: lazySet) {
 			for(const std::shared_ptr<Edge> edge: lazy->in()) {
-				if(!edge->source() && edge->has<ConstantProperty>())
+				if(edge == nullptr)
+					continue;
+				if(edge->source() == nullptr)
+					continue;
+				if(edge->has<ConstantProperty>())
 					continue;
 				std::shared_ptr<Node> directSource = edge->source();
-				if(!directSource)
+				if(directSource == nullptr)
 					wcerr << edge << " has no source" << endl;
-				assert(directSource);
+				assert(directSource != nullptr);
 				if(directSource->type() == NodeType::Closure && edge != directSource->out(0))
 					continue; // Only make-closure is valid
 				if(contains(lazySet, directSource))
@@ -74,6 +79,7 @@ void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 			for(auto out: direct->out()) {
 				for(auto sink: out->sinks()) {
 					auto sinkNode = sink.target.lock();
+					assert(sinkNode != nullptr);
 					if(!contains(lazySet, sinkNode)) {
 						if(debug) {
 							wcerr << "Result escapes from: ";
@@ -103,6 +109,8 @@ void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 	vector<std::shared_ptr<Edge>> border;
 	for(auto lazyNode: lazySet) {
 		for(auto in: lazyNode->in()) {
+			if(in == nullptr)
+				continue;
 			if(in->has<ConstantProperty>())
 				continue;
 			assert(in->source());
@@ -144,6 +152,7 @@ void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
 
 void ClosureCloser::recurseOut(std::shared_ptr<Edge> edge, vector<std::shared_ptr<Edge>>* edges)
 {
+	assert(edge != nullptr);
 	if(contains(*edges, edge))
 		return;
 	edges->push_back(edge);
@@ -153,12 +162,14 @@ void ClosureCloser::recurseOut(std::shared_ptr<Edge> edge, vector<std::shared_pt
 
 void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Edge>>* edges)
 {
+	assert(node != nullptr);
 	for(auto out: node->out())
 		recurseOut(out, edges);
 }
 
 void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Node>>* nodes)
 {
+	assert(node != nullptr);
 	if(contains(*nodes, node))
 		return;
 	nodes->push_back(node);
@@ -170,6 +181,7 @@ void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_pt
 
 void ClosureCloser::recurseIn(std::shared_ptr<Edge> edge, std::vector<std::shared_ptr<Edge>>* edges)
 {
+	assert(edge != nullptr);
 	if(contains(*edges, edge))
 		return;
 	edges->push_back(edge);
@@ -178,6 +190,7 @@ void ClosureCloser::recurseIn(std::shared_ptr<Edge> edge, std::vector<std::share
 
 void ClosureCloser::recurseIn(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Edge>>* edges)
 {
+	assert(node != nullptr);
 	if(!node || !edges)
 		return;
 	for(uint i = 0; i < node->inArity(); ++i)

@@ -1,8 +1,6 @@
 #pragma once
 #include <DFG/PropertyMap.h>
 #include <DFG/Node.h>
-#include <DFG/Edge.h>
-#include <Unicode/string.h>
 #include <set>
 #include <memory>
 

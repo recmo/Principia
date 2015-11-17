@@ -39,7 +39,7 @@ void MyTestReporter::ReportStartSuite(const char* suite)
 {
 	using namespace std;
 	cerr << endl;
-	cerr << "== Test suite " << suite << endl << endl;
+	cerr << "## Test suite " << suite << endl << endl;
 }
 
 void MyTestReporter::ReportEndSuite(const char* suite)

@@ -32,7 +32,11 @@ inline std::ostream& operator<<(std::ostream& out, const TestProperty& property)
 TEST(Construct)
 {
 	PropertyMap p;
+	// PropertyMap copy(p);
+	// p = copy;
 	TestProperty tp;
+	// TestProperty tcopy(tp);
+	// tp = tcopy;
 }
 
 TEST(SetHasGetChangeGet)

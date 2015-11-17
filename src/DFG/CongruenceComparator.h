@@ -6,6 +6,8 @@ class Edge;
 class Node;
 class Value;
 
+/*
+
 /// Compare parts of the data flow graph for congruence
 /// This captures the notion structural equivalence, isomorphism, intensional
 /// equivalence, etc..
@@ -27,3 +29,5 @@ protected:
 	typedef std::pair<std::shared_ptr<Edge>, std::shared_ptr<Edge>> EdgePair;
 	std::vector<EdgePair> _recursionPairs;
 };
+
+*/

@@ -5,7 +5,7 @@
 #include <DFG/Node.h>
 #include <Parser/ConstantProperty.h>
 
-#define debug false
+#define debug true
 
 void StackCompiler::sortClosures()
 {
@@ -29,20 +29,25 @@ void StackCompiler::sortClosure()
 		wcerr << endl << L"Compiling closure " << _closure << endl;
 	
 	// Initialize the stack with the closure and the arguments
-	for(auto edge: _closure->get<ClosureProperty>().edges())
+	for(auto edge: _closure->get<ClosureProperty>().edges()) {
+		assert(edge != nullptr);
 		_stack.push_back(edge);
+	}
 	for(auto out: _closure->out())
 		_stack.push_back(out);
 	
 	// Start from the returns
 	StackMachineProperty::ReturnInstruction* returnInst = new StackMachineProperty::ReturnInstruction(_closure);
 	for(auto edge: _closure->in()) {
+		if(edge == nullptr)
+			continue;
 		if(edge->has<ConstantProperty>()) {
 			returnInst->addReturnValue(-1);
 			continue;
 		}
 		if(!contains(_stack, edge))
 			sortClosureNode(edge->source());
+		assert(contains(_stack, edge));
 		returnInst->addReturnValue(indexOf(_stack, edge));
 	}
 	
@@ -62,6 +67,7 @@ void StackCompiler::sortClosure()
 
 void StackCompiler::sortClosureNode(std::shared_ptr<Node> node)
 {
+	assert(node != nullptr);
 	if(debug)
 		wcerr << L"Compiling node " << node << endl;
 	
@@ -94,10 +100,13 @@ void StackCompiler::sortClosureNode(std::shared_ptr<Node> node)
 	// Recurse on the sources
 	int i = 0;
 	for(std::shared_ptr<Edge> edge: sources) {
+		if(edge == nullptr)
+			continue;
 		int valueIndex = -1;
 		if(!edge->has<ConstantProperty>()) {
 			if(!contains(_stack, edge))
 				sortClosureNode(edge->source());
+			assert(contains(_stack, edge));
 			valueIndex = indexOf(_stack, edge);
 		}
 		if(node->type() == NodeType::Closure) {
@@ -121,4 +130,3 @@ void StackCompiler::sortClosureNode(std::shared_ptr<Node> node)
 			_stack.push_back(edge);
 	}
 }
-

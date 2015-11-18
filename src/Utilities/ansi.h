@@ -2,7 +2,8 @@
 #include <string>
 
 namespace Ansi {
-	extern const std::string normal;
-	extern const std::string boldRed;
-	extern const std::string boldGreen;
+	typedef std::wstring string;
+	extern const string normal;
+	extern const string boldRed;
+	extern const string boldGreen;
 };

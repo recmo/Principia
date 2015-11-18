@@ -31,7 +31,7 @@ void IdentifierScoper::recurseStatement(ParseTree::Statement* statement)
 	ParseTree::Scope* parent = statement->parent()->to<ParseTree::Scope>();
 	
 	if(statement->type() == ParseTree::Statement::Closure) {
-		assert(statement->type() == NodeType::Closure);
+		assert(statement->type() == Node::Closure);
 		assert(statement->out().size() >= 1);
 		
 		// Transform:

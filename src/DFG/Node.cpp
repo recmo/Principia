@@ -7,15 +7,15 @@
 #include <Utilities/exceptions.h>
 #include <Unicode/exceptions.h>
 
-Node::Node(NodeType type, uint outgoingArity, uint incomingArity)
+Node::Node(Type type, uint outgoingArity, uint incomingArity)
 : PropertyMap()
 , _type(type)
 , _outgoing(createOutgoing(outgoingArity))
 , _incoming(createIncoming(incomingArity))
 {
 	assert(type == Call || type == Closure);
-	assert(outgoingArity >= (type == NodeType::Closure)? 1 : 0);
-	assert(incomingArity >= (type == NodeType::Call) ? 1 : 0);
+	assert(outgoingArity >= (type == Node::Closure)? 1 : 0);
+	assert(incomingArity >= (type == Node::Call) ? 1 : 0);
 }
 
 std::vector<Node::OutPortPtr> Node::createOutgoing(uint arity)
@@ -70,7 +70,7 @@ const InPort& Node::in(uint index) const
 	return *ptr;
 }
 
-std::wostream& operator<<(std::wostream& out, Node::NodeType nodeType)
+std::wostream& operator<<(std::wostream& out, Node::Type nodeType)
 {
 	switch(nodeType) {
 		case Node::Call: return out << L"Call";

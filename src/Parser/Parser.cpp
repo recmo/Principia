@@ -1,8 +1,11 @@
-#include "Parser/Parser.h"
-#include "QuexParser.hpp"
-#include "SourceProperty.h"
-#include "ConstantProperty.h"
-#include "IdentifierProperty.h"
+#include "Parser.h"
+#include <QuexParser.hpp>
+#include <Parser/SourceProperty.h>
+#include <DFG/ConstantProperty.h>
+#include <Parser/IdentifierProperty.h>
+#include <Utilities/exceptions.h>
+#include <sstream>
+#include <fstream>
 
 #define debug false
 
@@ -12,10 +15,30 @@ Parser::Parser()
 {
 }
 
-Parser& Parser::parse(const string& filename)
+Parser& Parser::parseFile(const string& filename)
 {
 	_filename = filename;
-	_parser = new quex::QuexParser(encodeLocal(_filename), "utf8");
+	std::ifstream stream(encodeLocal(_filename));
+	if(!stream.is_open())
+		throw runtime_error(L"Could not open file.");
+	return parse(stream);
+}
+
+Parser& Parser::parse(const std::string& bytes)
+{
+	std::istringstream stream{bytes};
+	return parse(stream);
+}
+
+Parser& Parser::parse(const string& contents)
+{
+	// The parser is hard-wired for UTF-8
+	return parse(encodeUtf8(contents));
+}
+
+Parser& Parser::parse(std::istream& stream)
+{
+	_parser = new quex::QuexParser(&stream, "utf8");
 	readNext();
 	_tree = parseFile();
 	delete _parser;
@@ -290,7 +313,7 @@ ParseTree::Constant* Parser::parseNumber()
 	ParseTree::Constant* constant = nullptr;
 	if(seenPoint) {
 		double value = mantissa * pow(base, exponent);
-		constant = new ParseTree::Constant(value);
+		constant = new ParseTree::Constant(Value{value});
 	} else {
 		sint64 value = mantissa;
 		uint64 squares = base;
@@ -301,7 +324,7 @@ ParseTree::Constant* Parser::parseNumber()
 			squares *= squares;
 			exponent >>= 1;
 		}
-		constant = new ParseTree::Constant(value);
+		constant = new ParseTree::Constant(Value{value});
 	}
 	constant->source(source(true));
 	return constant;
@@ -330,7 +353,7 @@ ParseTree::Constant* Parser::parseQuotation()
 	fromLine -= num_lines;
 	SourceProperty location(_filename, fromLine, fromColumn, toLine, toColumn);
 	
-	ParseTree::Constant* constant = new ParseTree::Constant(contents);
+	ParseTree::Constant* constant = new ParseTree::Constant(Value{contents});
 	constant->source(source(true));
 	return constant;
 }

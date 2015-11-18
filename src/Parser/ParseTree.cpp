@@ -1,6 +1,9 @@
 #include <Parser/ParseTree.h>
 #include <algorithm>
 #include <functional>
+#include <iostream>
+
+using std::endl;
 
 ParseTree::ParseTree()
 : _top(new Scope)
@@ -10,6 +13,11 @@ ParseTree::ParseTree()
 ParseTree::~ParseTree()
 {
 	delete _top;
+}
+
+bool ParseTree::validate() const
+{
+	return _top->validate();
 }
 
 void ParseTree::print(std::wostream& out) const

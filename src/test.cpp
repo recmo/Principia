@@ -38,8 +38,8 @@ private:
 void MyTestReporter::ReportStartSuite(const char* suite)
 {
 	using namespace std;
-	cerr << endl;
-	cerr << "## Test suite " << suite << endl << endl;
+	wcerr << endl;
+	wcerr << "## Test suite " << suite << endl << endl;
 }
 
 void MyTestReporter::ReportEndSuite(const char* suite)
@@ -56,7 +56,7 @@ void MyTestReporter::ReportTestStart(UnitTest::TestDetails const& test)
 		ReportStartSuite(_currentSuite);
 	}
 	_currentFailed = false;
-	cerr << "Test " << test.testName << "…" << flush;
+	wcerr << L"Test " << test.testName << L"…" << flush;
 }
 
 void MyTestReporter::ReportFailure(UnitTest::TestDetails const& details, char const* failure)
@@ -64,12 +64,12 @@ void MyTestReporter::ReportFailure(UnitTest::TestDetails const& details, char co
 	using namespace std;
 	using namespace Ansi;
 	if(_currentFailed == false) {
-		cerr << "\b ";
-		cerr << boldRed << "FAILED" << normal << ":" << endl;
+		wcerr << L"\b ";
+		wcerr << boldRed << "FAILED" << normal << ":" << endl;
 		_currentFailed  = true;
 	}
-	cerr << " * " << details.filename << ":" << details.lineNumber << ": ";
-	cerr << "error: Failure in " << details.testName << ": "  << failure << endl;
+	wcerr << " * " << details.filename << ":" << details.lineNumber << ": ";
+	wcerr << "error: Failure in " << details.testName << ": "  << failure << endl;
 }
 
 void MyTestReporter::ReportTestFinish(UnitTest::TestDetails const& test, float secondsElapsed)
@@ -77,9 +77,9 @@ void MyTestReporter::ReportTestFinish(UnitTest::TestDetails const& test, float s
 	using namespace std;
 	using namespace Ansi;
 	if(_currentFailed == false) {
-		cerr << "\b ";
-		cerr << boldGreen << "succeeded" << normal;
-		cerr << " in " << (secondsElapsed * 1.0e3) << " ms." << endl;
+		wcerr << "\b ";
+		wcerr << boldGreen << "succeeded" << normal;
+		wcerr << " in " << (secondsElapsed * 1.0e3) << " ms." << endl;
 	}
 }
 
@@ -91,15 +91,15 @@ void MyTestReporter::ReportSummary(
 	using namespace Ansi;
 	if(_currentSuite != nullptr)
 		ReportEndSuite(_currentSuite);
-	cerr << endl;
-	cerr << "Total test time: " << (secondsElapsed * 1.0e3) << " ms." << endl;
+	wcerr << endl;
+	wcerr << "Total test time: " << (secondsElapsed * 1.0e3) << " ms." << endl;
 	if (failureCount > 0) {
-		cerr << boldRed << "FAILURE" << normal << ": ";
-		cerr << failedTestCount << " out of " << totalTestCount;
-		cerr << " tests failed (" << failureCount << " failures)." << endl;
+		wcerr << boldRed << "FAILURE" << normal << ": ";
+		wcerr << failedTestCount << " out of " << totalTestCount;
+		wcerr << " tests failed (" << failureCount << " failures)." << endl;
 	} else {
-		cerr << boldGreen << "Success" << normal << ": ";
-		cerr << totalTestCount << " tests passed." << endl;
+		wcerr << boldGreen << "Success" << normal << ": ";
+		wcerr << totalTestCount << " tests passed." << endl;
 	}
 }
 

@@ -4,10 +4,7 @@ program := Principia
 sources := $(shell find -wholename './src/*.cpp')
 parsers := $(shell find -wholename './src/*.qx')
 sources := $(filter-out ./src/Passes/%.cpp, $(sources))
-sources := $(filter-out ./src/Parser/%.cpp, $(sources))
 sources := $(filter-out ./src/Verifier/%.cpp, $(sources))
-sources := $(sources) ./src/Parser/IdentifierProperty.cpp
-sources := $(sources) ./src/Parser/SourceProperty.cpp
 
 # C++11 Compiler
 compiler := clang++ -std=c++14 -ggdb
@@ -103,7 +100,7 @@ test: $(objects) $(test_objects) build/test.o
 
 run-tests: test
 	@echo Running tests…
-	@./$<
+	@LC_ALL="en_GB.UTF-8" ./$<
 
 clean:
 	@rm -Rf build/* $(program)

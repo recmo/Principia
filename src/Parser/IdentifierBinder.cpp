@@ -1,5 +1,8 @@
 #include "IdentifierBinder.h"
-#include <Passes/Builtins.h>
+#include <DFG/Builtin.h>
+#include <iostream>
+using std::wcerr;
+using std::endl;
 
 #define debug true
 
@@ -25,9 +28,11 @@ void IdentifierBinder::bind(ParseTree::IdentifierLookup* lookup)
 	auto visible = find(lookup->identifier()->name(), lookup);
 	if(visible == nullptr) {
 		// Check builtins
+		/* Todo
 		if(contains(builtins, lookup->identifier()->name())) {
 			return;
 		}
+		*/
 		wcerr << "Could not find symbol: " << lookup->identifier()->name() << endl;
 		return;
 	}

@@ -1,15 +1,19 @@
 #pragma once
 #include <fixups.h>
 #include <Parser/SourceProperty.h>
-#include "ParseTree.h"
+#include <Parser/ParseTree.h>
+#include <string>
+#include <iostream>
 namespace quex { class QuexParser; class Token; }
 
 class Parser
 {
 public:
 	Parser();
-	
-	Parser& parse(const string& filename);
+	Parser& parseFile(const string& filename);
+	Parser& parse(std::istream& stream);
+	Parser& parse(const std::string& bytes);
+	Parser& parse(const string& contents);
 	
 	ParseTree* tree() { return _tree; }
 	

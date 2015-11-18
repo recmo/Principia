@@ -1,9 +1,7 @@
 #pragma once
+#include <Parser/ParseTree.h>
+#include <DFG/DataFlowGraph.h>
 #include <map>
-#include "ParseTree.h"
-class DataFlowGraph;
-class Node;
-class Edge;
 
 // The ParseTree needs to be uninlined and the identifiers bound
 class DataFlowGraphCompiler
@@ -22,8 +20,7 @@ private:
 	
 	void declare(ParseTree::Node* node);
 	void connect(ParseTree::Node* node);
-	std::shared_ptr<Edge> edgeForExpression(ParseTree::Node* expression);
 	
 	std::map<ParseTree::Statement*, std::shared_ptr<Node>> _declarations;
-	std::map<ParseTree::Identifier*, std::shared_ptr<Edge>> _identifiers;
+	std::map<ParseTree::Identifier*, std::shared_ptr<OutPort>> _identifiers;
 };

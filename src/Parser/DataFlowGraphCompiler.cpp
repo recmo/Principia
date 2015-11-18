@@ -1,12 +1,15 @@
 #include "DataFlowGraphCompiler.h"
-#include "ParseTree.h"
-#include "IdentifierProperty.h"
-#include "ConstantProperty.h"
+#include <Parser/ParseTree.h>
+#include <Parser/IdentifierProperty.h>
 #include <DFG/DataFlowGraph.h>
-#include <DFG/Node.h>
-#include <DFG/Edge.h>
-#include <Passes/Builtins.h>
-#include <Verifier/PropositionProperty.h>
+#include <DFG/ConstantProperty.h>
+#include <DFG/Builtin.h>
+#include <DFG/PropositionProperty.h>
+#include <Utilities/exceptions.h>
+#include <Utilities/assert.h>
+#include <iostream>
+using std::wcerr;
+using std::endl;
 
 #define debug false
 
@@ -41,21 +44,49 @@ void DataFlowGraphCompiler::declare(ParseTree::Node* node)
 				wcerr << endl;
 			}
 			
+			// Node type
+			const Node::Type type =
+				(statement->type() == ParseTree::Statement::Call)
+				? Node::Call : Node::Closure;
+			
+			// Node arity
+			const uint outArity = statement->out().size();
+			const uint inArity = statement->in().size();
+			
 			// Create the node
-			NodeType type;
-			if(statement->type() == ParseTree::Statement::Call)
-				type = NodeType::Call;
-			else
-				type = NodeType::Closure;
-			std::shared_ptr<Node> node = Node::make_shared(type, statement->in().size(), statement->out().size());
+			std::shared_ptr<Node> node = std::make_shared<Node>(type, outArity, inArity);
+			
+			// Set the node SourceProperty
 			if(!statement->source().isEmpty())
 				node->set(statement->source());
+			
+			// Set the output IdentifierProperty and SourceProperty
 			uint i = 0;
 			for(ParseTree::Identifier* out: statement->out()) {
-				node->out(i)->set(IdentifierProperty(out->name()));
+				node->out(i).set(IdentifierProperty(out->name()));
 				if(!out->source().isEmpty())
-					node->out(i)->set(out->source());
-				_identifiers[out] = node->out(i);
+					node->out(i).set(out->source());
+				++i;
+			}
+			
+			// Set the input IdentifierProperty and SourceProperty
+			i = 0;
+			for(ParseTree::Node* in: statement->in()) {
+				if(in->isA<ParseTree::Identifier>()) {
+					node->in(i).set(IdentifierProperty{
+						in->to<ParseTree::Identifier>()->name()
+					});
+				}
+				if(!in->source().isEmpty()) {
+					node->in(i).set(in->source());
+				}
+				++i;
+			}
+			
+			// Store the output identifier mapping
+			i = 0;
+			for(ParseTree::Identifier* out: statement->out()) {
+				_identifiers[out] = node->out(i).shared_from_this();
 				++i;
 			}
 			
@@ -84,10 +115,27 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 				wcerr << endl;
 			}
 			
+			// Connect all the inputs
+			assert(contains(_declarations, statement));
 			std::shared_ptr<Node> node = _declarations[statement];
-			for(int i = 0; i < node->in().size(); ++i) {
-				std::shared_ptr<Edge> efe = edgeForExpression(statement->in()[i]);
-				node->connect(i, efe);
+			for(int i = 0; i < node->inArity(); ++i) {
+				ParseTree::Node* expression = statement->in()[i];
+				
+				// Bind identifiers
+				if(expression->isA<ParseTree::Identifier>()) {
+					ParseTree::Identifier* identifier = expression->to<ParseTree::Identifier>();
+					assert(identifier->bindingSite() != nullptr);
+					assert(contains(_identifiers, identifier->bindingSite()));
+					node->in(i) << *_identifiers[identifier->bindingSite()];
+					
+				} else if(expression->isA<ParseTree::Constant>()) {
+					// Constant values
+					node->in(i) << expression->to<ParseTree::Constant>()->value();
+					
+				} else {
+					wcerr << endl << endl << __LINE__ << endl;
+					throw unimplemented{};
+				}
 			}
 		} else {
 			if(debug) {
@@ -96,6 +144,10 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 				wcerr << endl;
 			}
 			
+			wcerr << endl << endl << __LINE__ << endl;
+			throw unimplemented{};
+			
+			/*
 			assert(statement->out().size() == 0);
 			assert(statement->in().size() == 1);
 			
@@ -109,7 +161,7 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 			}
 			std::shared_ptr<Node> target = _declarations[associate];
 			assert(target);
-			std::shared_ptr<Edge> condition = edgeForExpression(statement->firstChild());
+			std::shared_ptr<OutPort> condition = outForExpression(statement->firstChild());
 			assert(condition);
 			PropositionProperty pp;
 			if(target->has<PropositionProperty>())
@@ -123,48 +175,11 @@ void DataFlowGraphCompiler::connect(ParseTree::Node* node)
 					throw L"Unimplement statement type";
 			}
 			target->set(pp);
+			*/
 		}
 	}
 	
 	// Recurse on the parse tree
 	for(ParseTree::Node* child: node->children())
 		connect(child);
-}
-
-std::shared_ptr<Edge> DataFlowGraphCompiler::edgeForExpression(ParseTree::Node* expression)
-{
-	assert(expression);
-	if(expression->isA<ParseTree::Identifier>()) {
-		ParseTree::Identifier* identifier = expression->to<ParseTree::Identifier>();
-		if(identifier->bindingSite()) {
-			return _identifiers[identifier->bindingSite()];
-		} else if(contains(builtins, identifier->name())) {
-			if(debug)
-				wcerr << "GLOBAL " << identifier->name() << endl;
-			std::shared_ptr<Edge> edge = std::make_shared<Edge>();
-			edge->set(IdentifierProperty(identifier->name()));
-			edge->set(ConstantProperty(Value(builtins[identifier->name()])));
-			return edge;
-		}
-		
-		wcerr << "Could bind identifier: ";
-		expression->print(wcerr);
-		wcerr << endl;
-		
-		// Create a source free edge without a constant property
-		std::shared_ptr<Edge> edge = std::make_shared<Edge>();
-		edge->set(IdentifierProperty(identifier->name()));
-		return edge;
-	} else if(expression->isA<ParseTree::Constant>()) {
-		ParseTree::Constant* constant = expression->to<ParseTree::Constant>();
-		std::shared_ptr<Edge> edge = std::make_shared<Edge>();
-		if(!constant->source().isEmpty())
-			edge->set(constant->source());
-		edge->set(ConstantProperty(constant->value()));
-		return edge;
-	}
-	wcerr << "Could not connect expression: ";
-	expression->print(wcerr);
-	wcerr << endl;
-	throw L"Could not connect expression";
 }

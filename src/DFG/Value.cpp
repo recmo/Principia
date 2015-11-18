@@ -5,9 +5,9 @@
 
 bool Value::operator==(const Value& other) const
 {
-	if(_kind != other._kind)
+	if(_type != other._type)
 		return false;
-	switch(_kind) {
+	switch(_type) {
 		case Value::None: return true;
 		case Value::Closure: throw unimplemented{};
 		case Value::Integer: return integer() == other.integer();
@@ -18,7 +18,7 @@ bool Value::operator==(const Value& other) const
 	}
 }
 
-std::wostream& operator<<(std::wostream& out, Value::Kind value)
+std::wostream& operator<<(std::wostream& out, Value::Type value)
 {
 	switch(value) {
 		case Value::None: return out << L"None";
@@ -33,7 +33,7 @@ std::wostream& operator<<(std::wostream& out, Value::Kind value)
 
 std::wostream& operator<<(std::wostream& out, const Value& value)
 {
-	switch(value.kind()) {
+	switch(value.type()) {
 		case Value::None:
 			out << L"none";
 			break;

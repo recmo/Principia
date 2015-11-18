@@ -7,7 +7,7 @@
 
 SUITE(Node) {
 
-void construct(Node::NodeType type, uint out, uint in)
+void construct(Node::Type type, uint out, uint in)
 {
 	auto shared = std::make_shared<Node>(type, out, in);
 	Node& node = *shared;

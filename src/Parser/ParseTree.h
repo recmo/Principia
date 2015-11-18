@@ -1,9 +1,7 @@
 #pragma once
 #include <DFG/Node.h>
-#include "SourceProperty.h"
-#include <Passes/Value.h>
-
-/// @todo refactor
+#include <DFG/Value.h>
+#include <Parser/SourceProperty.h>
 
 class ParseTree
 {
@@ -30,6 +28,12 @@ public:
 private:
 	Scope* _top;
 };
+
+inline std::wostream& operator<<(std::wostream& out, const ParseTree& tree)
+{
+	tree.print(out);
+	return out;
+}
 
 class ParseTree::Node
 {

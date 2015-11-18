@@ -1,32 +1,33 @@
-#include "fixups.h"
-#include "Parser/Parser.h"
-#include "Passes/Value.h"
-#include "Passes/Validator.h"
-#include "Parser/Parser.h"
-#include "DFG/DataFlowGraph.h"
-#include "DFG/CongruenceComparator.h"
-#include "Parser/IdentifierProperty.h"
-#include "Parser/IdentifierBinder.h"
-#include "Parser/DataFlowGraphCompiler.h"
-#include "Parser/MetaMath/MetaMathParser.h"
-#include "Parser/StatementUninliner.h"
-#include "Parser/ImplicitOutputAdder.h"
-#include "Parser/IdentifierScoper.h"
-#include "Passes/DotFileWriter.h"
-#include "Passes/ClosureCloser.h"
-#include "Passes/ConstantClosure.h"
-#include "Passes/ConstantCall.h"
-#include "Passes/StackCompiler.h"
-#include "Passes/LlvmCompiler.h"
-#include "Passes/NativeProperty.h"
-#include "Passes/ClosureProperty.h"
-#include "Passes/EscapeAnalysis.h"
-#include "Verifier/Verifier.h"
+#include <DFG/Value.h>
+#include <Parser/Parser.h>
+#include <Passes/Validator.h>
+#include <DFG/DataFlowGraph.h>
+#include <DFG/CongruenceComparator.h>
+#include <Parser/IdentifierProperty.h>
+#include <Parser/IdentifierBinder.h>
+#include <Parser/DataFlowGraphCompiler.h>
+#include <Parser/MetaMath/MetaMathParser.h>
+#include <Parser/StatementUninliner.h>
+#include <Parser/ImplicitOutputAdder.h>
+#include <Parser/IdentifierScoper.h>
+#include <Passes/DotFileWriter.h>
+#include <Passes/ClosureCloser.h>
+#include <Passes/ConstantClosure.h>
+#include <Passes/ConstantCall.h>
+#include <Passes/StackCompiler.h>
+#include <Passes/LlvmCompiler.h>
+#include <Passes/NativeProperty.h>
+#include <Passes/ClosureProperty.h>
+#include <Passes/EscapeAnalysis.h>
+#include <Verifier/Verifier.h>
 #include <fstream>
 #include <cmath>
 
 sint32 Main(const vector<string>& args)
 {
+	using namespace std;
+	wcerr << PROGRAM << " version " << VERSION << endl;
+	
 	wcerr << L"Welcome to the Principia language" << endl;
 	//Interactive session;
 	//session.loop();

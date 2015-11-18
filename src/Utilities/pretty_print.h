@@ -30,6 +30,12 @@ std::wostream& operator<<(std::wostream& out, const std::weak_ptr<T>& p)
 	return out << p.lock();
 }
 
+template<class A, class B>
+std::wostream& operator<<(std::wostream& out, const std::pair<A, B>& p)
+{
+	return out << L"(" << p.first << L", " << p.second << L")";
+}
+
 template<class T, class A>
 std::wostream& operator<<(std::wostream& out, const std::vector<T,A>& v)
 {

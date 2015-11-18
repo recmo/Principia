@@ -1,8 +1,8 @@
 #pragma once
 #include "ParseTree.h"
 
-/// Takes a parse tree and adds IdentifierVisible and IdentifierLookup  variables so  that all inputs are
-/// identifiers.
+/// Takes a parse tree and adds IdentifierVisible and IdentifierLookup
+/// variables so  that all inputs are identifiers.
 class IdentifierScoper {
 public:
 	IdentifierScoper(ParseTree* parseTree): _parseTree(parseTree) { }

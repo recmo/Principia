@@ -1,5 +1,6 @@
 #include <Utilities/inttypes.h>
 #include <Utilities/ansi.h>
+#include <Utilities/pretty_print.h>
 #include <Unicode/string.h>
 #include <UnitTest++/UnitTest++.h>
 #include <UnitTest++/TestReporter.h>
@@ -38,8 +39,7 @@ private:
 void MyTestReporter::ReportStartSuite(const char* suite)
 {
 	using namespace std;
-	wcerr << endl;
-	wcerr << "## Test suite " << suite << endl << endl;
+	wcerr << Ansi::bold << "Test suite " << suite << L":" << Ansi::normal << endl;
 }
 
 void MyTestReporter::ReportEndSuite(const char* suite)
@@ -105,7 +105,9 @@ void MyTestReporter::ReportSummary(
 
 sint32 Main(const std::vector<string>& args)
 {
+	using namespace std;
 	using namespace UnitTest;
+	wcerr << "Unittest++ " << PROGRAM << " version " << VERSION << endl;
 	MyTestReporter myReporter;
 	TestRunner runner(myReporter);
 	return runner.RunTestsIf(Test::GetTestList(), NULL, True(), 0);

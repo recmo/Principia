@@ -1,11 +1,16 @@
 #include "Parser.h"
 #include <QuexParser.hpp>
-#include <Parser/SourceProperty.h>
 #include <DFG/ConstantProperty.h>
+#include <Parser/SourceProperty.h>
 #include <Parser/IdentifierProperty.h>
 #include <Utilities/exceptions.h>
+#include <Unicode/exceptions.h>
+#include <Unicode/convert.h>
 #include <sstream>
 #include <fstream>
+#include <iostream>
+using std::wcerr;
+using std::endl;
 
 #define debug false
 

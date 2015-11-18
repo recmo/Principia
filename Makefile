@@ -1,4 +1,5 @@
 program := Principia
+version := $(shell git show --pretty=format:%h -q HEAD)
 
 # Find all source files
 sources := $(shell find -wholename './src/*.cpp')
@@ -11,6 +12,7 @@ compiler := clang++ -std=c++14 -ggdb
 compiler := ${compiler} -Wall -Wextra -Wno-unused-parameter -Werror=return-type -Werror=switch
 compiler := ${compiler} -Ibuild/quex -Isrc -Ibuild/resources
 compiler := ${compiler} -ftemplate-backtrace-limit=0
+compiler := ${compiler} -DPROGRAM=\"${program}\" -DVERSION=\"${version}\"
 
 # Header dependency finder
 finddeps := ${compiler} -MM -MP
@@ -63,7 +65,7 @@ all: test $(program) run-tests
 build/%.d: src/%.cpp
 	@echo "Deps  " $*.cpp
 	@mkdir -p $(dir $@)
-	@$(finddeps) -MG -MF $@ -MT "build/src/$*.o build/src/$*.o  $@" $<
+	@$(finddeps) -MG -MF $@ -MT "build/$*.o $@" $<
 
 build/quex/QuexParser.hpp build/quex/QuexParser.cpp: src/Parser/QuexParser.qx
 	@echo "Queχ  " $*.qx

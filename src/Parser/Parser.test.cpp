@@ -1,6 +1,7 @@
 #include <Parser/Parser.h>
 #include <UnitTest++/UnitTest++.h>
 #include <Utilities/testExamples.h>
+#include <stdexcept>
 
 SUITE(Parser) {
 
@@ -33,7 +34,7 @@ TestExamples;
 
 TEST(DoesNotExits)
 {
-	CHECK_THROW(Parser().parseFile(L"/does-not-exist"), runtime_error);
+	CHECK_THROW(Parser().parseFile(L"/does-not-exist"), std::runtime_error);
 }
 
 TEST(ParseFactorial)

@@ -13551,8 +13551,8 @@ __STATE_ROUTER:
      * MODE: Program
      * 
      *     PATTERN-ACTION PAIRS:
-     *       ON_FAILURE
      *       ON_END_OF_STREAM
+     *       ON_FAILURE
      *       (343) Program: {Newline}
      *       (344) Program: {Whitespace}
      *       (345) Program: {Call}

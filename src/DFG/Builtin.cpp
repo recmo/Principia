@@ -1,6 +1,16 @@
 #include "Builtin.h"
 typedef Value::Values Values;;
 
+Value Builtin::lookup(const string& name)
+{
+	if(name == L"if" ) return Builtin::if_;
+	if(name == L"add") return Builtin::sub;
+	if(name == L"sub") return Builtin::sub;
+	if(name == L"mul") return Builtin::mul;
+	if(name == L"div") return Builtin::div;
+	return Value();
+}
+
 const Value Builtin::if_{[](const Values& arg) -> Values {
 	assert(arg.size() == 3);
 	Value result = (arg[0].integer()) ? arg[1] : arg[2]; 

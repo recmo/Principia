@@ -39,13 +39,13 @@ void IdentifierScoper::recurseStatement(ParseTree::Statement* statement)
 		// 	<body>
 		//
 		// into:
-		// +func
+		// →func
 		// func out₁ out₂ ↦ in₁ in₂
-		// 	+out₁
-		// 	+out₂
+		// 	→out₁
+		// 	→out₂
 		// 	<body>
-		// 	-in₁
-		// 	-in₂
+		// 	←in₁
+		// 	←in₂
 		
 		ParseTree::Scope* body = statement->associatedScope(true);
 		assert(body != nullptr);
@@ -82,10 +82,10 @@ void IdentifierScoper::recurseStatement(ParseTree::Statement* statement)
 		// into:
 		// out₁ out₂ ≔ func in₁ in₂
 		// 	<body>
-		// 	-in₁
-		// 	-in₂
-		// +out₁
-		// +out₂
+		// 	←in₁
+		// 	←in₂
+		// →out₁
+		// →out₂
 		
 		ParseTree::Scope* body = statement->associatedScope(true);
 		assert(body != nullptr);

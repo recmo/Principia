@@ -1,5 +1,4 @@
 #pragma once
-#include <fixups.h>
 #include <Parser/SourceProperty.h>
 #include <Parser/ParseTree.h>
 #include <string>

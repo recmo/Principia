@@ -100,6 +100,12 @@ ParseTree::Node* ParseTree::Node::child(uint index) const
 	return _children[index];
 }
 
+void ParseTree::Node::replaceWith(ParseTree::Node* node)
+{
+	assert(_parent != nullptr);
+	_parent->swapChild(this, node);
+}
+
 void ParseTree::Node::appendChild(ParseTree::Node* child)
 {
 	assert(child != nullptr);

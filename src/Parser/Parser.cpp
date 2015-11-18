@@ -146,7 +146,6 @@ ParseTree::Scope* Parser::parseScope()
 	}
 }
 
-
 ParseTree::Statement* Parser::parseStatement()
 {
 	ParseTree::Statement* statement = new ParseTree::Statement;
@@ -229,6 +228,7 @@ ParseTree::Identifier* Parser::parseIdentifier()
 ParseTree::Constant* Parser::parseNumber()
 {
 	const string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	const string digits64 = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 	const wchar_t separator = L'\u2009';
 	const wchar_t radixPoint = L'.';
 	const string baseDigits = L"₀₁₂₃₄₅₆₇₈₉";

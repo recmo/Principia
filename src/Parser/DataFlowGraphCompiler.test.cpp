@@ -2,6 +2,7 @@
 #include <Parser/Parser.h>
 #include <Parser/ImplicitOutputAdder.h>
 #include <Parser/StatementUninliner.h>
+#include <Parser/IdentifierScoper.h>
 #include <Parser/IdentifierBinder.h>
 #include <UnitTest++/UnitTest++.h>
 #include <Utilities/testExamples.h>
@@ -56,7 +57,12 @@ TEST(CallConstFunc)
 	StatementUninliner statementUninliner(tree);
 	statementUninliner.uninline();
 	CHECK(tree->validate());
-
+	
+	// Scope identifiers
+	IdentifierScoper identifierScoper(tree);
+	identifierScoper.scope();
+	assert(tree->validate());
+	
 	// Bind identifiers
 	IdentifierBinder ib(tree);
 	ib.bind();
@@ -88,12 +94,17 @@ TEST(CallBuiltin)
 	StatementUninliner statementUninliner(tree);
 	statementUninliner.uninline();
 	CHECK(tree->validate());
-
+	
+	// Scope identifiers
+	IdentifierScoper identifierScoper(tree);
+	identifierScoper.scope();
+	assert(tree->validate());
+	
 	// Bind identifiers
 	IdentifierBinder ib(tree);
 	ib.bind();
 	CHECK(tree->validate());
-
+	
 	DataFlowGraphCompiler dfgc(tree);
 	dfgc.compile();
 	CHECK(tree->validate());
@@ -123,7 +134,12 @@ void testExample(const string& filename)
 	StatementUninliner statementUninliner(tree);
 	statementUninliner.uninline();
 	CHECK(tree->validate());
-
+	
+	// Scope identifiers
+	IdentifierScoper identifierScoper(tree);
+	identifierScoper.scope();
+	assert(tree->validate());
+	
 	// Bind identifiers
 	IdentifierBinder ib(tree);
 	ib.bind();

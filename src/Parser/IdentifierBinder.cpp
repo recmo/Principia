@@ -33,7 +33,20 @@ void IdentifierBinder::bind(ParseTree::IdentifierLookup* lookup)
 			return;
 		}
 		*/
-		wcerr << "Could not find symbol: " << lookup->identifier()->name() << endl;
+		
+		string name = lookup->identifier()->name();
+		
+		Value value;
+		if(name == L"if") value = Builtin::if_;
+		if(name == L"add") value = Builtin::sub;
+		if(name == L"sub") value = Builtin::sub;
+		if(name == L"mul") value = Builtin::mul;
+		if(name == L"div") value = Builtin::div;
+		if(value.type() != Value::None) {
+			lookup->identifier()->replaceWith(new ParseTree::Constant(value));
+		} else {
+			wcerr << "Could not find symbol: " << lookup->identifier()->name() << endl;
+		}
 		return;
 	}
 	assert(visible->identifier() != nullptr);

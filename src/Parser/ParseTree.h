@@ -56,6 +56,7 @@ public:
 	Node* child(uint index) const;
 	const std::vector<Node*>& children() const { return _children; }
 	
+	void replaceWith(Node* node);
 	void appendChild(Node* child);
 	void insertChild(Node* child, uint position);
 	void insertBefore(Node* child, Node* newChild);

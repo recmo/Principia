@@ -17,3 +17,19 @@ std::wostream& operator<<(std::wostream& out, const std::type_info& p)
 	}
 	return out;
 }
+
+std::ostream& operator<<(std::ostream& out, const std::type_info& p)
+{
+	const char* mangled = p.name();
+	int status = 0;
+	char* demangled = abi::__cxa_demangle(mangled, nullptr, nullptr, &status);
+	if (demangled != nullptr) {
+		out << std::string{demangled};
+		free(demangled);
+	} else {
+		// demangling failed. Output function name as a C function with
+		// no arguments.
+		out << std::string{mangled};
+	}
+	return out;
+}

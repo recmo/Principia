@@ -4,6 +4,17 @@
 #include <vector>
 #include <memory>
 
+	// To validate
+	// - Take the DFG
+	// - Remove first out of closures
+	// - Contract Edges and Calls
+	// - Verify that the resulting graph is a tree (closure tree?)
+	// - For each leaf:
+	//   - Take the strongly connected component containing the closure
+	//   - Verify that all cycles go through the closure
+	//   - Contract the strongly connected component to  
+
+
 /// @brief Validates correctness of the dfg and adds analysis metadata
 class Validator
 {

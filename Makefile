@@ -106,6 +106,3 @@ run-tests: test
 
 clean:
 	@rm -Rf build/* $(program)
-
-asd:
-	echo $(sources)

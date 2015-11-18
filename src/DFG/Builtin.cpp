@@ -1,10 +1,10 @@
 #include "Builtin.h"
-typedef Value::Values Values;;
+typedef Value::Values Values;
 
 Value Builtin::lookup(const string& name)
 {
 	if(name == L"if" ) return Builtin::if_;
-	if(name == L"add") return Builtin::sub;
+	if(name == L"add") return Builtin::add;
 	if(name == L"sub") return Builtin::sub;
 	if(name == L"mul") return Builtin::mul;
 	if(name == L"div") return Builtin::div;

@@ -37,3 +37,6 @@ private:
 std::wostream& operator<<(std::wostream& out, Node::Type nodeType);
 
 std::wostream& operator<<(std::wostream& out, const Node& node);
+
+std::ostream& operator<<(std::ostream& out, const Node& node);
+

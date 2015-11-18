@@ -6,6 +6,7 @@
 #include <Utilities/assert.h>
 #include <Utilities/exceptions.h>
 #include <Unicode/exceptions.h>
+#include <Unicode/convert.h>
 
 Node::Node(Type type, uint outgoingArity, uint incomingArity)
 : PropertyMap()
@@ -107,4 +108,9 @@ std::wostream& operator<<(std::wostream& out, const Node& node)
 	if(node.type() == Node::Closure)
 		out << L"↦";
 	return out;
+}
+
+std::ostream& operator<<(std::ostream& out, const Node& node)
+{
+	return out << encodeLocal(toString(node));
 }

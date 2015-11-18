@@ -1,5 +1,6 @@
 #pragma once
-#include <fixups.h>
+#include <Unicode/string.h>
+#include <vector>
 class MetaMathScope;
 
 class MetaMathParser
@@ -13,12 +14,13 @@ public:
 private:
 	string _filename;
 	MetaMathScope* _globalScope;
-	vector<MetaMathScope*> _scopeStack;
+	std::vector<MetaMathScope*> _scopeStack;
 	
 	MetaMathScope* currentScope();
 	void pushScope();
 	void popScope();
-	void handleStatement(const string& label, const string& operation, const vector<string>& arguments, const vector<string>& proof);
+	void handleStatement(const string& label, const string& operation,
+		const std::vector<string>& arguments, const std::vector<string>& proof);
 	
 	static string improveToken(const string& token);
 };

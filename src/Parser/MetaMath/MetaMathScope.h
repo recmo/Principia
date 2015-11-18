@@ -1,6 +1,6 @@
 #pragma once
-#include <fixups.h>
-using std::map;
+#include <Unicode/string.h>
+#include <vector>
 class MetaMathStatement;
 
 class MetaMathScope
@@ -30,24 +30,25 @@ public:
 	
 	void addVariable(const string& symbol);
 	void addConstant(const string& symbol);
-	void requireDistinct(const vector<string>& symbols);
+	void requireDistinct(const std::vector<string>& symbols);
 	void floatingHypothesis(const string& label, const string& constant, const string& variable);
-	void essentialHypothesis(const string& label, const vector<string>& symbols);
-	void axiom(const string& label, const vector<string>& symbols);
-	void derived(const string& label, const vector<string>& symbols, const vector<string>& proof);
+	void essentialHypothesis(const string& label, const std::vector<string>& symbols);
+	void axiom(const string& label, const std::vector<string>& symbols);
+	void derived(const string& label, const std::vector<string>& symbols,
+		const std::vector<string>& proof);
 	
 	void calculateFrame(const string& label);
 	
 	/// @returns the essential hypothesis up to this point
-	vector<MetaMathStatement*> essentialHypothesis();
+	std::vector<MetaMathStatement*> essentialHypothesis();
 	
 	/// @returns the floating hypothesis declaring the type of the given variable
 	MetaMathStatement* floatingHypothesis(const string& variable);
 	
 protected:
 	MetaMathScope* _parent;
-	vector<MetaMathScope*> _children;
-	vector<string> _constants;
-	vector<string> _variables;
-	vector<MetaMathStatement*> _statements;
+	std::vector<MetaMathScope*> _children;
+	std::vector<string> _constants;
+	std::vector<string> _variables;
+	std::vector<MetaMathStatement*> _statements;
 };

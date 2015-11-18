@@ -1,5 +1,7 @@
 #include "MetaMathScope.h"
 #include "MetaMathStatement.h"
+#include <Utilities/assert.h>
+using std::vector;
 
 MetaMathScope::MetaMathScope(MetaMathScope* parent)
 : _parent(parent)

@@ -1,6 +1,7 @@
 #pragma once
-#include "MetaMathScope.h"
-#include <fixups.h>
+#include <Parser/MetaMath/MetaMathScope.h>
+#include <Unicode/string.h>
+#include <vector>
 
 class MetaMathStatement
 {
@@ -10,16 +11,18 @@ public:
 	
 	void kind(MetaMathScope::StatementKind value) { _kind = value; }
 	MetaMathScope::StatementKind kind() const { return _kind; }
-	void essentialHypothesis(vector<MetaMathStatement*> value) { _essentialHypothesis = value; }
-	vector<MetaMathStatement*> essentialHypothesis() const { return _essentialHypothesis; }
+	void essentialHypothesis(std::vector<MetaMathStatement*> value)
+	{ _essentialHypothesis = value; }
+	std::vector<MetaMathStatement*> essentialHypothesis() const
+	{ return _essentialHypothesis; }
 	void label(const string& value) { _label = value; }
 	const string& label() const { return _label; }
-	void symbols(const vector<string>& value) { _symbols = value; }
-	const vector<string>& symbols() const { return _symbols; }
-	void proof(const vector<string>& value) { _proof = value; }
-	const vector<string>& proof() const { return _proof; }
+	void symbols(const std::vector<string>& value) { _symbols = value; }
+	const std::vector<string>& symbols() const { return _symbols; }
+	void proof(const std::vector<string>& value) { _proof = value; }
+	const std::vector<string>& proof() const { return _proof; }
 	
-	vector<const MetaMathStatement*> frame() const { return _frame; }
+	std::vector<const MetaMathStatement*> frame() const { return _frame; }
 	
 	void calcFrame();
 	
@@ -29,11 +32,11 @@ protected:
 	MetaMathScope* _parent;
 	uint _declarationOrder;
 	MetaMathScope::StatementKind _kind;
-	vector<MetaMathStatement*> _essentialHypothesis;
-	vector<const MetaMathStatement*> _frame;
+	std::vector<MetaMathStatement*> _essentialHypothesis;
+	std::vector<const MetaMathStatement*> _frame;
 	string _label;
-	vector<string> _symbols;
-	vector<string> _proof;
+	std::vector<string> _symbols;
+	std::vector<string> _proof;
 	
 	static uint declarationCounter();
 };

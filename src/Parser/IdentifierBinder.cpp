@@ -1,5 +1,6 @@
 #include "IdentifierBinder.h"
 #include <DFG/Builtin.h>
+#include <Unicode/exceptions.h>
 #include <iostream>
 using std::wcerr;
 using std::endl;
@@ -8,7 +9,6 @@ using std::endl;
 
 void IdentifierBinder::bind()
 {
-	/// TODO: Global builtin identifiers
 	recurse(_parseTree->top());
 }
 
@@ -25,22 +25,16 @@ void IdentifierBinder::bind(ParseTree::IdentifierLookup* lookup)
 	assert(lookup != nullptr);
 	assert(lookup->identifier() != nullptr);
 	assert(lookup->identifier()->inbound());
-	auto visible = find(lookup->identifier()->name(), lookup);
+	const auto visible = find(lookup->identifier()->name(), lookup);
 	if(visible == nullptr) {
 		// Check builtins
-		/* Todo
-		if(contains(builtins, lookup->identifier()->name())) {
-			return;
-		}
-		*/
-		
-		string name = lookup->identifier()->name();
-		
-		Value value = Builtin::lookup(name);
+		const string name = lookup->identifier()->name();
+		const Value value = Builtin::lookup(name);
 		if(value.type() != Value::None) {
 			lookup->identifier()->replaceWith(new ParseTree::Constant(value));
 		} else {
-			wcerr << "Could not find symbol: " << lookup->identifier()->name() << endl;
+			// Todo more info in exception (symbol name, etc)
+			throw runtime_error(L"Could not find symbol");
 		}
 		return;
 	}

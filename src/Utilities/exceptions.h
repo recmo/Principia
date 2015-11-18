@@ -8,6 +8,13 @@ public:
 	: out_of_range("The index is out of range.") { }
 };
 
+class unreachable: public std::logic_error
+{
+public:
+	unreachable()
+	: logic_error("The execution reached an impossible state.") { }
+};
+
 class unimplemented: public std::logic_error
 {
 public:

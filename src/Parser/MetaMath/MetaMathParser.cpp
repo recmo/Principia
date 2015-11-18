@@ -1,7 +1,11 @@
 #include "MetaMathParser.h"
 #include "MetaMathScope.h"
+#include <Utilities/assert.h>
+#include <Unicode/convert.h>
 #include <iostream>
 #include <fstream>
+
+using std::vector;
 
 MetaMathParser::MetaMathParser(const string& filename)
 : _filename(filename)

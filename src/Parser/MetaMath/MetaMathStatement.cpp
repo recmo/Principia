@@ -1,4 +1,14 @@
 #include "MetaMathStatement.h"
+#include <Utilities/assert.h>
+#include <Utilities/pretty_print.h>
+#include <algorithm>
+#include <iostream>
+#include <map>
+using std::vector;
+using std::map;
+using std::wcout;
+using std::wcerr;
+using std::endl;
 
 uint MetaMathStatement::declarationCounter()
 {

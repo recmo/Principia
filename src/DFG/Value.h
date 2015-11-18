@@ -1,11 +1,11 @@
 #pragma once
+#include <DFG/Closure.h>
 #include <Utilities/inttypes.h>
 #include <Utilities/assert.h>
 #include <Unicode/string.h>
 #include <functional>
 #include <memory>
 #include <vector>
-class Closure;
 class Value;
 
 class Value
@@ -22,7 +22,7 @@ public:
 		String
 	};
 	Value() = default;
-	explicit Value(::Closure* value): _type(Closure), _closure(value) { }
+	explicit Value(const ::Closure& value): _type(Closure), _closure(value) { }
 	explicit Value(sint64 value): _type(Integer), _integer(value) { }
 	explicit Value(double value): _type(Real), _real(value) { }
 	explicit Value(Func value): _type(ExtFunc), _func(value) { }
@@ -30,7 +30,7 @@ public:
 	bool operator==(const Value& other) const;
 	
 	Type type() const { return _type; }
-	const ::Closure* closure() const { assert(_type == Closure); return _closure; }
+	::Closure closure() const	{ assert(_type == Closure); return _closure; }
 	sint64 integer() const { assert(_type == Integer); return _integer; }
 	double real() const { assert(_type == Real); return _real; }
 	Func func() const { assert(_type == ExtFunc); return _func; }
@@ -38,7 +38,7 @@ public:
 	
 private:
 	Type _type = None;
-	::Closure* _closure = nullptr;
+	::Closure _closure{};
 	sint64 _integer = 0LL;
 	double _real = 0.0;
 	Func _func{};

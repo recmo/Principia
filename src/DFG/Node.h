@@ -4,9 +4,10 @@
 #include <DFG/OutPort.h>
 #include <vector>
 #include <memory>
+#include <Utilities/enable_auto_shared.h>
 #include <Utilities/not_null.h>
 
-class Node: public PropertyMap, public std::enable_shared_from_this<Node>
+class Node: public PropertyMap, public enable_auto_shared<Node>
 {
 public:
 	enum Type {

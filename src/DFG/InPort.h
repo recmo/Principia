@@ -1,12 +1,13 @@
 #pragma once
 #include <DFG/Port.h>
+#include <Utilities/enable_auto_shared.h>
 #include <memory>
 #include <iostream>
 class Node;
 class OutPort;
 class Value;
 
-class InPort: public Port, public std::enable_shared_from_this<InPort>
+class InPort: public Port, public enable_auto_shared<InPort>
 {
 public:
 	InPort(Node& parent, uint index): Port(parent, index) { }

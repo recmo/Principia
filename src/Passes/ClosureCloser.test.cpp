@@ -8,6 +8,8 @@
 
 SUITE(ClosureCloser) {
 
+typedef ClosureProperty::ClosureSet ClosureSet;
+
 void annotate(DataFlowGraph& dfg)
 {
 	ClosureCloser cc(dfg);
@@ -33,6 +35,9 @@ TEST(Conditional)
 	annotate(dfg);
 	
 	CHECK_EQUAL(2, dfg.node1.get<ClosureProperty>().closureSet().size());
+	CHECK_EQUAL(
+		(ClosureSet{dfg.node2.out(0), dfg.node3.out(0)}),
+		dfg.node1.get<ClosureProperty>().closureSet());
 	CHECK_EQUAL(0, dfg.node2.get<ClosureProperty>().closureSet().size());
 	CHECK_EQUAL(0, dfg.node3.get<ClosureProperty>().closureSet().size());
 }

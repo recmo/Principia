@@ -1,11 +1,12 @@
 #pragma once
 #include <DFG/Port.h>
+#include <Utilities/enable_auto_shared.h>
 #include <memory>
 #include <iostream>
 class Node;
 class InPort;
 
-class OutPort: public Port, public std::enable_shared_from_this<OutPort>
+class OutPort: public Port, public enable_auto_shared<OutPort>
 {
 public:
 	typedef std::weak_ptr<InPort> Sink;

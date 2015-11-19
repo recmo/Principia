@@ -1,7 +1,6 @@
 #include "ConstantCall.h"
 #include <DFG/DataFlowGraph.h>
-#include <DFG/Node.h>
-#include <Parser/ConstantProperty.h>
+#include <DFG/ConstantProperty.h>
 
 #define debug true
 

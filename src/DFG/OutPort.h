@@ -1,13 +1,15 @@
 #pragma once
 #include <DFG/Port.h>
 #include <memory>
+#include <iostream>
 class Node;
 class InPort;
 
 class OutPort: public Port, public std::enable_shared_from_this<OutPort>
 {
 public:
-	typedef std::set<std::weak_ptr<InPort>, std::owner_less<std::weak_ptr<InPort>>> SinkSet;
+	typedef std::weak_ptr<InPort> Sink;
+	typedef std::set<Sink, std::owner_less<Sink>> SinkSet;
 	
 	OutPort(Node& parent, uint index): Port(parent, index) { }
 	
@@ -21,3 +23,7 @@ protected:
 private:
 	SinkSet _sinks;
 };
+
+std::wostream& operator<<(std::wostream& out, const OutPort& value);
+
+std::ostream& operator<<(std::ostream& out, const OutPort& value);

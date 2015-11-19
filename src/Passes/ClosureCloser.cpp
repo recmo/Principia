@@ -1,198 +1,118 @@
-#include "Passes/ClosureCloser.h"
-#include <DFG/DataFlowGraph.h>
-#include <DFG/Node.h>
-#include <DFG/Edge.h>
+#include <Passes/ClosureCloser.h>
 #include <Passes/ClosureProperty.h>
-#include <Parser/SourceProperty.h>
-#include <Parser/IdentifierProperty.h>
-#include <Parser/ConstantProperty.h>
+#include <DFG/DataFlowGraph.h>
+#include <DFG/ConstantProperty.h>
+#include <Utilities/containers.h>
+#include <iostream>
+using std::wcerr;
+using std::endl;
 
 #define debug false
+
+// internal nodes are call or closure nodes
+// that are required for the return values of the closure
+// and depend on the inputs to the closure. This forces
+// them to be computed every time the closure is evaluated,
+
+// If the node is a closure node it's internal and lazy
+// nodes are not included, even if the results depend on a
+// call to the resulting closure.
+
+// lazy nodes are call or closure nodes that are required
+// for the return values of this closure and only for the
+// return values of this closure without depending on the
+// input values. That is, they need to be evaluated exactly
+// once before the closure can be evaluated.
 
 void ClosureCloser::anotateClosures()
 {
 	_fixedPoint = true;
 	for(auto node: _dfg.nodes()) {
-		if(node->type() != NodeType::Closure)
+		if(node->type() != Node::Closure)
 			continue;
-		anotateClosure(node);
+		anotateClosure(*node);
 	}
 }
 
-void ClosureCloser::anotateClosure(std::shared_ptr<Node> closureNode)
+void ClosureCloser::anotateClosure(Node& closureNode)
 {
-	assert(closureNode != nullptr);
-	assert(closureNode->type() == NodeType::Closure);
+	assert(closureNode.type() == Node::Closure);
 	
-	// Calculate internal nodes
-	vector<std::shared_ptr<Node>> internalNodes;
-	internalNodes.push_back(closureNode);
-	for(auto edge: closureNode->out()) {
-		for(auto sink: edge->sinks())
-			recurseOut(sink.target.lock(), &internalNodes);
-	}
-	recurseOut(closureNode, &internalNodes);
+	// Calculate nodes between the closure's in an out ports.
+	NodeSet past = causalPast(closureNode);
+	NodeSet future = causalFuture(closureNode);
+	NodeSet internal = past & future;
+	wcerr << past << future << internal << endl;
 	
-	if(debug)
-		wcerr << closureNode << " internalNodes " << internalNodes << endl;
-	
-	// Calculate the lazy set
-	bool fixedpoint = false;
-	vector<std::shared_ptr<Node>> lazySet = internalNodes;
-	while(!fixedpoint) {
-		fixedpoint = true;
-		
-		// Calculate the direct source nodes
-		vector<std::shared_ptr<Node>> directSources;
-		for(std::shared_ptr<Node> lazy: lazySet) {
-			for(const std::shared_ptr<Edge> edge: lazy->in()) {
-				if(edge == nullptr)
-					continue;
-				if(edge->source() == nullptr)
-					continue;
-				if(edge->has<ConstantProperty>())
-					continue;
-				std::shared_ptr<Node> directSource = edge->source();
-				if(directSource == nullptr)
-					wcerr << edge << " has no source" << endl;
-				assert(directSource != nullptr);
-				if(directSource->type() == NodeType::Closure && edge != directSource->out(0))
-					continue; // Only make-closure is valid
-				if(contains(lazySet, directSource))
-					continue;
-				if(contains(directSources, directSource))
-					continue;
-				directSources.push_back(edge->source());
-			}
-		}
-		
-		// For each direct source node
-		for(std::shared_ptr<Node> direct: directSources) {
-			
-			if(debug)
-				wcerr << "Considering adding " << direct << " to the lazy list." << endl;
-			
-			// Abort if a sink is outside the lazy set for a closure node
-			/// @todo As many call nodes as possible are included, this is not at all lazy,
-			/// but we must try to create closures that are minimal
-			bool abort = false;
-			for(auto out: direct->out()) {
-				for(auto sink: out->sinks()) {
-					auto sinkNode = sink.target.lock();
-					assert(sinkNode != nullptr);
-					if(!contains(lazySet, sinkNode)) {
-						if(debug) {
-							wcerr << "Result escapes from: ";
-							wcerr << direct << " through " << out;
-							wcerr << " into " << sinkNode << endl;
-						}
-						abort = direct->type() == NodeType::Closure;
-						break;
-					}
-				}
-				if(abort)
-					break;
-			}
-			if(abort)
+	// Calculate the set of OutPorts linked from the internal nodes, but not
+	// in the internal nodes.
+	OutPortSet border;
+	for(auto node: internal) {
+		assert(node != nullptr);
+		for(uint i = 0; i < node->inArity(); ++i) {
+			InPort& in = node->in(i);
+			if(in.source() == nullptr)
 				continue;
-			
-			// Add to the lazy set
-			assert(!contains(lazySet, direct));
-			lazySet.push_back(direct);
-			fixedpoint = false;
+			std::shared_ptr<OutPort> out = in.source();
+			if(out == nullptr)
+				continue;
+			if(contains(internal, out->parent().shared_from_this()))
+				continue;
+			border.insert(out);
 		}
 	}
-	if(debug)
-		wcerr << closureNode << " lazy set " << lazySet << endl;
 	
-	// Calculate the border
-	vector<std::shared_ptr<Edge>> border;
-	for(auto lazyNode: lazySet) {
-		for(auto in: lazyNode->in()) {
-			if(in == nullptr)
-				continue;
-			if(in->has<ConstantProperty>())
-				continue;
-			assert(in->source());
-			if(contains(lazySet, in->source()))
-				continue;
-			if(contains(border, in))
-				continue;
-			border.push_back(in);
-		}
-	}
-	if(debug)
-		wcerr << closureNode << " border " << border << endl;
+	wcerr << border << endl;
 	
-	// Check if it already has a closure list
-	if(closureNode->has<ClosureProperty>()) {
-		const auto& oldList = closureNode->get<ClosureProperty>().edges();
-		
-		// Check if they are identical
-		if(oldList.size() == border.size()) {
-			bool same = true;
-			for(auto edge: oldList) {
-				if(!contains(border, edge)) {
-					same = false;
-					break;
-				}
-			}
-			
-			// Return without changing anything
-			if(same)
-				return;
-		}
-	}
+	// Apply arbitrary ordering
+	ClosureProperty::ClosureSet vec;
+	for(auto out: border)
+		vec.push_back(out);
 	
 	// Set the closure property
-	ClosureProperty cp(border);
-	closureNode->set(cp);
+	closureNode.set(ClosureProperty{vec});
 	_fixedPoint = false;
 }
 
-void ClosureCloser::recurseOut(std::shared_ptr<Edge> edge, vector<std::shared_ptr<Edge>>* edges)
+ClosureCloser::NodeSet ClosureCloser::causalPast(Node& node)
 {
-	assert(edge != nullptr);
-	if(contains(*edges, edge))
-		return;
-	edges->push_back(edge);
-	for(auto sink: edge->sinks())
-		recurseOut(sink.target.lock(), edges);
+	NodeSet result;
+	causalPast(node, result);
+	return result;
 }
 
-void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Edge>>* edges)
+void ClosureCloser::causalPast(Node& node, ClosureCloser::NodeSet& past)
 {
-	assert(node != nullptr);
-	for(auto out: node->out())
-		recurseOut(out, edges);
-}
-
-void ClosureCloser::recurseOut(std::shared_ptr<Node> node, vector<std::shared_ptr<Node>>* nodes)
-{
-	assert(node != nullptr);
-	if(contains(*nodes, node))
-		return;
-	nodes->push_back(node);
-	for(auto out: node->out()) {
-		for(auto sink: out->sinks())
-			recurseOut(sink.target.lock(), nodes);
+	past.insert(node.shared_from_this());
+	for(uint i = 0; i < node.inArity(); ++i) {
+		InPort& in = node.in(i);
+		if(in.source() == nullptr)
+			continue;
+		auto parent = in.source()->parent().shared_from_this();
+		if(contains(past, parent))
+			continue;
+		causalPast(*parent, past);
 	}
 }
 
-void ClosureCloser::recurseIn(std::shared_ptr<Edge> edge, std::vector<std::shared_ptr<Edge>>* edges)
+ClosureCloser::NodeSet ClosureCloser::causalFuture(Node& node)
 {
-	assert(edge != nullptr);
-	if(contains(*edges, edge))
-		return;
-	edges->push_back(edge);
-	recurseIn(edge->source(), edges);
+	NodeSet result;
+	causalFuture(node, result);
+	return result;
 }
 
-void ClosureCloser::recurseIn(std::shared_ptr<Node> node, std::vector<std::shared_ptr<Edge>>* edges)
+void ClosureCloser::causalFuture(Node& node, ClosureCloser::NodeSet& future)
 {
-	assert(node != nullptr);
-	if(!node || !edges)
-		return;
-	for(uint i = 0; i < node->inArity(); ++i)
-		recurseIn(node->in(i), edges);
+	future.insert(node.shared_from_this());
+	for(uint i = 0; i < node.outArity(); ++i) {
+		OutPort& out = node.out(i);
+		for(OutPort::Sink sink: out.sinks()) {
+			if(std::shared_ptr<InPort> in = sink.lock()) {
+				if(contains(future, in->parent().shared_from_this()))
+					continue;
+				causalFuture(in->parent(), future);
+			}
+		}
+	}
 }

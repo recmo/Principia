@@ -4,7 +4,7 @@ class DataFlowGraph;
 class Node;
 class Edge;
 
-/// Anotate the DFG with ConstantProperties for constant calls
+/// Annotate the DFG with ConstantProperties for constant calls
 class ConstantCall {
 public:
 	ConstantCall(DataFlowGraph* dfg): _dfg(dfg), _fixedPoint(true) { }

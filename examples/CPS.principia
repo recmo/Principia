@@ -1,0 +1,22 @@
+title ↦ “Continuation passing style”
+
+section ↦ “Wrap builtins to make CPS versions”
+
+cif n then else ↦ R
+	R ≔ (≔ if n then else)
+
+cmul a b cps ↦ R
+	R ≔ cps (≔ mul a b)
+
+csub a b cps ↦ R
+	R ≔ cps (≔ sub a b)
+
+section ↦ “CPS versions of the factorial function”
+
+cfact n cps ↦ R
+	otherwise ↦ (≔ csub n 1 (np ↦ (≔ cfact np (nr ↦ (≔ cmul n nr cps)))))
+	R ≔ cif n otherwise (↦(≔ cps 1))
+
+section ↦ “Wrapper to allow test access”
+
+fact n ↦ (≔ cfact n (R ↦ R))

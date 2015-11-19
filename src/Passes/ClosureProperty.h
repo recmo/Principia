@@ -1,19 +1,22 @@
 #pragma once
+#include <DFG/OutPort.h>
 #include <DFG/PropertyMap.h>
 #include <vector>
-class Edge;
 
 class ClosureProperty: public PropertyMap::Property
 {
 public:
-	ClosureProperty(const ClosureProperty& copy);
-	ClosureProperty(const std::vector<std::shared_ptr<Edge>>& edges);
-	virtual ~ClosureProperty();
-	virtual void print(std::wostream& out) const override;
+	typedef std::shared_ptr<const OutPort> OutPortPtr;
+	typedef std::vector<OutPortPtr> ClosureSet;
 	
-	const std::vector<std::shared_ptr<Edge>>& edges() const { return _edges; }
-	std::vector<std::shared_ptr<Edge>>& edges() { return _edges; }
+	ClosureProperty(const ClosureSet& closureSet)
+	: _closureSet(closureSet) { }
+	virtual void print(std::wostream& out) const override
+	{ out << closureSet(); }
+	
+	const ClosureSet& closureSet() const { return _closureSet; }
+	ClosureSet& closureSet() { return _closureSet; }
 	
 protected:
-	std::vector<std::shared_ptr<Edge>> _edges;
-}; 
+	ClosureSet _closureSet;
+};

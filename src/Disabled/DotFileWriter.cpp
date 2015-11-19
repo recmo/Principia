@@ -1,6 +1,6 @@
 #include <Passes/DotFileWriter.h>
 #include <Parser/IdentifierProperty.h>
-#include <Parser/ConstantProperty.h>
+#include <DFG/ConstantProperty.h>
 #include <fstream>
 
 DotFileWriter::DotFileWriter(const string& filename)

@@ -1,6 +1,7 @@
 #pragma once
 #include <DFG/Port.h>
 #include <memory>
+#include <iostream>
 class Node;
 class OutPort;
 class Value;
@@ -19,3 +20,5 @@ public:
 private:
 	std::weak_ptr<OutPort> _source;
 };
+
+std::wostream& operator<<(std::wostream& out, const InPort& value);

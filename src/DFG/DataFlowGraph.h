@@ -8,8 +8,11 @@
 class DataFlowGraph: public PropertyMap
 {
 public:
-
-	not_null<std::shared_ptr<Node>> make_node();
+	Node& make_node(Node::Type type, uint out, uint in);
+	Node& make_call(uint out, uint in)
+	{ return make_node(Node::Call, out, in); }
+	Node& make_closure(uint out, uint in)
+	{ return make_node(Node::Closure, out, in); }
 	
 	void addNode(std::shared_ptr<Node> node);
 	const std::set<std::shared_ptr<Node>>& nodes() const { return _nodes; }

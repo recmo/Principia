@@ -4,8 +4,9 @@ version := $(shell git show --pretty=format:%h -q HEAD)
 # Find all source files
 sources := $(shell find -wholename './src/*.cpp')
 parsers := $(shell find -wholename './src/*.qx')
-sources := $(filter-out ./src/Passes/%.cpp, $(sources))
 sources := $(filter-out ./src/Verifier/%.cpp, $(sources))
+sources := $(filter-out ./src/Native/%.cpp, $(sources))
+sources := $(filter-out ./src/Disabled/%.cpp, $(sources))
 
 # C++11 Compiler
 compiler := clang++ -std=c++14 -ggdb

@@ -18,3 +18,14 @@ void OutPort::del_sink(InPort& sink)
 	_sinks.erase(ref);
 	assert(!contains(_sinks, ref));
 }
+
+std::wostream& operator<<(std::wostream& out, const OutPort& value)
+{
+	return out << L"↑";
+}
+
+std::ostream& operator<<(std::ostream& out, const OutPort& value)
+{
+	return out << L"^";
+}
+

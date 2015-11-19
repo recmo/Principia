@@ -50,6 +50,7 @@ smul x y ↦ (≔ x Z (px ↦ (≔ y Z (py ↦ (≔ sadd (≔ smul px py) (≔ s
 fact n ↦ (≔ n (↦ c1) (pn ↦ (≔ smul n (≔ fact pn))))
 
 equals x y ↦ (≔ x (↦(≔ y (↦ true) (yp ↦ false))) (xp ↦(≔ y (↦ false) (yp ↦ (≔ equals xp yp)))))
+less x y ↦ (≔ x (↦(≔ y (↦ false) (yp ↦ true))) (xp ↦(≔ y (↦ false) (yp ↦ (≔ less xp yp)))))
 
 section ↦ “Scott numeral / native numeral converstion”
 
@@ -82,6 +83,7 @@ Cons h t ↦ (n c ↦ (≔ c h t))
 nil ≔ Nil
 
 repeat x count ↦ (≔ count (↦ nil) (countp ↦ (≔ Cons x (≔ repeat x countp))))
+iota n ↦ (≔ n (↦ nil) (np ↦ (≔ Cons n (≔ iota np))))
 length l ↦ (≔ l (↦ c0) (head tail ↦ (≔ succ (≔ length tail))))
 append l1 l2 ↦ (≔ l1 (↦ l2) (head tail ↦ (≔ Cons head (≔ append tail l2))))
 head default list ↦ (≔ list (↦ default) (head tail ↦ head))
@@ -90,19 +92,28 @@ reverse list ↦ (≔ list (↦ nil) (head tail ↦ (≔ append (≔ reverse tai
 
 filter test list ↦ (≔ list (↦ nil) (head tail ↦ (≔ (≔ test head) (↦ (≔ Cons head recurse)) (↦ recurse))))
 	recurse ≔ filter test tail
-map f list ↦ (≔ list (↦ nil) (head tail ↦ (≔ Cons (≔ f head) tail)))
+map f list ↦ (≔ list (↦ nil) (head tail ↦ (≔ Cons (≔ f head) (≔ map f tail))))
 fold f list base ↦ (≔ list (↦ base) (head tail ↦ (≔ f head (≔ fold f tail base))))
 sort compare list ↦ (≔ list (↦ nil) (head tail ↦ recurse))
-	recurse ≔ append lesser (≔ append (≔ Cons head nil) greater)
+	recurse ≔ append lesser (≔ Cons head greater)
 	lesser ≔ sort compare (≔ filter (x ↦ (≔ compare x head)) tail)
 	greater ≔ sort compare (≔ filter (x ↦ (≔ compare head x)) tail)
 
 append2 l1 l2 ↦ (≔ fold Cons l1 l2)
 
+sum list ↦ (≔ fold sadd list c0)
 
 filter2 test list ↦ (≔ fold (head acc ↦ (≔ if (≔test head) (≔ Cons head acc) acc)) list nil)
 
 doc ↦ “http://en.literateprograms.org/Quicksort_%28Haskell%29”
 
 section ↦ “Morgen-Scott Meta Object Protocol”
+
+
+digitize list ↦ (≔ fold (a b ↦ (≔ add (≔ unscott a) (≔ mul b 10))) list 0)
+
+print_list n ↦ (≔ digitize (≔ sort less (≔ iota (≔ scott n))))
+
+big_test n ↦ (≔ unscott (≔ f(≔ scott n)))
+	f n ↦ (≔ length (≔ iota n))
 

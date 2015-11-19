@@ -78,10 +78,23 @@ void insertUnion(std::set<T,C,A>& target, const std::set<T,C,A>& insert)
 }
 
 template<class T, class C, class A>
+std::set<T,C,A>& operator|=(std::set<T,C,A>& a, const std::set<T,C,A>& b)
+{
+	insertUnion(a, b);
+	return a;
+}
+
+template<class T, class C, class A>
 std::set<T,C,A> setUnion(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
 {
 	std::set<T,C,A> u = a;
 	return insertUnion<T,C,A>(u, b);
+}
+
+template<class T, class C, class A>
+std::set<T,C,A> operator|(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
+{
+	return setUnion(a, b);
 }
 
 template<class T, class C, class A>
@@ -92,6 +105,12 @@ std::set<T,C,A> intersection(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
 		if(contains<T,C,A>(b, e))
 			i.insert(e);
 	return i;
+}
+
+template<class T, class C, class A>
+std::set<T,C,A> operator&(const std::set<T,C,A>& a, const std::set<T,C,A>& b)
+{
+	return intersection(a, b);
 }
 
 template<class T, class C, class A>

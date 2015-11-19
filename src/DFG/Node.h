@@ -27,9 +27,11 @@ public:
 private:
 	typedef not_null<std::shared_ptr<OutPort>> OutPortPtr;
 	typedef not_null<std::shared_ptr<InPort>> InPortPtr;
+	typedef std::vector<OutPortPtr> OutPorts;
+	typedef std::vector<InPortPtr> InPorts;
 	const Type _type;
-	const std::vector<OutPortPtr> _outgoing;
-	const std::vector<InPortPtr> _incoming;
+	const OutPorts _outgoing;
+	const InPorts _incoming;
 	std::vector<OutPortPtr> createOutgoing(uint arity);
 	std::vector<InPortPtr> createIncoming(uint arity);
 };

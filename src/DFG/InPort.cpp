@@ -24,3 +24,8 @@ InPort& InPort::operator<<(const Value& value)
 	set(ConstantProperty{value});
 	return *this;
 }
+
+std::wostream& operator<<(std::wostream& out, const InPort& value)
+{
+	return out << L"↓";
+}

@@ -20,8 +20,9 @@ protected:
 	bool _fixedPoint;
 	
 	void anotateClosure(Node& closureNode);
-	NodeSet causalPast(Node& node);
-	void causalPast(Node& node, NodeSet& past);
-	NodeSet causalFuture(Node& node);
-	void causalFuture(Node& node, NodeSet& future);
+	
+	NodeSet closureBody(Node& closure);
+	void closureBody(OutPort& out, NodeSet& set);
+	void closureBody(InPort& in, NodeSet& set);
+	void closureBody(Node& node, NodeSet& set);
 };

@@ -6,7 +6,7 @@
 class ClosureProperty: public PropertyMap::Property
 {
 public:
-	typedef std::shared_ptr<const OutPort> OutPortPtr;
+	typedef std::shared_ptr<OutPort> OutPortPtr;
 	typedef std::vector<OutPortPtr> ClosureSet;
 	
 	ClosureProperty(const ClosureSet& closureSet)

@@ -3,6 +3,7 @@
 #include <DFG/DataFlowGraph.h>
 #include <DFG/ConstantProperty.h>
 #include <Utilities/containers.h>
+#include <Utilities/exceptions.h>
 #include <iostream>
 using std::wcerr;
 using std::endl;
@@ -37,17 +38,16 @@ void ClosureCloser::anotateClosures()
 void ClosureCloser::anotateClosure(Node& closureNode)
 {
 	assert(closureNode.type() == Node::Closure);
+	if(closureNode.has<ClosureProperty>())
+		return;
 	
-	// Calculate nodes between the closure's in an out ports.
-	NodeSet past = causalPast(closureNode);
-	NodeSet future = causalFuture(closureNode);
-	NodeSet internal = past & future;
-	wcerr << past << future << internal << endl;
+	// Calculate the body of the closure
+	NodeSet body = closureBody(closureNode);
 	
-	// Calculate the set of OutPorts linked from the internal nodes, but not
-	// in the internal nodes.
+	// Calculate the set of OutPorts linked from the body nodes, but not
+	// in the body node set.
 	OutPortSet border;
-	for(auto node: internal) {
+	for(auto node: body) {
 		assert(node != nullptr);
 		for(uint i = 0; i < node->inArity(); ++i) {
 			InPort& in = node->in(i);
@@ -56,13 +56,33 @@ void ClosureCloser::anotateClosure(Node& closureNode)
 			std::shared_ptr<OutPort> out = in.source();
 			if(out == nullptr)
 				continue;
-			if(contains(internal, out->parent().shared_from_this()))
+			if(contains(body, out->parent().shared_from_this()))
 				continue;
 			border.insert(out);
 		}
 	}
 	
-	wcerr << border << endl;
+	// Add any OutPorts linked directly to the InPorts, but not in the body set.
+	for(uint i = 0; i < closureNode.inArity(); ++i) {
+		InPort& in = closureNode.in(i);
+		if(in.source() == nullptr)
+			continue;
+		std::shared_ptr<OutPort> out = in.source();
+		if(out == nullptr)
+			continue;
+		if(contains(body, out->parent().shared_from_this()))
+			continue;
+		border.insert(out);
+	}
+	
+	// Note: there are more meaningful sets other than `body`:
+	//
+	// * `lazy`: The nodes that feed only into body, but are not in body. These
+	//           nodes can be deferred for lazy evaluation, turning a *lazy*
+	//           closure context into a non-lazy one.
+	// * `dead`: Nodes part of body, but who's output is does not end up in the
+	//           input of the closure. These can be eliminated without
+	//           consequences.
 	
 	// Apply arbitrary ordering
 	ClosureProperty::ClosureSet vec;
@@ -74,45 +94,34 @@ void ClosureCloser::anotateClosure(Node& closureNode)
 	_fixedPoint = false;
 }
 
-ClosureCloser::NodeSet ClosureCloser::causalPast(Node& node)
+ClosureCloser::NodeSet ClosureCloser::closureBody(Node& closure)
 {
+	// Add all the nodes causally after the closure outputs (skipping the first)
+	assert(closure.type() == Node::Closure);
 	NodeSet result;
-	causalPast(node, result);
+	for(uint i = 1; i < closure.outArity(); ++i)
+		closureBody(closure.out(i), result);
 	return result;
 }
 
-void ClosureCloser::causalPast(Node& node, ClosureCloser::NodeSet& past)
+void ClosureCloser::closureBody(OutPort& out, ClosureCloser::NodeSet& set)
 {
-	past.insert(node.shared_from_this());
-	for(uint i = 0; i < node.inArity(); ++i) {
-		InPort& in = node.in(i);
-		if(in.source() == nullptr)
-			continue;
-		auto parent = in.source()->parent().shared_from_this();
-		if(contains(past, parent))
-			continue;
-		causalPast(*parent, past);
-	}
+	for(auto wsink: out.sinks())
+		if(auto sink = wsink.lock())
+			closureBody(*sink, set);
 }
 
-ClosureCloser::NodeSet ClosureCloser::causalFuture(Node& node)
+void ClosureCloser::closureBody(InPort& in, ClosureCloser::NodeSet& set)
 {
-	NodeSet result;
-	causalFuture(node, result);
-	return result;
+	closureBody(in.parent(), set);
 }
 
-void ClosureCloser::causalFuture(Node& node, ClosureCloser::NodeSet& future)
+void ClosureCloser::closureBody(Node& node, ClosureCloser::NodeSet& set)
 {
-	future.insert(node.shared_from_this());
-	for(uint i = 0; i < node.outArity(); ++i) {
-		OutPort& out = node.out(i);
-		for(OutPort::Sink sink: out.sinks()) {
-			if(std::shared_ptr<InPort> in = sink.lock()) {
-				if(contains(future, in->parent().shared_from_this()))
-					continue;
-				causalFuture(in->parent(), future);
-			}
-		}
-	}
+	auto ptr = node.shared_from_this();
+	if(contains(set, ptr))
+		return;
+	set.insert(ptr);
+	for(uint i = 0; i < node.outArity(); ++i)
+		closureBody(node.out(i), set);
 }

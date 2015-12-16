@@ -7,15 +7,15 @@ SUITE(Parser) {
 
 TEST(ParseLiterals)
 {
-	Parser().parse(std::string{ "asd ≔ (↦ 3)"});
-	Parser().parse(string{L"asd ≔ (↦ 3)"});
+	Parser().parseString(std::string{ "asd ≔ (↦ 3)"});
+	Parser().parseString(string{L"asd ≔ (↦ 3)"});
 }
 
 void testIdempotent(ParseTree* tree)
 {
 	string source = toString(*tree);
 	Parser p;
-	p.parse(source);
+	p.parseString(source);
 	ParseTree* t = p.tree();
 	string source2 = toString(*t);
 	CHECK(source == source2);
@@ -47,9 +47,9 @@ TEST(ParseFactorial)
 		"\tfr ≔ if n otherwise if_zero\n"
 		"\tr ≔ fr n\n"
 	};
-	Parser().parse(std::string{"asd ≔ (↦ 3)"});
-	Parser().parse(string{L"asd ≔ (↦ 3)"});
-	Parser().parse(factorial);
+	Parser().parseString(std::string{"asd ≔ (↦ 3)"});
+	Parser().parseString(string{L"asd ≔ (↦ 3)"});
+	Parser().parseString(factorial);
 }
 
 } // SUITE

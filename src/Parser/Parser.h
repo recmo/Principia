@@ -3,6 +3,7 @@
 #include <Parser/ParseTree.h>
 #include <string>
 #include <iostream>
+class DataFlowGraph;
 namespace quex { class QuexParser; class Token; }
 
 class Parser
@@ -11,8 +12,8 @@ public:
 	Parser();
 	Parser& parseFile(const string& filename);
 	Parser& parse(std::istream& stream);
-	Parser& parse(const std::string& bytes);
-	Parser& parse(const string& contents);
+	Parser& parseString(const std::string& bytes);
+	Parser& parseString(const string& contents);
 	
 	ParseTree* tree() { return _tree; }
 	

@@ -1,4 +1,4 @@
-#include "DataFlowGraphCompiler.h"
+#include "DataFlowGraphBuilder.h"
 #include <Parser/Parser.h>
 #include <Parser/ImplicitOutputAdder.h>
 #include <Parser/StatementUninliner.h>
@@ -14,7 +14,7 @@ TEST(Empty)
 	ParseTree tree;
 	CHECK(tree.validate());
 	
-	DataFlowGraphCompiler dfgc(&tree);
+	DataFlowGraphBuilder dfgc(&tree);
 	dfgc.compile();
 	CHECK(tree.validate());
 	
@@ -26,12 +26,12 @@ TEST(Empty)
 TEST(ConstFunc)
 {
 	Parser p;
-	p.parse(L"five ↦ 5");
+	p.parseString(L"five ↦ 5");
 	ParseTree* tree = p.tree();
 	CHECK(tree != nullptr);
 	CHECK(tree->validate());
 	
-	DataFlowGraphCompiler dfgc(tree);
+	DataFlowGraphBuilder dfgc(tree);
 	dfgc.compile();
 	CHECK(tree->validate());
 	
@@ -43,7 +43,7 @@ TEST(ConstFunc)
 TEST(CallConstFunc)
 {
 	Parser p;
-	p.parse(L"five ↦ 5\nnumber ≔ five");
+	p.parseString(L"five ↦ 5\nnumber ≔ five");
 	ParseTree* tree = p.tree();
 	CHECK(tree != nullptr);
 	CHECK(tree->validate());
@@ -68,7 +68,7 @@ TEST(CallConstFunc)
 	ib.bind();
 	CHECK(tree->validate());
 
-	DataFlowGraphCompiler dfgc(tree);
+	DataFlowGraphBuilder dfgc(tree);
 	dfgc.compile();
 	CHECK(tree->validate());
 	
@@ -80,7 +80,7 @@ TEST(CallConstFunc)
 TEST(CallBuiltin)
 {
 	Parser p;
-	p.parse(L"five ≔ add 2 3");
+	p.parseString(L"five ≔ add 2 3");
 	ParseTree* tree = p.tree();
 	CHECK(tree != nullptr);
 	CHECK(tree->validate());
@@ -105,7 +105,7 @@ TEST(CallBuiltin)
 	ib.bind();
 	CHECK(tree->validate());
 	
-	DataFlowGraphCompiler dfgc(tree);
+	DataFlowGraphBuilder dfgc(tree);
 	dfgc.compile();
 	CHECK(tree->validate());
 	
@@ -145,7 +145,7 @@ void testExample(const string& filename)
 	ib.bind();
 	CHECK(tree->validate());
 	
-	DataFlowGraphCompiler dfgc(tree);
+	DataFlowGraphBuilder dfgc(tree);
 	dfgc.compile();
 	CHECK(tree->validate());
 	

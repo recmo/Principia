@@ -29,16 +29,16 @@ Parser& Parser::parseFile(const string& filename)
 	return parse(stream);
 }
 
-Parser& Parser::parse(const std::string& bytes)
+Parser& Parser::parseString(const std::string& bytes)
 {
 	std::istringstream stream{bytes};
 	return parse(stream);
 }
 
-Parser& Parser::parse(const string& contents)
+Parser& Parser::parseString(const string& contents)
 {
 	// The parser is hard-wired for UTF-8
-	return parse(encodeUtf8(contents));
+	return parseString(encodeUtf8(contents));
 }
 
 Parser& Parser::parse(std::istream& stream)

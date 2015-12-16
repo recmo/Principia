@@ -1,26 +1,18 @@
 #pragma once
-#include <Parser/ParseTree.h>
-#include <DFG/DataFlowGraph.h>
-#include <map>
+#include <iostream>
+#include <string>
+#include <Unicode/string.h>
+class DataFlowGraph;
+class ParseTree;
 
-// The ParseTree needs to be uninlined and the identifiers bound
 class DataFlowGraphCompiler
 {
 public:
-	DataFlowGraphCompiler(ParseTree* parseTree);
-	~DataFlowGraphCompiler();
-	
-	void compile();
-	
-	DataFlowGraph* dataFlowGraph() { return _dfg; }
+	static DataFlowGraph* compileFile(const string& filename);
+	static DataFlowGraph* compile(std::istream& stream);
+	static DataFlowGraph* compileString(const std::string& bytes);
+	static DataFlowGraph* compileString(const string& contents);
 	
 private:
-	ParseTree* _parseTree;
-	DataFlowGraph* _dfg;
-	
-	void declare(ParseTree::Node* node);
-	void connect(ParseTree::Node* node);
-	
-	std::map<ParseTree::Statement*, std::shared_ptr<Node>> _declarations;
-	std::map<ParseTree::Identifier*, std::shared_ptr<OutPort>> _identifiers;
+	static DataFlowGraph* compile(ParseTree* tree);
 };

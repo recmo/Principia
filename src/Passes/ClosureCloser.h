@@ -7,19 +7,15 @@
 /// Annotates the DFG with ClosureProperties
 class ClosureCloser {
 public:
-	explicit ClosureCloser(DataFlowGraph& dfg): _dfg(dfg), _fixedPoint(true) { }
+	explicit ClosureCloser(DataFlowGraph& dfg): _dfg(dfg) { }
 	
-	void anotateClosures();
-	
-	bool fixedPoint() const { return _fixedPoint; }
+	void annotateClosures();
+	void annotateClosure(Node& closureNode);
 	
 protected:
 	typedef std::set<std::shared_ptr<Node>> NodeSet;
 	typedef std::set<std::shared_ptr<OutPort>> OutPortSet;
 	const DataFlowGraph & _dfg;
-	bool _fixedPoint;
-	
-	void anotateClosure(Node& closureNode);
 	
 	NodeSet closureBody(Node& closure);
 	void closureBody(OutPort& out, NodeSet& set);

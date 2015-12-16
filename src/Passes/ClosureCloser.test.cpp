@@ -13,7 +13,7 @@ typedef ClosureProperty::ClosureSet ClosureSet;
 void annotate(DataFlowGraph& dfg)
 {
 	ClosureCloser cc(dfg);
-	cc.anotateClosures();
+	cc.annotateClosures();
 	
 	// All and only closure nodes are annotated
 	for(auto node: dfg.nodes()) {

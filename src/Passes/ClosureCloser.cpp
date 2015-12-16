@@ -25,17 +25,16 @@ using std::endl;
 // input values. That is, they need to be evaluated exactly
 // once before the closure can be evaluated.
 
-void ClosureCloser::anotateClosures()
+void ClosureCloser::annotateClosures()
 {
-	_fixedPoint = true;
 	for(auto node: _dfg.nodes()) {
 		if(node->type() != Node::Closure)
 			continue;
-		anotateClosure(*node);
+		annotateClosure(*node);
 	}
 }
 
-void ClosureCloser::anotateClosure(Node& closureNode)
+void ClosureCloser::annotateClosure(Node& closureNode)
 {
 	assert(closureNode.type() == Node::Closure);
 	if(closureNode.has<ClosureProperty>())
@@ -91,7 +90,6 @@ void ClosureCloser::anotateClosure(Node& closureNode)
 	
 	// Set the closure property
 	closureNode.set(ClosureProperty{vec});
-	_fixedPoint = false;
 }
 
 ClosureCloser::NodeSet ClosureCloser::closureBody(Node& closure)

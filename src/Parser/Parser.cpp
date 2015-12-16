@@ -232,8 +232,22 @@ ParseTree::Identifier* Parser::parseIdentifier()
 
 ParseTree::Constant* Parser::parseNumber()
 {
+	// For radices up to and including 36 the following digits are used:
 	const string digits = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	const string digits64 = L"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
+	
+	// Todo:
+	//
+	// For radices up to and including 64 the following digits are used:
+	//
+	// ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/
+	//
+	// The digits ‘-’ and ‘_’ can also be used and are equivalent to ‘+’ and ‘/’
+	// respectively. Any trailing ‘=’ characters are ignored. This is digit set
+	// is compatible with the most common base64 implementations.
+	//
+	// Note that the result is interpreted as a number, and not as a sequence of
+	// bytes as is customary with base64.
+	
 	const wchar_t separator = L'\u2009';
 	const wchar_t radixPoint = L'.';
 	const string baseDigits = L"₀₁₂₃₄₅₆₇₈₉";

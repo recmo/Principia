@@ -6,7 +6,7 @@
 #include <Parser/StatementUninliner.h>
 #include <Parser/IdentifierScoper.h>
 #include <Parser/IdentifierBinder.h>
-#include <Parser/DataFlowGraphCompiler.h>
+#include <Parser/DataFlowGraphBuilder.h>
 #include <Unicode/string.h>
 #include <iostream>
 #include <vector>
@@ -59,7 +59,7 @@ sint32 Main(const std::vector<string>& args)
 	
 	// Compile to a data flow graph
 	wcerr << L"Compiling data flow graph…" << flush;
-	DataFlowGraphCompiler dfgc(tree);
+	DataFlowGraphBuilder dfgc(tree);
 	dfgc.compile();
 	DataFlowGraph* dfg = dfgc.dataFlowGraph();
 	wcerr << endl;

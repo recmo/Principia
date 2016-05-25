@@ -39,7 +39,7 @@ std::wstring decodeUtf8(const std::string& encoded)
 	}
 	
 	// Copy to a wstring object
-	wstring wstr(out, out_next - out);
+	std::wstring wstr(out, out_next - out);
 	delete[] out;
 	return wstr;
 }
@@ -80,7 +80,7 @@ std::string encodeUtf8(const std::wstring& plaintext)
 		throw std::invalid_argument("The argument could not be encoded to UTF-8.");
 	}
 	
-	string str(out, out_next - out);
+	std::string str(out, out_next - out);
 	delete[] out;
 	return str;
 }
@@ -118,7 +118,7 @@ std::wstring decodeLocal(const std::string& encoded)
 		throw std::invalid_argument("The argument could not be decoded from local encoding.");
 	}
 	
-	wstring wstr(out, out_next - out);
+	std::wstring wstr(out, out_next - out);
 	delete[] out;
 	return wstr;
 }
@@ -157,7 +157,7 @@ std::string encodeLocal(const std::wstring& plaintext)
 		throw std::invalid_argument("The argument could not be encoded to local encoding.");
 	}
 	
-	string str(out, out_next - out);
+	std::string str(out, out_next - out);
 	delete[] out;
 	return str;
 }

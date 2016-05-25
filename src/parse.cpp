@@ -1,13 +1,12 @@
 #include <Command.h>
 #include <fstream>
 #include <Unicode/convert.h>
-#include <Parser/Parser.h>
+#include <Parser/Lexer.h>
 
 Command parse(L"parse", [](Command::Arguments arguments) {
 	assert(arguments.size() == 1);
 	
-	Parser().parseFile(arguments[0]);
-	
+	Lexer().parseFile(arguments[0]);
 	
 	return Command::success;
 },

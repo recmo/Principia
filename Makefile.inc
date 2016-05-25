@@ -14,7 +14,7 @@ objects   := $(patsubst src/%.cpp,build/%.o, $(sources))
 gcda      := $(patsubst src/%.cpp,build/%.inst.gcda,$(sources) $(test))
 clang     := $(findstring clang,${CXX})
 flags     += $(if $(packages), $(shell pkg-config --cflags $(packages)))
-flags     += -DVERSION=L\"$(version)\" -DNAME=L\"$(name)\" -std=c++11 -Isrc -fPIC
+flags     += -DVERSION=L\"$(version)\" -DNAME=L\"$(name)\" -std=c++14 -Isrc -fPIC
 flags     += -Wall -Wextra -Wno-unused-parameter -Werror=return-type
 flags     += -Werror=switch -ftemplate-backtrace-limit=0 -flto
 flags     += -fvisibility-inlines-hidden -fvisibility=hidden

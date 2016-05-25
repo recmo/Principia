@@ -577,6 +577,52 @@ void LlvmCompiler::buildBuiltin(const StackMachineProperty::CallInstruction* cal
 	}
 }
 
+void LlvmCompiler::buildReference(llvm::Value* ref)
+{
+	// Atomic increment reference count
+	// monotonic (memory_order_relaxed)
+	
+	// inc = atomicrmw add i64* ref, i64 1 monotonic
+	llvm::Value* inc = _builder.CreateAtomicRMW(
+		llvm::AtomicRMWInst::Add,
+		ref,
+		_builder.getInt64(1),
+		llvm::Monotonic,
+		llvm::CrossThread);
+}
+
+void LlvmCompiler::buildDereference(llvm::Value* ref)
+{
+	// Atomic decrement reference count
+	// release (memory_order_release)
+	
+	// dec = atomicrmw sub i64* ref, i64 1 release
+	llvm::Value* dec = _builder.CreateAtomicRMW(
+		llvm::AtomicRMWInst::Add,
+		ref,
+		_builder.getInt64(1),
+		llvm::Release,
+		llvm::CrossThread);
+	
+	// isZero = icmp eq i64 dec, 0
+	llvm::Value* isZero = _builder.CreateICmpEQ(dec, _builder.getInt64(0));
+	
+	// br i1 %3, label %9, label %4
+	llvm::BasicBlock* isZeroTrue = llvm::BasicBlock::Create(_context, "entry", function);
+	llvm::BasicBlock* isZeroFalse = llvm::BasicBlock::Create(_context, "entry", function);
+	_builder.CreateCondBr(isZero, isZeroTrue, isZeroFalse);
+	
+	// TODO: put in isZeroFalse
+	// <nop>, continue with rest of the code
+	
+	// TODO: put in isZeroTrue
+	
+	// fence acquire
+	llvm::FenceInst* f = _builder.CreateFence(llvm::Acquire);
+		
+	// TODO: invoke void @_Z3delPv(i8* %r)
+}
+
 llvm::Value* LlvmCompiler::buildConstant(const Value& value)
 {
 	switch(value.kind) {

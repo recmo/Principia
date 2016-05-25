@@ -37,6 +37,10 @@ private:
 	void buildRet(const StackMachineProperty::ReturnInstruction* ret);
 	void buildBuiltin(const StackMachineProperty::CallInstruction* call);
 	
+	// For reference counting
+	void buildReference(llvm::Value* value);
+	void buildDereference(llvm::Value* value);
+	
 	void buildDefaultClosure(std::shared_ptr<Node> closureNode);
 	void buildWrapper(std::shared_ptr<Node> closureNode);
 	llvm::Value* buildConstant(const Value& value);

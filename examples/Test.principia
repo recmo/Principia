@@ -1,2 +1,40 @@
+doc_md “# This is a parser test.
 
-id n ↦ n
+It would be nice if we could document using markdown calls.
+
+”
+
+λ pred pn pret
+	todo “Call `ret` with `n - 1`”
+
+λ is_zero in itrue ifalse
+	todo “Call `ret_true` if `n = 0` or else call `ret_false`”
+
+λ even en etrue efalse
+	is_zero en etrue erec
+	λ erec
+		pred en erecp
+		λ erecp enp
+			odd enp etrue efalse
+
+λ odd on otrue ofalse
+	is_zero on ofalse orec
+	λ orec
+		pred on orecp
+		λ orecp onp
+			even onp otrue ofalse
+
+λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
+λ C₂       (· (λ ·  _        (·) ))
+
+commented out “
+
+
+λ True  (· (λ · (·)  _ ))
+λ False (· (λ ·  _  (·)))
+
+”
+
+True  (λ · true )
+False (λ · false)
+

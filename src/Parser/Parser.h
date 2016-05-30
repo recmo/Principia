@@ -37,22 +37,25 @@ struct Node {
 	std::wstring identifier;
 	std::wstring quote;
 	std::vector<std::shared_ptr<Node>> children;
+	std::vector<std::shared_ptr<Node>> globals;
 	std::weak_ptr<Node> binding_site;
 	bool is_binding_site = false;
+	bool is_closure = false;
 };
 
 // Lexer
-Node lexer(std::wistream& stream);
-
-// Binder
-void deanonymize(Node& module);
-void tag_binding_sites(Node& module);
-void undebruijn(Node& module);
-void bind(Node& module);
+std::shared_ptr<Node> lexer(std::wistream& stream);
 
 // Parser
-Node parseFile(const std::wstring& filename);
-Node parseString(const std::wstring& contents);
-Node paserStream(std::wistream& stream);
+void parse(std::shared_ptr<Node> module);
+std::shared_ptr<Node> parseFile(const std::wstring& filename);
+std::shared_ptr<Node> parseString(const std::wstring& contents);
+std::shared_ptr<Node> paserStream(std::wistream& stream);
+
+struct Program {
+	std::vector<std::wstring> globals;
+	std::vector<uint> closures;
+	std::vector<std::vector<std::pair<uint, uint>>> calls;
+};
 
 };

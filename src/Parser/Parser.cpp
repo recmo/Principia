@@ -6,12 +6,13 @@
 #include <fstream>
 #include <functional>
 #include <limits>
+#include <algorithm>
 
 namespace Parser {
 
 typedef std::vector<std::shared_ptr<Node>> Stack;
 
-Node lexer(std::wistream& stream)
+std::shared_ptr<Node> lexer(std::wistream& stream)
 {
 	Stack stack;
 	uint indentation_depth = 0;
@@ -188,49 +189,40 @@ Node lexer(std::wistream& stream)
 	// TOKEN: END MODULE
 	//std::wcerr << "END MODULE\n";
 	assert(stack.back()->kind == Module);
-	return *(stack.back());
+	return stack.back();
 }
 
-Node parseFile(const std::wstring& filename)
+std::shared_ptr<Node> parseFile(const std::wstring& filename)
 {
 	std::wifstream stream(encodeLocal(filename));
-	Node n = lexer(stream);
-	n.filename = filename;
-	deanonymize(n);
-	tag_binding_sites(n);
-	undebruijn(n);
-	bind(n);
+	std::shared_ptr<Node> n = lexer(stream);
+	n->filename = filename;
+	parse(n);
 	return n;
 }
 
-Node parseString(const std::wstring& contents)
+std::shared_ptr<Node> parseString(const std::wstring& contents)
 {
 	std::wstringstream stream(contents);
-	Node n = lexer(stream);
-	n.filename = L"<string>";
-	deanonymize(n);
-	tag_binding_sites(n);
-	undebruijn(n);
-	bind(n);
+	std::shared_ptr<Node> n = lexer(stream);
+	n->filename = L"<string>";
+	parse(n);
 	return n;
 }
 
-Node paserStream(std::wistream& stream)
+std::shared_ptr<Node> paserStream(std::wistream& stream)
 {
-	Node n = lexer(stream);
-	n.filename = L"<stream>";
-	deanonymize(n);
-	tag_binding_sites(n);
-	undebruijn(n);
-	bind(n);
+	std::shared_ptr<Node> n = lexer(stream);
+	n->filename = L"<stream>";
+	parse(n);
 	return n;
 }
 
-void visit(Node& node, std::function<void(Node&)> visitor)
+void visit(std::shared_ptr<Node> node, std::function<void(Node&)> visitor)
 {
-	visitor(node);
-	for(const std::shared_ptr<Node>& child: node.children)
-		visit(*child, visitor);
+	visitor(*node);
+	for(const std::shared_ptr<Node>& child: node->children)
+		visit(child, visitor);
 }
 
 void visit(Stack& stack, std::function<void(const Stack&)> visitor)
@@ -244,14 +236,31 @@ void visit(Stack& stack, std::function<void(const Stack&)> visitor)
 	}
 }
 
-void visit(Node& node, std::function<void(const Stack&)> visitor)
+void visit(std::shared_ptr<Node>node, std::function<void(const Stack&)> visitor)
 {
 	Stack stack;
-	stack.push_back(std::make_shared<Node>(node));
+	stack.push_back(node);
 	visit(stack, visitor);
 }
 
-void deanonymize(Node& module)
+void tag(std::shared_ptr<Node> module)
+{
+	visit(module, [](Node& node) {
+		if((node.kind == Statement || node.kind == SubStatement)
+			&& node.children.size() >= 1
+			&& node.children[0]->kind == Identifier
+			&& node.children[0]->identifier.size() == 1
+			&& node.children[0]->identifier[0] == closure) {
+			node.is_closure = true;
+			node.children[0]->is_closure = true;
+			for(uint i = 1; i < node.children.size(); ++i) {
+				node.children[i]->is_binding_site = true;
+			}
+		}
+	});
+}
+
+void deanonymize(std::shared_ptr<Node> module)
 {
 	// Give all substatements a unique identifier.
 	uint counter = 1;
@@ -267,22 +276,7 @@ void deanonymize(Node& module)
 	});
 }
 
-void tag_binding_sites(Node& module)
-{
-	visit(module, [](Node& node) {
-		if((node.kind == Statement || node.kind == SubStatement)
-			&& node.children.size() >= 1
-			&& node.children[0]->kind == Identifier
-			&& node.children[0]->identifier.size() == 1
-			&& node.children[0]->identifier[0] == closure) {
-			for(uint i = 1; i < node.children.size(); ++i) {
-				node.children[i]->is_binding_site = true;
-			}
-		}
-	});
-}
-
-void undebruijn(Node& module)
+void undebruijn(std::shared_ptr<Node> module)
 {
 	constexpr uint none = std::numeric_limits<uint>().max();
 	visit(module, [](const Stack& stack) {
@@ -328,24 +322,91 @@ std::shared_ptr<Node> find_symbol(const std::wstring& identifier, std::shared_pt
 	return std::shared_ptr<Node>();
 }
 
-void bind(Node& module)
+void bind(std::shared_ptr<Node> module)
 {
 	// Bind identifiers
 	visit(module, [](const Stack& stack) {
-		
 		const std::shared_ptr<Node>& node = stack.back();
-		
-		if(node->kind != Identifier)
-			return;
-		if(node->is_binding_site)
-			return;
-		if(node->binding_site.lock())
+		if(node->kind != Identifier || node->is_binding_site || node->is_closure
+			|| node->binding_site.lock())
 			return;
 		
-		std::wcerr << "BIND " << node->identifier << "\n";
+		// Id node
+		const std::shared_ptr<Node> id_node = node;
+		const std::wstring id = id_node->identifier;
+		
+		// Binding node
+		std::shared_ptr<Node> binding_node;
+		
+		// Go up the stack
+		assert(stack.size() >= 2);
+		uint stack_index = stack.size() - 2;
+		
+		while(stack_index < stack.size()) {
+			
+			// Find out position in the stack
+			const std::shared_ptr<Node> child = stack[stack_index + 1];
+			const std::shared_ptr<Node> parent = stack[stack_index];
+			uint child_index = std::distance(parent->children.begin(), std::find(
+				parent->children.begin(), parent->children.end(), child));
+			assert(child_index < parent->children.size());
+			
+			// Scan backward
+			for(uint i = child_index - 1; i < parent->children.size(); --i) {
+				binding_node = find_symbol(id, parent->children[i]);
+				if(binding_node)
+					break;
+			}
+			if(binding_node)
+				break;
+			
+			// Scan forward
+			for(uint i = child_index + 1; i < parent->children.size(); ++i) {
+				binding_node = find_symbol(id, parent->children[i]);
+				if(binding_node)
+					break;
+			}
+			if(binding_node)
+				break;
+				
+			// Go up and try again
+			--stack_index;
+		}
+		
+		// Upsert a global symbol
+		if(!binding_node) {
+			std::shared_ptr<Node> module = stack[0];
+			assert(module->kind == Module);
+			
+			for(std::shared_ptr<Node> global: module->globals) {
+				if(global->identifier == id) {
+					binding_node = global;
+					break;
+				}
+			}
+			if(!binding_node) {
+				binding_node = std::make_shared<Node>(Identifier);
+				binding_node->identifier = id;
+				binding_node->is_binding_site = true;
+				module->globals.push_back(binding_node);
+			}
+		}
+		
+		// Bind  the node
+		assert(binding_node);
+		id_node->binding_site = binding_node;
 		
 	});
 }
+
+void parse(std::shared_ptr<Node> module)
+{
+	tag(module);
+	deanonymize(module);
+	undebruijn(module);
+	bind(module);
+}
+
 
 
 } // namespace Parser

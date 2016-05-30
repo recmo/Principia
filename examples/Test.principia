@@ -1,23 +1,23 @@
 
-λ pred pn pret
+λ pred n ret
 	todo “Call `ret` with `n - 1`”
 
-λ is_zero in itrue ifalse
+λ is_zero n true false
 	todo “Call `ret_true` if `n = 0` or else call `ret_false`”
 
-λ even en etrue efalse
-	is_zero en etrue erec
-	λ erec
-		pred en erecp
-		λ erecp enp
-			odd enp etrue efalse
+λ even n true false
+	is_zero n true rec
+	λ rec
+		pred n recp
+		λ recp np
+			odd np true false
 
-λ odd on otrue ofalse
-	is_zero on ofalse orec
-	λ orec
-		pred on orecp
-		λ orecp onp
-			even onp otrue ofalse
+λ odd n true false
+	is_zero n false rec
+	λ rec
+		pred n recp
+		λ recp np
+			even np true false
 
 λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
 λ C₂       (· (λ ·  _        (·) ))

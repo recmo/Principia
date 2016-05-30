@@ -8,7 +8,7 @@ Command parse(L"parse", [](Command::Arguments arguments) {
 	
 	// First pass, build AST
 	// Second pass, bind all identifiers
-	Parser::Node n = Parser::parseFile(arguments[0]);
+	std::shared_ptr<Parser::Node> n = Parser::parseFile(arguments[0]);
 	
 	uint i = 0;
 	std::function<void(const Parser::Node& n)> r = [&](const Parser::Node& n) -> void {
@@ -34,12 +34,15 @@ Command parse(L"parse", [](Command::Arguments arguments) {
 			std::wcerr << " bound to " << site->identifier;
 		std::wcerr << "\n";
 		
+		
 		++i;
+		for(const std::shared_ptr<Parser::Node>& c: n.globals)
+			r(*c);
 		for(const std::shared_ptr<Parser::Node>& c: n.children)
 			r(*c);
 		--i;
 	};
-	r(n);
+	r(*n);
 	
 	return Command::success;
 },

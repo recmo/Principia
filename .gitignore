@@ -5,3 +5,5 @@ callgrind.out.*
 *.kdev*
 test
 Principia
+build
+

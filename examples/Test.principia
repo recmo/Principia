@@ -1,8 +1,3 @@
-doc_md “# This is a parser test.
-
-It would be nice if we could document using markdown calls.
-
-”
 
 λ pred pn pret
 	todo “Call `ret` with `n - 1`”
@@ -27,14 +22,11 @@ It would be nice if we could document using markdown calls.
 λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
 λ C₂       (· (λ ·  _        (·) ))
 
-commented out “
-
-
 λ True  (· (λ · (·)  _ ))
 λ False (· (λ ·  _  (·)))
-
-”
 
 True  (λ · true )
 False (λ · false)
 
+
+(f (g x (λ · :)) (λ · :))

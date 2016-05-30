@@ -407,6 +407,96 @@ void parse(std::shared_ptr<Node> module)
 	bind(module);
 }
 
+void print(std::shared_ptr<Node> module)
+{
+	uint i = 0;
+	std::function<void(const Parser::Node& n)> r = [&](const Parser::Node& n) -> void {
+		
+		for(uint j = 0; j < i; ++j)
+			std::wcerr << "\t";
+		if(n.kind == Parser::Module)
+			std::wcerr << "Module";
+		if(n.kind == Parser::Scope)
+			std::wcerr << "Scope";
+		if(n.kind == Parser::Statement)
+			std::wcerr << "Statement";
+		if(n.kind == Parser::SubStatement)
+			std::wcerr << "SubStatement";
+		if(n.kind == Parser::Identifier)
+			std::wcerr << "Identifier";
+		if(n.kind == Parser::Quote)
+			std::wcerr << "Quote";
+		std::wcerr << " " << n.quote << n.identifier << n.filename;
+		if(n.is_binding_site)
+			std::wcerr << " binding";
+		if(std::shared_ptr<Parser::Node> site = n.binding_site.lock())
+			std::wcerr << " bound to " << site->identifier;
+		std::wcerr << "\n";
+		
+		
+		++i;
+		for(const std::shared_ptr<Parser::Node>& c: n.globals)
+			r(*c);
+		for(const std::shared_ptr<Parser::Node>& c: n.children)
+			r(*c);
+		--i;
+	};
+	r(*module);
+}
+
+Program compile(std::shared_ptr<Node> module)
+{
+	Program p;
+	for(auto i: module->globals) {
+		p.symbols_import.push_back(i->identifier);
+		i->bind_index = std::make_pair(0, p.symbols_import.size() - 1);
+	}
+	for(auto i: module->children) {
+		Node& node = *i;
+		if((node.kind == Statement || node.kind == SubStatement)
+			&& node.is_closure
+			&& node.children.size() > 2
+			&& node.children[1]->kind == Identifier) {
+			if(std::find(p.symbols_export.begin(), p.symbols_export.end(),
+				node.children[1]->identifier) != p.symbols_export.end())
+				continue;
+			p.symbols_export.push_back(node.children[1]->identifier);
+			p.closures.push_back(node.children.size() - 2);
+			node.closure_index = p.closures.size() + 1;
+			for(uint i = 1; i < node.children.size(); ++i)
+				node.children[i]->bind_index = std::make_pair(node.closure_index + 1, i - 1);
+		}
+	}
+	visit(module, [&](Node& node) {
+		if(node.kind == Statement || node.kind == SubStatement) {
+			if(node.is_closure && node.closure_index == 0) {
+				p.closures.push_back(node.children.size() - 2);
+				node.closure_index = p.closures.size() + 1;
+				for(uint i = 1; i < node.children.size(); ++i)
+					node.children[i]->bind_index = std::make_pair(node.closure_index + 1, i - 1);
+			}
+		}
+	});
+	visit(module, [&](Node& node) {
+		if(node.kind == Statement || node.kind == SubStatement) {
+			if(!node.is_closure) {
+				std::vector<std::pair<uint,uint>> call;
+				for(std::shared_ptr<Node> c: node.children) {
+					if(c->kind == Quote) {
+						p.constants.push_back(c->quote);
+						call.push_back(std::make_pair(1, p.constants.size() - 1));
+						continue;
+					}
+					std::shared_ptr<Node> bind = c->binding_site.lock();
+					assert(bind);
+					call.push_back(bind->bind_index);
+				}
+				p.calls.push_back(call);
+			}
+		}
+	});
+	return p;
+}
 
 
 } // namespace Parser

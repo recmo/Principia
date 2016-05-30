@@ -41,6 +41,8 @@ struct Node {
 	std::weak_ptr<Node> binding_site;
 	bool is_binding_site = false;
 	bool is_closure = false;
+	uint closure_index = 0;
+	std::pair<uint, uint> bind_index;
 };
 
 // Lexer
@@ -52,10 +54,16 @@ std::shared_ptr<Node> parseFile(const std::wstring& filename);
 std::shared_ptr<Node> parseString(const std::wstring& contents);
 std::shared_ptr<Node> paserStream(std::wistream& stream);
 
+void print(std::shared_ptr<Node> module);
+
 struct Program {
-	std::vector<std::wstring> globals;
+	std::vector<std::wstring> symbols_import;
+	std::vector<std::wstring> symbols_export;
+	std::vector<std::wstring> constants;
 	std::vector<uint> closures;
 	std::vector<std::vector<std::pair<uint, uint>>> calls;
 };
+
+Program compile(std::shared_ptr<Node> module);
 
 };

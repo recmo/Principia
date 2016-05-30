@@ -10,39 +10,24 @@ Command parse(L"parse", [](Command::Arguments arguments) {
 	// Second pass, bind all identifiers
 	std::shared_ptr<Parser::Node> n = Parser::parseFile(arguments[0]);
 	
-	uint i = 0;
-	std::function<void(const Parser::Node& n)> r = [&](const Parser::Node& n) -> void {
-		
-		for(uint j = 0; j < i; ++j)
-			std::wcerr << "\t";
-		if(n.kind == Parser::Module)
-			std::wcerr << "Module";
-		if(n.kind == Parser::Scope)
-			std::wcerr << "Scope";
-		if(n.kind == Parser::Statement)
-			std::wcerr << "Statement";
-		if(n.kind == Parser::SubStatement)
-			std::wcerr << "SubStatement";
-		if(n.kind == Parser::Identifier)
-			std::wcerr << "Identifier";
-		if(n.kind == Parser::Quote)
-			std::wcerr << "Quote";
-		std::wcerr << " " << n.quote << n.identifier << n.filename;
-		if(n.is_binding_site)
-			std::wcerr << " binding";
-		if(std::shared_ptr<Parser::Node> site = n.binding_site.lock())
-			std::wcerr << " bound to " << site->identifier;
+	Parser::Program p = Parser::compile(n);
+	
+	for(const auto s: p.symbols_import)
+		std::wcerr << s << " ";
+	std::wcerr << "\n";
+	for(const auto s: p.symbols_export)
+		std::wcerr << s << " ";
+	std::wcerr << "\n";
+	std::wcerr << p.constants.size() << "\n";
+	for(const auto s: p.constants)
+		std::wcerr << s.size() << " " << s << "\n";
+	for(const auto s: p.closures)
+		std::wcerr << s << " ";
+	for(const auto s: p.calls) {
+		for(const auto q: s)
+			std::wcerr << q.first << " " << q.second << " ";
 		std::wcerr << "\n";
-		
-		
-		++i;
-		for(const std::shared_ptr<Parser::Node>& c: n.globals)
-			r(*c);
-		for(const std::shared_ptr<Parser::Node>& c: n.children)
-			r(*c);
-		--i;
-	};
-	r(*n);
+	}
 	
 	return Command::success;
 },

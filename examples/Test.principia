@@ -1,30 +1,8 @@
-λ even n ret_true ret_false
-	is_zero n ret_true recurse
-	λ recurse nil
-		pred n recurse' nil
-		λ recurse' n'
-			odd n' ret_true ret_false
-
-λ odd n ret_true ret_false
-	is_zero n ret_false recurse
-	λ recurse nil
-		pred n recurse' nil
-		λ recurse' n'
-			even n' ret_true ret_false
-
-λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
-λ C₂       (· (λ ·  _        (·) ))
-
-λ True  (· (λ · (·)  _ ))
-λ False (· (λ ·  _  (·)))
-
-λ test x ret
-	f (g x (λ · :)) ret
-
 
 λ test2 a1 ret
 	λ x1 ret2
 		ret2 a1
 	λ x2 ret2
 		ret2 x1
-	ret x2
+	ret x2 x2 x2 x2 x2
+

@@ -64,6 +64,9 @@ struct Program {
 	std::vector<std::vector<std::pair<uint, uint>>> calls;
 };
 
+// Compile to dense format sans identifiers
 Program compile(std::shared_ptr<Node> module);
+void write(std::wostream& out, const Program& program);
+Program read(std::wistream& in);
 
 };

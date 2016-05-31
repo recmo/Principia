@@ -1,23 +1,16 @@
+λ even n ret_true ret_false
+	is_zero n ret_true recurse
+	λ recurse nil
+		pred n recurse' nil
+		λ recurse' n'
+			odd n' ret_true ret_false
 
-λ pred n ret
-	todo “Call `ret` with `n - 1`”
-
-λ is_zero n true false
-	todo “Call `ret_true` if `n = 0` or else call `ret_false`”
-
-λ even n true false
-	is_zero n true rec
-	λ rec
-		pred n recp
-		λ recp np
-			odd np true false
-
-λ odd n true false
-	is_zero n false rec
-	λ rec
-		pred n recp
-		λ recp np
-			even np true false
+λ odd n ret_true ret_false
+	is_zero n ret_false recurse
+	λ recurse nil
+		pred n recurse' nil
+		λ recurse' n'
+			even n' ret_true ret_false
 
 λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
 λ C₂       (· (λ ·  _        (·) ))
@@ -25,8 +18,13 @@
 λ True  (· (λ · (·)  _ ))
 λ False (· (λ ·  _  (·)))
 
-True  (λ · true )
-False (λ · false)
+λ test x ret
+	f (g x (λ · :)) ret
 
 
-(f (g x (λ · :)) (λ · :))
+λ test2 a1 ret
+	λ x1 ret2
+		ret2 a1
+	λ x2 ret2
+		ret2 x1
+	ret x2

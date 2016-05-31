@@ -433,7 +433,6 @@ void print(std::shared_ptr<Node> module)
 			std::wcerr << " bound to " << site->identifier;
 		std::wcerr << "\n";
 		
-		
 		++i;
 		for(const std::shared_ptr<Parser::Node>& c: n.globals)
 			r(*c);
@@ -464,7 +463,7 @@ Program compile(std::shared_ptr<Node> module)
 			p.closures.push_back(node.children.size() - 2);
 			node.closure_index = p.closures.size() + 1;
 			for(uint i = 1; i < node.children.size(); ++i)
-				node.children[i]->bind_index = std::make_pair(node.closure_index + 1, i - 1);
+				node.children[i]->bind_index = std::make_pair(node.closure_index, i - 1);
 		}
 	}
 	visit(module, [&](Node& node) {
@@ -473,7 +472,7 @@ Program compile(std::shared_ptr<Node> module)
 				p.closures.push_back(node.children.size() - 2);
 				node.closure_index = p.closures.size() + 1;
 				for(uint i = 1; i < node.children.size(); ++i)
-					node.children[i]->bind_index = std::make_pair(node.closure_index + 1, i - 1);
+					node.children[i]->bind_index = std::make_pair(node.closure_index, i - 1);
 			}
 		}
 	});
@@ -498,5 +497,43 @@ Program compile(std::shared_ptr<Node> module)
 	return p;
 }
 
+void write(std::wostream& out, const Program& p)
+{
+	for(uint i = 0; i < p.symbols_import.size(); ++i) {
+		out << p.symbols_import[i];
+		if(i != p.symbols_import.size() - 1)
+			out << " ";
+	}
+	out << "\n";
+	for(uint i = 0; i < p.symbols_export.size(); ++i) {
+		out << p.symbols_export[i];
+		if(i != p.symbols_export.size() - 1)
+			out << " ";
+	}
+	out << "\n";
+	out << p.constants.size() << "\n";
+	for(const auto s: p.constants)
+		out << s.size() << " " << s << "\n";
+	for(uint i = 0; i < p.closures.size(); ++i) {
+		out << p.closures[i];
+		if(i != p.closures.size() - 1)
+			out << " ";
+	}
+	out << "\n";
+	for(const auto s: p.calls) {
+		for(uint i = 0; i < s.size(); ++i) {
+			out << s[i].first << " " << s[i].second;
+			if(i != s.size() - 1)
+				out << " ";
+		}
+		out << "\n";
+	}
+}
+
+Program read(std::wistream& in)
+{
+	// TODO
+	return Program();
+}
 
 } // namespace Parser

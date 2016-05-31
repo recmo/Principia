@@ -424,16 +424,5 @@ TASK: Take a closure and replace instances of `add` with `mul`.
 
 ## POPLmark
 
-<https://www.seas.upenn.edu/~plclub/poplmark/poplmark.pdf>
-
-* 
-* https://www.cs.utexas.edu/~wcook/Drafts/2012/graphs.pdf
-
-
-
-
-
-
-
-
-
+* <https://www.seas.upenn.edu/~plclub/poplmark/poplmark.pdf>
+* <https://www.cs.utexas.edu/~wcook/Drafts/2012/graphs.pdf>

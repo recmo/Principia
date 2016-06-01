@@ -6,6 +6,8 @@
 
 namespace Parser {
 
+typedef std::pair<uint, uint> Symbol;
+
 // Syntax
 static constexpr wchar_t identifier_separator = L' ';
 static constexpr wchar_t indentation          = L'\t';
@@ -42,7 +44,7 @@ struct Node {
 	bool is_binding_site = false;
 	bool is_closure = false;
 	uint closure_index = 0;
-	std::pair<uint, uint> bind_index;
+	Symbol bind_index;
 };
 
 // Lexer
@@ -61,7 +63,7 @@ struct Program {
 	std::vector<std::wstring> symbols_export;
 	std::vector<std::wstring> constants;
 	std::vector<uint> closures;
-	std::vector<std::vector<std::pair<uint, uint>>> calls;
+	std::vector<std::vector<Symbol>> calls;
 };
 
 // Compile to dense format sans identifiers

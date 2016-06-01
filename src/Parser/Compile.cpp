@@ -1,6 +1,5 @@
 #include "Compile.h"
 #include <Parser/Parser.h>
-
 namespace Compile {
 
 template<class T>
@@ -82,15 +81,15 @@ std::vector<uint> calculate_closure_calls(const Parser::Program& p)
 	return closure_calls;
 }
 
-std::vector<std::vector<std::pair<uint,uint>>> calculate_closures(
+std::vector<std::vector<Symbol>> calculate_closures(
 	const Parser::Program& p)
 {
 	const auto hierarchy = calculate_dependencies(p);
 	const auto closure_calls = calculate_closure_calls(p);
 	
-	std::vector<std::set<std::pair<uint,uint>>> closures(p.closures.size());
+	std::vector<std::set<Symbol>> closures(p.closures.size());
 	for(uint closure = 0; closure < p.closures.size(); ++closure) {
-		std::vector<std::pair<uint,uint>> call = p.calls[closure_calls[closure]];
+		std::vector<Symbol> call = p.calls[closure_calls[closure]];
 		for(auto bind: call) {
 			if(bind.first == 0 || bind.first == 1)
 				continue;
@@ -108,7 +107,7 @@ std::vector<std::vector<std::pair<uint,uint>>> calculate_closures(
 	while(!done) {
 		done = true;
 		for(uint closure = 0; closure < p.closures.size(); ++closure) {
-			std::vector<std::pair<uint,uint>> call = p.calls[closure_calls[closure]];
+			std::vector<Symbol> call = p.calls[closure_calls[closure]];
 			for(auto bind: call) {
 				if(bind.first == 0 || bind.first == 1)
 					continue;
@@ -127,7 +126,7 @@ std::vector<std::vector<std::pair<uint,uint>>> calculate_closures(
 	}
 	// std::wcerr << closures << "\n";
 	
-	std::vector<std::vector<std::pair<uint,uint>>> sorted;
+	std::vector<std::vector<Symbol>> sorted;
 	for(auto set: closures)
 		sorted.push_back(set_to_vector(set));
 	// std::wcerr << sorted << "\n";
@@ -150,68 +149,53 @@ std::vector<std::vector<uint>> calculate_allocs(const Parser::Program& p)
 			if(arg.second != 0)
 				continue;
 			//std::wcerr << arg << " <- " << closures[arg.first - 2] << "\n";
-			alloc.insert(arg.first - 2);
+			alloc.insert(arg.first);
 		}
 		allocs.push_back(set_to_vector(alloc));
 	}
 	return allocs;
 }
 
-void compile(const Parser::Program& p)
+Program compile(const Parser::Program& p)
 {
 	const auto closure_calls = calculate_closure_calls(p);
 	const auto closures = calculate_closures(p);
 	const auto allocs = calculate_allocs(p);
-	
-	// constants: [constants..]
-	// closure:   [c1 c2 c3...]
-	// arguments: [a1 a2 a3...]
-	//
-	// λ
-	// x1 = [λ1 const1 c2 a2]
-	// x2 = [λ2 c1 c3 x1]
-	// x3 = [λ3]
-	// a3 const1 c1 x1 x2 x3 a4
-	
+	Program program;
 	for(uint closure = 0; closure < p.closures.size(); ++closure) {
-		
-		std::wcerr << "\n(" << (closure + 2) << L", 0) λ ";
+		Function function;
+		function.id = closure + 2;
+		function.arity = p.closures[closure];
 		if(closure < p.symbols_export.size())
-			std::wcerr << p.symbols_export[closure];
-		std::wcerr << "\n";
-		const auto call = p.calls[closure_calls[closure]];
-		
-		// Builtins
-		std::wcerr << L"Builtins: ";
-		for(auto arg: call)
-			if(arg.first == 0)
-				std::wcerr << arg << " = " << p.symbols_import[arg.second] << " ";
-		std::wcerr << L"\n";
-		
-		// Constants
-		std::wcerr << L"Constants: ";
-		for(auto arg: call)
-			if(arg.first == 1)
-				std::wcerr << arg << " ";
-		std::wcerr << L"\n";
-		
-		// Closure
-		std::wcerr << L"Closure: " << closures[closure] << L"\n";
-		
-		// Arguments
-		std::wcerr << L"Arguments: (" << (closure + 2) << ", 0)";
+			function.name = p.symbols_export[closure];
+		function.closure = closures[closure];
+		function.allocations = allocs[closure];
+		function.call = p.calls[closure_calls[closure]];
 		for(uint i = 0; i < p.closures[closure]; ++i)
-			std::wcerr << L" (" << (closure + 2) << ", " << (i + 1) << L")";
-		std::wcerr << L"\n";
-		
-		// Allocs
-		for(auto alloc: allocs[closure])
-			std::wcerr << "(" << (alloc + 2) << ", 0) <- " << closures[alloc] << "\n";
-		
-		// Call
-		std::wcerr << call << L"\n";
+			function.arguments.push_back(std::make_pair(closure + 2, i + 1));
+		for(auto arg: function.call) {
+			if(arg.first == 0)
+				function.imports[arg] = p.symbols_import[arg.second];
+			else if(arg.first == 1)
+				function.constants[arg] = p.constants[arg.second];
+		}
+		program.push_back(function);
 	}
+	return program;
 }
 
+void write(std::wostream& out, const Compile::Program& p)
+{
+	for(const Function& f: p) {
+		out << L"λ           " << "(" << f.id << L", 0) " << f.name << "\n";
+		out << L"Imports     " << f.imports << "\n";
+		out << L"Constants   " << f.constants << "\n";
+		out << L"Closure     " << f.closure << "\n";
+		out << L"Arguments   " << f.arguments << "\n";
+		out << L"Allocations " << f.allocations << "\n";
+		out << L"Call        " << f.call << "\n";
+		out << L"\n";
+	}
+}
 
 } // namespace Compile

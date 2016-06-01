@@ -1,8 +1,13 @@
+λ print-newline ret
+	print “
+” ret
 
-λ test2 a1 ret
-	λ x1 ret2
-		ret2 a1
-	λ x2 ret2
-		ret2 x1
-	ret x2 x2 x2 x2 x2
+λ print-line arg ret
+	print arg (λ · nil)
+	print-newline ret nil
 
+λ print-hello ret
+	print-line “Hello, World!” ret
+
+λ main exit
+	print-hello exit

@@ -53,7 +53,7 @@ void run(const Program& p, const Function& f, const Values& c, const Values& a)
 	}
 	for(uint i = 0; i < c.size(); ++i)
 		map[f.closure[i]] = c[i];
-	for(uint i = 0; i < a.size(); ++i)
+	for(uint i = 0; i < std::min(f.arguments.size(), a.size()); ++i) // TODO, without min
 		map[f.arguments[i]] = a[i];
 	for(uint alloc: f.allocations) {
 		assert(alloc - 2 < p.size());
@@ -67,7 +67,7 @@ void run(const Program& p, const Function& f, const Values& c, const Values& a)
 			ac.values.push_back(map[s]);
 		map[std::make_pair(alloc, 0)] = ac;
 	}
-	// std::wcerr << map << "\n";
+	//std::wcerr << map << "\n";
 	Values ca;
 	for(uint i = 1; i < f.call.size(); ++i)
 		ca.push_back(map[f.call[i]]);
@@ -98,6 +98,7 @@ void run_builtin(const Program& p, const std::wstring& function,
 		std::wcout << arguments[0].string;
 		return run(p, arguments[1], Values());
 	}
+	std::wcerr << L"Unknown function " << arguments[0].string << "\n";
 }
 
 };

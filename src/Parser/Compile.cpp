@@ -32,6 +32,7 @@ std::vector<std::set<uint>> calculate_dependencies(const Parser::Program& p)
 std::vector<uint> calculate_closure_calls(const Parser::Program& p)
 {
 	auto hierarchy = calculate_dependencies(p);
+	std::wcerr << hierarchy << "\n";
 	
 	// Itteratively remove items until only singleton sets remain.
 	bool done = false;
@@ -56,7 +57,7 @@ std::vector<uint> calculate_closure_calls(const Parser::Program& p)
 	
 	if(done)
 		failed = false;
-	// std::wcerr << hierarchy << "\n";
+	std::wcerr << hierarchy << "\n";
 	assert(!failed);
 	
 	// The singletons should create a one-to-one correspondence between

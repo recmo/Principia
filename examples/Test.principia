@@ -1,13 +1,14 @@
 λ print-newline ret
-	print “
+print “
 ” ret
 
 λ print-line arg ret
 	print arg (λ · nil)
 	print-newline ret nil
 
-λ print-hello ret
-	print-line “Hello, World!” ret
+λ print-hello ret2 nil1
+	print-line “Hello, World!” (λ · nil2) nil1
+	print-line “Hello, World!” ret2 nil2
 
 λ main exit
 	print-hello exit

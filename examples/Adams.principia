@@ -97,37 +97,17 @@ section “Decimal output”
 
 λ print-decimal n ret fail
 	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
-	if_equal n n0 print-0 (λ ·)
-	if_equal n n1 print-1 (λ ·)
-	if_equal n n2 print-2 (λ ·)
-	if_equal n n3 print-3 (λ ·)
-	if_equal n n4 print-4 (λ ·)
-	if_equal n n5 print-5 (λ ·)
-	if_equal n n6 print-6 (λ ·)
-	if_equal n n7 print-7 (λ ·)
-	if_equal n n8 print-8 (λ ·)
-	if_equal n n9 print-9 (λ ·)
+	if_equal n n0 (λ · (print “0” ret)) (λ ·)
+	if_equal n n1 (λ · (print “1” ret)) (λ ·)
+	if_equal n n2 (λ · (print “2” ret)) (λ ·)
+	if_equal n n3 (λ · (print “3” ret)) (λ ·)
+	if_equal n n4 (λ · (print “4” ret)) (λ ·)
+	if_equal n n5 (λ · (print “5” ret)) (λ ·)
+	if_equal n n6 (λ · (print “6” ret)) (λ ·)
+	if_equal n n7 (λ · (print “7” ret)) (λ ·)
+	if_equal n n8 (λ · (print “8” ret)) (λ ·)
+	if_equal n n9 (λ · (print “9” ret)) (λ ·)
 	fail
-	λ print-0
-		print “0” ret
-	λ print-1
-		print “1” ret
-	λ print-2
-		print “2” ret
-	λ print-3
-		print “3” ret
-	λ print-4
-		print “4” ret
-	λ print-5
-		print “5” ret
-	λ print-6
-		print “6” ret
-	λ print-7
-		print “7” ret
-	λ print-8
-		print “8” ret
-	λ print-9
-		print “9” ret
 
 λ print-number n ret fail
 	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)

@@ -43,6 +43,7 @@ struct Node {
 	std::weak_ptr<Node> binding_site;
 	bool is_binding_site = false;
 	bool is_closure = false;
+	bool is_substatement_bound = false;
 	uint closure_index = 0;
 	uint call_index = 0;
 	Symbol bind_index;

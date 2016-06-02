@@ -299,9 +299,11 @@ void undebruijn(std::shared_ptr<Node> module)
 				if(node->is_binding_site) {
 					assert(!stack[index]->is_binding_site);
 					stack[index]->binding_site = node;
+					stack[index]->is_substatement_bound = true;
 				} else {
 					assert(stack[index]->is_binding_site);
 					node->binding_site = stack[index];
+					stack[index]->is_substatement_bound = true;
 				}
 			}
 		}
@@ -445,6 +447,21 @@ void print(std::shared_ptr<Node> module)
 	r(*module);
 }
 
+// TODO: (λ · (print “0” ret)) produces a lambda of arity one, but
+//       we can equally argue it should be a lambda of arity two that
+//       ignores its argument. (Although this can also be done as
+//       (λ · _ (print “0” ret))
+
+uint count_arguments(const Node& node)
+{
+	uint count = node.children.size();
+	for(const auto& child: node.children)
+		if(child->kind == SubStatement && !child->is_substatement_bound)
+			--count;
+	count -= node.is_closure ? 2 : 1;
+	return count;
+}
+
 Program compile(std::shared_ptr<Node> module)
 {
 	Program p;
@@ -468,7 +485,7 @@ Program compile(std::shared_ptr<Node> module)
 				node.children[1]->identifier) != p.symbols_export.end())
 				continue;
 			p.symbols_export.push_back(node.children[1]->identifier);
-			p.closures.push_back(node.children.size() - 2);
+			p.closures.push_back(count_arguments(node));
 			node.closure_index = p.closures.size() + 1;
 			for(uint i = 1; i < node.children.size(); ++i)
 				node.children[i]->bind_index = std::make_pair(node.closure_index, i - 1);
@@ -479,7 +496,7 @@ Program compile(std::shared_ptr<Node> module)
 	visit(module, [&](Node& node) {
 		if(node.kind == Statement || node.kind == SubStatement) {
 			if(node.is_closure && node.closure_index == 0) {
-				p.closures.push_back(node.children.size() - 2);
+				p.closures.push_back(count_arguments(node));
 				node.closure_index = p.closures.size() + 1;
 				for(uint i = 1; i < node.children.size(); ++i)
 					node.children[i]->bind_index = std::make_pair(node.closure_index, i - 1);
@@ -493,6 +510,8 @@ Program compile(std::shared_ptr<Node> module)
 			if(!node.is_closure) {
 				std::vector<std::pair<uint,uint>> call;
 				for(std::shared_ptr<Node> c: node.children) {
+					if(c->kind == SubStatement && !c->is_substatement_bound)
+						continue;
 					if(c->kind == Quote) {
 						p.constants.push_back(c->quote);
 						call.push_back(std::make_pair(1, p.constants.size() - 1));

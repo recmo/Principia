@@ -44,6 +44,7 @@ struct Node {
 	bool is_binding_site = false;
 	bool is_closure = false;
 	uint closure_index = 0;
+	uint call_index = 0;
 	Symbol bind_index;
 };
 
@@ -59,11 +60,13 @@ std::shared_ptr<Node> paserStream(std::wistream& stream);
 void print(std::shared_ptr<Node> module);
 
 struct Program {
+	std::map<Symbol, std::wstring> symbols;
 	std::vector<std::wstring> symbols_import;
 	std::vector<std::wstring> symbols_export;
 	std::vector<std::wstring> constants;
 	std::vector<uint> closures;
 	std::vector<std::vector<Symbol>> calls;
+	std::vector<uint> closure_call;
 };
 
 // Compile to dense format sans identifiers

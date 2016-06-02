@@ -22,8 +22,8 @@ print “
 ” ret
 
 λ print-line arg ret
-	print arg (λ · nil)
-	print-newline ret nil
+	print arg (λ ·)
+	print-newline ret
 
 section “Scott numerals”
 
@@ -31,49 +31,49 @@ section “Scott numerals”
 λ S n (· (λ ·  _ (· n) ))
 
 λ if_zero n then else
-	n then else
+	n then (λ · n')
+	else
 
 λ if_equal m n then else
 	m m_zero m_nonzero
-	λ m_zero nil
-		if_zero n then else nil
-	λ m_nonzero m' nil
-		n else recurse nil
+	λ m_zero
+		if_zero n then else
+	λ m_nonzero m'
+		n else recurse
 		λ recurse n'
 			if_equal m' n' then else
 
 λ add m n ret
 	m m_zero m_nonzero
-	λ m_zero nil
-		ret n nil
-	λ m_nonzero m' nil
-		S n recurse nil
+	λ m_zero
+		ret n
+	λ m_nonzero m'
+		S n recurse
 		λ recurse n'
 			add m' n' ret
 
 λ sub m n ret fail
 	n n_zero n_nonzero
-	λ n_zero nil
-		ret m nil
-	λ n_nonzero n' nil
-		m fail recurse nil
+	λ n_zero
+		ret m
+	λ n_nonzero n'
+		m fail recurse
 		λ recurse m'
 			sub m' n' ret fail
 
 λ mul m n ret
 	m m_zero m_nonzero
-	λ m_zero nil
-		Z ret nil
+	λ m_zero
+		Z ret
 	λ m_nonzero m'
 		mul m' n (λ · r)
 		add r n ret
 
 λ div m n ret
-	todo “Fix infinite recursion when n is zero”
 	sub m n recurse done
-	λ done nil
-		Z (λ · n0) nil
-			ret n0 m
+	λ done
+		Z (λ · n0)
+		ret n0 m
 	λ recurse m'
 		div m' n (λ · q r)
 		S q (λ · q')
@@ -82,7 +82,7 @@ section “Scott numerals”
 section “Decimal output”
 
 λ decimals ret
-	Z    (λ · n0) ret
+	Z    (λ · n0)
 	S n0 (λ · n1)
 	S n1 (λ · n2)
 	S n2 (λ · n3)
@@ -96,34 +96,56 @@ section “Decimal output”
 	ret n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10
 
 λ print-decimal n ret fail
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10) n
-	if_equal n n0 (λ · (print “0” ret ·)) (λ · nil0)
-	if_equal n n1 (λ · (print “1” ret ·)) (λ · nil1) nil0
-	if_equal n n2 (λ · (print “2” ret ·)) (λ · nil2) nil1
-	if_equal n n3 (λ · (print “3” ret ·)) (λ · nil3) nil2
-	if_equal n n4 (λ · (print “4” ret ·)) (λ · nil4) nil3
-	if_equal n n5 (λ · (print “5” ret ·)) (λ · nil5) nil4
-	if_equal n n6 (λ · (print “6” ret ·)) (λ · nil6) nil5
-	if_equal n n7 (λ · (print “7” ret ·)) (λ · nil7) nil6
-	if_equal n n8 (λ · (print “8” ret ·)) (λ · nil8) nil7
-	if_equal n n9 (λ · (print “9” ret ·)) (λ · nil9) nil8
-	fail nil9
+	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
+	if_equal n n0 print-0 (λ ·)
+	if_equal n n1 print-1 (λ ·)
+	if_equal n n2 print-2 (λ ·)
+	if_equal n n3 print-3 (λ ·)
+	if_equal n n4 print-4 (λ ·)
+	if_equal n n5 print-5 (λ ·)
+	if_equal n n6 print-6 (λ ·)
+	if_equal n n7 print-7 (λ ·)
+	if_equal n n8 print-8 (λ ·)
+	if_equal n n9 print-9 (λ ·)
+	fail
+	λ print-0
+		print “0” ret
+	λ print-1
+		print “1” ret
+	λ print-2
+		print “2” ret
+	λ print-3
+		print “3” ret
+	λ print-4
+		print “4” ret
+	λ print-5
+		print “5” ret
+	λ print-6
+		print “6” ret
+	λ print-7
+		print “7” ret
+	λ print-8
+		print “8” ret
+	λ print-9
+		print “9” ret
 
-λ print-number n ret
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10) ret
+λ print-number n ret fail
+	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
 	div n n10 (λ · q r)
 	if_zero q done recurse
-	λ recurse nil
-		print-number q done nil
-	λ done nil
-		print-decimal r ret nil
-
+	λ recurse
+		print-number q done fail
+	λ done
+		print-decimal r ret fail
 
 section “Main”
 
 λ main exit
-	print “The answer to the universe, life and everything is: ” (λ · nil) exit
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10) nil
+	print “The answer to the universe, life and everything is: ” (λ ·)
+	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
 	mul n7 n6 (λ · r)
-	print-number r (λ · nil)
-	print-newline exit nil
+	print-number r (λ ·) fail
+	print-newline exit
+	λ fail
+		print-newline (λ ·)
+		print-line “Failed!” exit

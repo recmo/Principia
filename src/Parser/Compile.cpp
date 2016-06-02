@@ -29,68 +29,26 @@ std::vector<std::set<uint>> calculate_dependencies(const Parser::Program& p)
 	return hierarchy;
 }
 
-std::vector<uint> calculate_closure_calls(const Parser::Program& p)
+void print(std::wostream& out, const Parser::Program& p,
+	const std::vector<Symbol>& call)
 {
-	auto hierarchy = calculate_dependencies(p);
-	std::wcerr << hierarchy << "\n";
-	
-	// Itteratively remove items until only singleton sets remain.
-	bool done = false;
-	bool failed = false;
-	while(!done && !failed) {
-		done = true;
-		failed = true;
-		for(uint i = 0; i < p.calls.size(); ++i) {
-			if(hierarchy[i].size() == 1) {
-				uint item = *(hierarchy[i].begin());
-				for(uint j = 0; j < p.calls.size(); ++j) {
-					if(i == j)
-						continue;
-					if(hierarchy[j].erase(item))
-						failed = false;
-				}
-			}
-			if(hierarchy[i].size() > 1)
-				done = false;
-		}
-	}
-	
-	if(done)
-		failed = false;
-	std::wcerr << hierarchy << "\n";
-	assert(!failed);
-	
-	// The singletons should create a one-to-one correspondence between
-	// closures and calls. (Every call is a tail call, hence every closure
-	// has exactly one call).
-	
-	const uint none = std::numeric_limits<uint>().max();
-	std::vector<uint> closure_calls(p.closures.size(), none);
-	for(uint call = 0; call < p.calls.size(); ++call) {
-		if(hierarchy[call].size() == 1) {
-			uint closure = *(hierarchy[call].begin());
-			assert(closure_calls[closure - 2] == none);
-			closure_calls[closure - 2] = call;
-		}
-	}
-	//std::wcerr << closure_calls << "\n";
-	
-	// Check if all are matched
-	for(auto i: closure_calls)
-		assert(i != none);
-	
-	return closure_calls;
+	std::vector<std::wstring> vec;
+	for(const auto c: call)
+		if(p.symbols.find(c) != p.symbols.end())
+			vec.push_back(p.symbols.at(c));
+		else
+			vec.push_back(L"-");
+	out << vec << "\n";
 }
 
 std::vector<std::vector<Symbol>> calculate_closures(
 	const Parser::Program& p)
 {
 	const auto hierarchy = calculate_dependencies(p);
-	const auto closure_calls = calculate_closure_calls(p);
 	
 	std::vector<std::set<Symbol>> closures(p.closures.size());
 	for(uint closure = 0; closure < p.closures.size(); ++closure) {
-		std::vector<Symbol> call = p.calls[closure_calls[closure]];
+		std::vector<Symbol> call = p.calls[p.closure_call[closure]];
 		for(auto bind: call) {
 			if(bind.first == 0 || bind.first == 1)
 				continue;
@@ -108,7 +66,7 @@ std::vector<std::vector<Symbol>> calculate_closures(
 	while(!done) {
 		done = true;
 		for(uint closure = 0; closure < p.closures.size(); ++closure) {
-			std::vector<Symbol> call = p.calls[closure_calls[closure]];
+			std::vector<Symbol> call = p.calls[p.closure_call[closure]];
 			for(auto bind: call) {
 				if(bind.first == 0 || bind.first == 1)
 					continue;
@@ -137,12 +95,11 @@ std::vector<std::vector<Symbol>> calculate_closures(
 
 std::vector<std::vector<uint>> calculate_allocs(const Parser::Program& p)
 {
-	const auto closure_calls = calculate_closure_calls(p);
 	const auto closures = calculate_closures(p);
 	
 	std::vector<std::vector<uint>> allocs;
 	for(uint closure = 0; closure < p.closures.size(); ++closure) {
-		const auto call = p.calls[closure_calls[closure]];
+		const auto call = p.calls[p.closure_call[closure]];
 		std::set<uint> alloc;
 		for(auto arg: call) {
 			if(arg.first == 0 || arg.first == 1 || arg.first == closure + 2)
@@ -159,7 +116,6 @@ std::vector<std::vector<uint>> calculate_allocs(const Parser::Program& p)
 
 Program compile(const Parser::Program& p)
 {
-	const auto closure_calls = calculate_closure_calls(p);
 	const auto closures = calculate_closures(p);
 	const auto allocs = calculate_allocs(p);
 	Program program;
@@ -171,7 +127,7 @@ Program compile(const Parser::Program& p)
 			function.name = p.symbols_export[closure];
 		function.closure = closures[closure];
 		function.allocations = allocs[closure];
-		function.call = p.calls[closure_calls[closure]];
+		function.call = p.calls[p.closure_call[closure]];
 		for(uint i = 0; i < p.closures[closure]; ++i)
 			function.arguments.push_back(std::make_pair(closure + 2, i + 1));
 		for(auto arg: function.call) {

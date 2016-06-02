@@ -37,7 +37,8 @@ void run(const Program& p, const Function& f, const Values& c, const Values& a)
 {
 	//std::wcerr << "TRACE " << f.id << " " << f.name << " " << c << " " << a << "\n";
 	assert(c.size() == f.closure.size());
-	// TODO: implement nil padding. assert(a.size() == f.arguments.size());
+	// TODO: implement nil padding. 
+	assert(a.size() == f.arguments.size());
 	std::map<Symbol, Value> map;
 	for(const auto& import: f.imports) {
 		Value v;
@@ -53,7 +54,7 @@ void run(const Program& p, const Function& f, const Values& c, const Values& a)
 	}
 	for(uint i = 0; i < c.size(); ++i)
 		map[f.closure[i]] = c[i];
-	for(uint i = 0; i < std::min(f.arguments.size(), a.size()); ++i) // TODO, without min
+	for(uint i = 0; i < a.size(); ++i) // TODO, without min
 		map[f.arguments[i]] = a[i];
 	for(uint alloc: f.allocations) {
 		assert(alloc - 2 < p.size());

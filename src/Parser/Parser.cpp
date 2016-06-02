@@ -8,6 +8,8 @@
 #include <limits>
 #include <algorithm>
 
+// TODO: Make `Symbol` and uint instead of a pair.
+
 namespace Parser {
 
 typedef std::vector<std::shared_ptr<Node>> Stack;
@@ -446,10 +448,16 @@ void print(std::shared_ptr<Node> module)
 Program compile(std::shared_ptr<Node> module)
 {
 	Program p;
+	
+	// Add unresolved symbols to p.symbols_import
 	for(auto i: module->globals) {
 		p.symbols_import.push_back(i->identifier);
-		i->bind_index = std::make_pair(0, p.symbols_import.size() - 1);
+		const Symbol symbol = std::make_pair(0, p.symbols_import.size() - 1);
+		i->bind_index = symbol;
+		p.symbols[symbol] = i->identifier;
 	}
+	
+	// Add top level symbols to p.symbols_export
 	for(auto i: module->children) {
 		Node& node = *i;
 		if((node.kind == Statement || node.kind == SubStatement)
@@ -466,6 +474,8 @@ Program compile(std::shared_ptr<Node> module)
 				node.children[i]->bind_index = std::make_pair(node.closure_index, i - 1);
 		}
 	}
+	
+	// Add all other closures
 	visit(module, [&](Node& node) {
 		if(node.kind == Statement || node.kind == SubStatement) {
 			if(node.is_closure && node.closure_index == 0) {
@@ -476,6 +486,8 @@ Program compile(std::shared_ptr<Node> module)
 			}
 		}
 	});
+	
+	// Add all the calls
 	visit(module, [&](Node& node) {
 		if(node.kind == Statement || node.kind == SubStatement) {
 			if(!node.is_closure) {
@@ -490,10 +502,42 @@ Program compile(std::shared_ptr<Node> module)
 					assert(bind);
 					call.push_back(bind->bind_index);
 				}
+				node.call_index = p.calls.size();
 				p.calls.push_back(call);
 			}
 		}
 	});
+	
+	// Add all the symbols and their identifiers (this is debug info)
+	visit(module, [&](Node& node) {
+		if(node.kind == Identifier) {
+			p.symbols[node.bind_index] = node.identifier;
+		}
+	});
+	std::wcerr << p.symbols << "\n";
+	
+	// Associate closures with calls
+	// The associated call is the first call after the closure.
+	// Note: This implies that closures and calls alternate
+	constexpr uint none = std::numeric_limits<uint>().max();
+	p.closure_call.resize(p.calls.size(), none);
+	uint current_closure_index = none;
+	visit(module, [&](Node& node) {
+		if(node.kind == Statement || node.kind == SubStatement) {
+			if(node.is_closure) {
+				assert(current_closure_index == none);
+				current_closure_index = node.closure_index - 2;
+			} else {
+				if(current_closure_index != none) {
+					p.closure_call[current_closure_index] = node.call_index;
+					current_closure_index = none;
+				} else {
+					std::wcerr << "Unassociated call\n";
+				}
+			}
+		}
+	});
+	
 	return p;
 }
 
@@ -517,6 +561,12 @@ void write(std::wostream& out, const Program& p)
 	for(uint i = 0; i < p.closures.size(); ++i) {
 		out << p.closures[i];
 		if(i != p.closures.size() - 1)
+			out << " ";
+	}
+	out << "\n";
+	for(uint i = 0; i < p.closure_call.size(); ++i) {
+		out << p.closure_call[i];
+		if(i != p.closure_call.size() - 1)
 			out << " ";
 	}
 	out << "\n";

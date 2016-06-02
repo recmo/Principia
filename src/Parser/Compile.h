@@ -24,8 +24,6 @@ typedef std::vector<Function> Program;
 
 std::vector<std::set<uint>> calculate_dependencies(const Parser::Program& p);
 
-std::vector<uint> calculate_closure_calls(const Parser::Program& p);
-
 std::vector<std::vector<Symbol>> calculate_closures(
 	const Parser::Program& p);
 

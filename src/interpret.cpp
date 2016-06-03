@@ -7,9 +7,9 @@ Command interpret(L"interpret", [](Command::Arguments arguments) {
 	assert(arguments.size() == 2);
 	
 	Parser::Program pp = Parser::compile(Parser::parseFile(arguments[0]));
-	Parser::write(std::wcerr, pp);
+	// Parser::write(std::wcerr, pp);
 	Compile::Program cp = Compile::compile(pp);
-	Compile::write(std::wcerr, cp);
+	// Compile::write(std::wcerr, cp);
 	std::wcerr << "\n";
 	Interpreter::run(cp, arguments[1]);
 	

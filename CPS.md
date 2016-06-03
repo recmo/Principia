@@ -393,8 +393,9 @@ TASK: Make a function `λ itterate f n ret` that calls `ret` with a closure
 itterating `f` `n` times.
 
 
-
 ÷closure
+
+
 
 
 Scott encoding recursive/cyclical data structures? Graphs?

@@ -1,6 +1,9 @@
 title “The answer to Scott”
+
 author “Remco Bloemen”
+
 date “2016-07-01”
+
 description “
 	
 	This file implements Scott numerals and decimal printing using
@@ -79,6 +82,42 @@ section “Scott numerals”
 		S q (λ · q')
 		ret q' r
 
+λ exp m n ret
+	Z (λ · n0)
+	S n0 (λ · n1)
+	n (λ · (ret n1)) recurse
+	λ recurse n'
+		exp m n' (λ · r')
+		mul m r' (λ · r)
+		ret r
+
+λ fact n ret
+	n done recurse
+	λ done
+		Z (λ · n0)
+		S n0 (λ · n1)
+		ret n1
+	λ recurse n'
+		fact n' (λ · r')
+		mul n r' (λ · r)
+		ret r
+
+λ fib n ret
+	Z (λ · n0)
+	S n0 (λ · n1)
+	n zero recurse
+	λ zero
+		ret n1
+	λ recurse n'
+		n' one recurse'
+		λ one
+			ret n1
+		λ recurse' n''
+			fib n' (λ · r')
+			fib n'' (λ · r'')
+			add r' r'' (λ · r)
+			ret r
+
 section “Decimal output”
 
 λ decimals ret
@@ -121,8 +160,16 @@ section “Decimal output”
 section “Main”
 
 λ main exit
-	print “The answer to the universe, life and everything is: ” (λ ·)
 	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
+	print “4⁴ = ” (λ ·)
+	exp n4 n4 (λ · f)
+	print-number f (λ ·) fail
+	print-newline (λ ·)
+	print “5! = ” (λ ·)
+	fact n5 (λ · f)
+	print-number f (λ ·) fail
+	print-newline (λ ·)
+	print “The answer to the universe, life and everything is: ” (λ ·)
 	mul n7 n6 (λ · r)
 	print-number r (λ ·) fail
 	print-newline exit

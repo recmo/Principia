@@ -33,6 +33,18 @@ section “Scott numerals”
 λ Z   (· (λ · (·) _    ))
 λ S n (· (λ ·  _ (· n) ))
 
+λ n0 z s (z)
+λ n1 z s (s n0)
+λ n2 z s (s n1)
+λ n3 z s (s n2)
+λ n4 z s (s n3)
+λ n5 z s (s n4)
+λ n6 z s (s n5)
+λ n7 z s (s n6)
+λ n8 z s (s n7)
+λ n9 z s (s n8)
+λ n10 z s (s n9)
+
 λ if_zero n then else
 	n then (λ · n')
 	else
@@ -75,7 +87,6 @@ section “Scott numerals”
 λ div m n ret
 	sub m n recurse done
 	λ done
-		Z (λ · n0)
 		ret n0 m
 	λ recurse m'
 		div m' n (λ · q r)
@@ -83,8 +94,6 @@ section “Scott numerals”
 		ret q' r
 
 λ exp m n ret
-	Z (λ · n0)
-	S n0 (λ · n1)
 	n (λ · (ret n1)) recurse
 	λ recurse n'
 		exp m n' (λ · r')
@@ -94,8 +103,6 @@ section “Scott numerals”
 λ fact n ret
 	n done recurse
 	λ done
-		Z (λ · n0)
-		S n0 (λ · n1)
 		ret n1
 	λ recurse n'
 		fact n' (λ · r')
@@ -103,8 +110,6 @@ section “Scott numerals”
 		ret r
 
 λ fib n ret
-	Z (λ · n0)
-	S n0 (λ · n1)
 	n zero recurse
 	λ zero
 		ret n1
@@ -119,8 +124,6 @@ section “Scott numerals”
 			ret r
 
 λ pra m n ret
-	Z (λ · n0)
-	S n0 (λ · n1)
 	m case0 (λ · m' (n case1 case2))
 	λ case0
 		add n1 n ret
@@ -132,22 +135,7 @@ section “Scott numerals”
 
 section “Decimal output”
 
-λ decimals ret
-	Z    (λ · n0)
-	S n0 (λ · n1)
-	S n1 (λ · n2)
-	S n2 (λ · n3)
-	S n3 (λ · n4)
-	S n4 (λ · n5)
-	S n5 (λ · n6)
-	S n6 (λ · n7)
-	S n7 (λ · n8)
-	S n8 (λ · n9)
-	S n9 (λ · n10)
-	ret n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10
-
 λ print-decimal n ret fail
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
 	if_equal n n0 (λ · (print “0” ret)) (λ ·)
 	if_equal n n1 (λ · (print “1” ret)) (λ ·)
 	if_equal n n2 (λ · (print “2” ret)) (λ ·)
@@ -161,7 +149,6 @@ section “Decimal output”
 	fail
 
 λ print-number n ret fail
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
 	div n n10 (λ · q r)
 	if_zero q done recurse
 	λ recurse
@@ -172,7 +159,6 @@ section “Decimal output”
 section “Main”
 
 λ main exit
-	decimals (λ · n0 n1 n2 n3 n4 n5 n6 n7 n8 n9 n10)
 	print “4⁴ = ” (λ ·)
 	exp n4 n4 (λ · f)
 	print-number f (λ ·) fail

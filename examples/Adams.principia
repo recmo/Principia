@@ -118,6 +118,18 @@ section “Scott numerals”
 			add r' r'' (λ · r)
 			ret r
 
+λ pra m n ret
+	Z (λ · n0)
+	S n0 (λ · n1)
+	m case0 (λ · m' (n case1 case2))
+	λ case0
+		add n1 n ret
+	λ case1
+		pra m' 1 ret
+	λ case2 n'
+		pra m n' (λ · r)
+		pra m' r ret
+
 section “Decimal output”
 
 λ decimals ret

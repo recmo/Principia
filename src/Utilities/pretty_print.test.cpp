@@ -1,7 +1,7 @@
 #include "pretty_print.h"
 #include <Unicode/string.h>
 #include <Utilities/string.h>
-#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++.h>
 
 using std::vector;
 using std::set;

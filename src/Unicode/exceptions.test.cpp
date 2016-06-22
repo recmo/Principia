@@ -1,6 +1,6 @@
 #include "exceptions.h"
 #include <Unicode/convert.h>
-#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++.h>
 
 SUITE(Unicode) {
 

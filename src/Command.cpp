@@ -2,11 +2,6 @@
 const std::wstring name = NAME;
 const std::wstring version = VERSION;
 
-std::int32_t Main(const std::vector<std::wstring>& arguments)
-{
-	return Command::main(arguments);
-}
-
 std::unique_ptr<std::vector<Command>> Command::_commands;
 
 Command::Command(

@@ -1,44 +1,26 @@
 # Continuation-Passing Style
 
-Function call:
+Statement:
 
-	f arg₁ arg₂ … continuation₁ continuation₂ …
-
-(There is no difference between arguments and continuations)
+	f arg₁ arg₂ … ↦ call arg₁ arg₂ …  
 
 The order of the arguments in the function call is syntactically significant,
 but semantically it is just a mapping from symbols on the call-site to symbols
 on the closure site.
 
-Closure:
-
-	λ f arg₁ arg₂ … continuation₁ continuation₂ …
-
-The `λ` is what pure syntax and has no meaning other than to distinguish a
-string of binding sites from a string of references.
-
 Task: Given a function `add`, create a function `double`.
 
-	λ double x ret
-		add x x ret
+	double x ret ↦ add x x ret
 
-The first line defines a closure, the second is a function call. How do we
+The first part defines a closure, the second is a function call. How do we
 distinguish those in syntax?
-
-Is there something inherent in the syntax that makes in distinguishable? In the
-above example we know the second line must be a function call because the symbol
-`x` is used twice. A closure will bind it's arguments and they therefore can
-only appear once.
-
-	λ double x ret
-		add x x ret
 
 Task: given the above `double` make a function `quadruple`.
 
-	λ quadruple x ret
-		double x quadruple_next
-		λ quadruple_next y
-			double y ret
+	quadruple x ret ↦ double x quadruple_next
+		quadruple_next y ↦ double y ret
+
+	quadruple x ret ↦ double x (· y ↦ double y ret)
 
 This requires defining a closure.
 
@@ -48,51 +30,19 @@ Is the `f` a sort of return argument that can be eliminated? Can we make it more
 CPS by giving a closure a continuation to which the closure is supposed to be
 passed?
 
-# A program is a set of closures and a set of functions
-
-	λ add a b r
-	λ double x re
-		add x x re
-	λ quadruple y ret
-		double y quadruple_next
-		λ quadruple_next z
-			double z ret
-
-closures:
-	[add a b r]
-	[double x re]
-	[quadruple y ret]
-	[quadruple_next z]
-
-functions:
-	[add x x re]
-	[double y quadruple_next]
-	[double z ret]
-
-This only works if the closures are bound at compile time — which we do not
-want.
-
 # Factorial
 
-	λ is_zero n ret_true ret_false
-		# Call `ret_true` if `n = 0` or else call `ret_false`
+	is_zero n ret_true ret_false ↦
 	
-	λ pred n ret
-		# Call `ret` with `n - 1`
+	pred n ret ↦
 	
-	λ mul n m ret
-		# Call `ret` with `n × m`
+	mul n m ret ↦
 	
-	λ factorial n ret
-		is_zero n base recurse
-		λ base nil
-			ret 1 nil
-		λ recurse nil
-			pred n recurse' nil
-			λ recurse' n'
-				factorial n' recurse''
-				λ recurse'' n''
-					mul n n'' ret
+	factorial n ret  ↦ is_zero n base recurse
+		base          ↦ ret 1
+		recurse       ↦ pred n recurse'
+		recurse' n'   ↦ factorial n' recurse''
+		recurse'' n'' ↦ mul n n'' ret
 
 
 # Double recursion
@@ -100,67 +50,44 @@ want.
 Let look at an example with more complex recursion. The doubly recursive
 even-odd functions:
 
-	λ pred n ret
-		# Call `ret` with `n - 1`
+	pred n ret ↦ # Call `ret` with `n - 1`
 	
-	λ is_zero n ret_true ret_false
-		# Call `ret_true` if `n = 0` or else call `ret_false`
+	is_zero n ret_true ret_false ↦ # Call `ret_true` if `n = 0` or else call `ret_false`
 	
-	λ even n ret_true ret_false
-		is_zero n ret_true recurse
-		λ recurse
-			pred n recurse'
-			λ recurse' n'
-				odd n' ret_true ret_false
+	even n ret_true ret_false ↦ is_zero n ret_true recurse
+		recurse     ↦ pred n recurse'
+		recurse' n' ↦ odd n' ret_true ret_false
 	
-	λ odd n ret_true ret_false
-		is_zero n ret_false recurse
-		λ recurse
-			pred n recurse'
-			λ recurse' n'
-				even n' ret_true ret_false
+	odd n ret_true ret_false ↦ is_zero n ret_false recurse
+		recurse     ↦ pred n recurse'
+		recurse' n' ↦ even n' ret_true ret_false
 
 
 Let's make all the identifiers unique
 
-	λ pred pn pret
-		# Call `ret` with `n - 1`
+	pred pn pret ↦ # Call `ret` with `n - 1`
 	
-	λ is_zero in itrue ifalse
-		# Call `ret_true` if `n = 0` or else call `ret_false`
+	is_zero in itrue ifalse ↦ # Call `ret_true` if `n = 0` or else call `ret_false`
 	
-	λ even en etrue efalse
-		is_zero en etrue erec
-		λ erec
-			pred en erecp
-			λ erecp enp
-				odd enp etrue efalse
+	even en etrue efalse ↦ is_zero en etrue erec
+		erec ↦ pred en erecp
+		erecp enp ↦ odd enp etrue efalse
 	
-	λ odd on otrue ofalse
-		is_zero on ofalse orec
-		λ orec
-			pred on orecp
-			λ orecp onp
-				even onp otrue ofalse
+	odd on otrue ofalse ↦ is_zero on ofalse orec
+		orec ↦ pred on orecp
+		orecp onp ↦ even onp otrue ofalse
 
 
 Now we can safely flatten and sort the program:
 
-	1 pred pn pret
-	2 is_zero in itrue ifalse
-	3 even en etrue efalse
-	4 odd on otrue ofalse
-	5 erec
-	6 orec
-	7 erecp enp
-	8 orecp onp
-
-	1 pred en erecp
-	2 pred on orecp
-	3 is_zero en etrue erec
-	4 is_zero on ofalse orec
-	5 even onp otrue ofalse
-	6 odd enp etrue efalse
+	even en etrue efalse    ↦ is_zero en etrue erec
+	erec                    ↦ pred en erecp
+	erecp enp               ↦ odd enp etrue efalse
+	is_zero in itrue ifalse ↦ …
+	odd on otrue ofalse     ↦ is_zero on ofalse orec
+	orec                    ↦ pred on orecp
+	orecp onp               ↦ even onp otrue ofalse
+	pred pn pret            ↦ …
 
 There are eight closures, two of which are imports, and six function calls.
 
@@ -281,14 +208,36 @@ taking no parameters.
 
 	
 	λ C₁ x₁ x₂ ret
+		ret obj
 		λ obj c₁ c₂
 			c₁ x₁ x₂
-		ret obj
 	λ C₂ ret
+		ret obj
 		λ obj c₁ c₂
 			c₂
-		ret obj
 	
+	λ C₁ x₁ x₂ (· (λ · c₁ c₂ (c₁ x₁ x₂)))
+	λ C₂       (· (λ · c₁ c₂ (c₂      )))
+	
+	C₁ x₁ x₂ ret ↦ ret obj
+		obj c₁ c₂ ↦ c₁ x₁ x₂
+	C₂ ret ↦ ret obj
+		obj c₁ c₂ ↦ c₂
+
+	C₁ x₁ x₂ ret ↦ ret (· c₁ c₂ ↦ c₁ x₁ x₂)
+	C₂       ret ↦ ret (· c₁ c₂ ↦ c₂      )
+
+
+**Proposed Rule**: A substatement appearing before ↦ is the associated call, and there
+can only be one.
+
+	C₁ x₁ x₂ (·(· c₁ c₂ ↦ c₁ x₁ x₂))
+	C₂       (·(· c₁ c₂ ↦ c₂      ))
+
+print-newline ret ↦ print “
+” ret
+
+print-line arg ret ↦ print arg (· print-newline ↦ ret)
 
 # Scott booleans
 

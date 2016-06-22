@@ -75,7 +75,7 @@ lib$(name).so: $(objects)
 	@${CXX} $(flags) $^ $(libs) -shared -o $@
 
 unittest: $(patsubst src/%.cpp,build/%.inst.o,$(tests)) \
-	$(patsubst %.o,%.inst.o,$(objects)) build/test.inst.o
+	$(patsubst %.o,%.inst.o,$(filter-out build/main.o,$(objects))) build/test.inst.o
 	@echo "Link  " $@
 	@${CXX} $(flags) $(inst) $^ $(libs) \
 		$(shell pkg-config --libs unittest++) -o $@

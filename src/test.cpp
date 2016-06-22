@@ -2,8 +2,8 @@
 #include <Utilities/ansi.h>
 #include <Utilities/pretty_print.h>
 #include <Unicode/string.h>
-#include <UnitTest++/UnitTest++.h>
-#include <UnitTest++/TestReporter.h>
+#include <UnitTest++.h>
+#include <TestReporter.h>
 #include <iostream>
 #include <vector>
 
@@ -107,7 +107,7 @@ sint32 Main(const std::vector<string>& args)
 {
 	using namespace std;
 	using namespace UnitTest;
-	wcerr << "Unittest++ " << PROGRAM << " version " << VERSION << endl;
+	wcerr << "Unittest++ " << NAME << " version " << VERSION << endl;
 	MyTestReporter myReporter;
 	TestRunner runner(myReporter);
 	return runner.RunTestsIf(Test::GetTestList(), NULL, True(), 0);

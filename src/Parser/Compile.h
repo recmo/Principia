@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <set>
 #include <map>
 #include <Parser/Parser.h>
 namespace Compile {

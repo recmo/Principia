@@ -1,6 +1,6 @@
 #include "convert.h"
 #include <Unicode/string.h>
-#include <UnitTest++/UnitTest++.h>
+#include <UnitTest++.h>
 
 SUITE(Unicode) {
 

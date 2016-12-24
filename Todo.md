@@ -3,7 +3,8 @@
 [x] Compile to stack based language
 [x] Execute in stack based language
 [x] Unify imports and constants
-[ ] Virtual stack
+[x] Virtual stack
+[ ] Promote constant closures to constants
 [ ] Global list of constants
 [ ] Deduplicated constants
 [ ] Reference counting memory manager

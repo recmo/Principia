@@ -203,38 +203,47 @@ void run()
 			assert(arguments.size() == func.arguments);
 			func.call_count += 1;
 			
-			// Create local stack
-			std::vector<std::shared_ptr<value_t>> stack;
+			// Create space for allocs
+			std::vector<std::shared_ptr<value_t>> allocs;
+			allocs.reserve(func.allocs.size());
 			
-			// Push constants
-			for(const std::shared_ptr<value_t>& constant: func.constants) {
-				stack.push_back(std::move(constant));
-			}
-			
-			// Push closure
-			std::copy(closure->values.begin(), closure->values.end(), std::back_inserter(stack));
-			
-			// Push arguments
-			std::move(arguments.begin(), arguments.end(), std::back_inserter(stack));
+			// Virtual stack
+			std::function<std::shared_ptr<value_t>(uint)> stack = [&](uint index) {
+				if(index < func.constants.size()) {
+					return func.constants[index];
+				}
+				index -= func.constants.size();
+				if(index < func.closures) {
+					return closure->values[index];
+				}
+				index -= func.closures;
+				if(index < func.arguments) {
+					return arguments[index];
+				}
+				index -= func.arguments;
+				assert(index < allocs.size());
+				return allocs[index];
+			};
 			
 			// Execute alloc instructions
 			for(const alloc_instruction_t& inst: func.allocs) {
 				std::shared_ptr<value_t> closure = std::make_shared<value_t>();
 				closure->function_index = inst.function_index;
 				for(uint16_t index: inst.closure) {
-					assert(index < stack.size());
-					closure->values.push_back(stack[index]);
+					closure->values.push_back(stack(index));
 				}
-				stack.push_back(std::move(closure));
+				allocs.push_back(std::move(closure));
 			}
 			
 			// Load call instruction
 			assert(func.call.size() >= 1);
-			closure = stack[func.call[0]];
-			arguments.clear();
+			std::vector<std::shared_ptr<value_t>> new_arguments;
+			new_arguments.reserve(func.call.size() - 1);
 			for(uint i = 1; i < func.call.size(); ++i) {
-				arguments.push_back(stack[func.call[i]]);
+				new_arguments.push_back(stack(func.call[i]));
 			}
+			closure = stack(func.call[0]);
+			arguments = std::move(new_arguments);
 			continue;
 			
 		// Builtin functions
@@ -258,6 +267,8 @@ void run()
 				
 				// Exit
 				running = false;
+				closure.reset();
+				arguments.clear();
 				continue;
 			}
 			

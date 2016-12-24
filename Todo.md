@@ -2,6 +2,10 @@
 
 [x] Compile to stack based language
 [x] Execute in stack based language
+[x] Unify imports and constants
+[ ] Virtual stack
+[ ] Global list of constants
+[ ] Deduplicated constants
 [ ] Reference counting memory manager
 [ ] Statically analyse possible functions at tail call site
 [ ] Inline functions

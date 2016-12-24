@@ -161,7 +161,7 @@ section “Main”
 	print-number f (λ ·) fail
 	print-newline (λ ·)
 	print “5! = ” (λ ·)
-	fact n5 (λ · f)
+	fact n10 (λ · f)
 	print-number f (λ ·) fail
 	print-newline (λ ·)
 	print “The answer to the universe, life and everything is: ” (λ ·)

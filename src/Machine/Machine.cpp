@@ -1,20 +1,6 @@
 #include "Machine.h"
 namespace Machine {
 
-struct alloc_instruction_t {
-	uint16_t function_index;
-	std::vector<uint16_t> closure;
-};
-
-struct function_t {
-	uint call_count;
-	std::vector<std::wstring> imports;
-	std::vector<std::wstring> constants;
-	uint16_t closures;
-	uint16_t arguments;
-	std::vector<alloc_instruction_t> allocs;
-	std::vector<uint16_t> call;
-};
 
 struct value_t {
 	
@@ -27,6 +13,20 @@ struct value_t {
 	// Closure
 	uint16_t function_index;
 	std::vector<std::shared_ptr<value_t>> values;
+};
+
+struct alloc_instruction_t {
+	uint16_t function_index;
+	std::vector<uint16_t> closure;
+};
+
+struct function_t {
+	uint call_count;
+	std::vector<std::shared_ptr<value_t>> constants;
+	uint16_t closures;
+	uint16_t arguments;
+	std::vector<alloc_instruction_t> allocs;
+	std::vector<uint16_t> call;
 };
 
 // Program definition
@@ -60,19 +60,22 @@ void load(const Compile::Program& program)
 		
 		// Create empty stack, list of imports and list of constants
 		std::vector<Compile::Symbol> stack;
-		std::vector<std::wstring> imports;
-		std::vector<std::wstring> constants;
+		std::vector<std::shared_ptr<value_t>> constants;
 		
 		// Push imports on the stack
 		for(const auto& import: compile_func.imports) {
 			stack.push_back(import.first);
-			imports.push_back(import.second);
+			std::shared_ptr<value_t> value = std::make_shared<value_t>();
+			value->import = import.second;
+			constants.push_back(value);
 		}
 		
 		// Push constants on the stack
 		for(const auto& constant: compile_func.constants) {
 			stack.push_back(constant.first);
-			constants.push_back(constant.second);
+			std::shared_ptr<value_t> value = std::make_shared<value_t>();
+			value->constant = constant.second;
+			constants.push_back(value);
 		}
 		
 		// Push closure arguments on the stack
@@ -104,7 +107,6 @@ void load(const Compile::Program& program)
 		// Create the machine function
 		function_t machine_func;
 		machine_func.call_count = 0;
-		machine_func.imports = std::move(imports);
 		machine_func.constants = std::move(constants);
 		machine_func.closures = compile_func.closure.size();
 		machine_func.arguments = compile_func.arguments.size();
@@ -159,8 +161,7 @@ void print(const Compile::Program& program)
 		
 		std::wcerr << "Function " << index << " " << cf.name << "\n";
 		std::wcerr << "\tcall count: " << f.call_count << "\n";
-		std::wcerr << "\timports:    " << f.imports << "\n";
-		std::wcerr << "\tconstants:  " << f.constants << "\n";
+		std::wcerr << "\tconstants:  " << f.constants.size() << "\n";
 		std::wcerr << "\tclosures:   " << f.closures << "\n";
 		std::wcerr << "\targuments:  " << f.arguments << "\n";
 		std::wcerr << "\tallocates:  " << f.allocs.size() << "\n";
@@ -205,25 +206,16 @@ void run()
 			// Create local stack
 			std::vector<std::shared_ptr<value_t>> stack;
 			
-			// Push imports
-			for(const std::wstring& import: func.imports) {
-				std::shared_ptr<value_t> value = std::make_shared<value_t>();
-				value->import = import;
-				stack.push_back(std::move(value));
-			}
-			
 			// Push constants
-			for(const std::wstring& constant: func.constants) {
-				std::shared_ptr<value_t> value = std::make_shared<value_t>();
-				value->constant = constant;
-				stack.push_back(std::move(value));
+			for(const std::shared_ptr<value_t>& constant: func.constants) {
+				stack.push_back(std::move(constant));
 			}
 			
 			// Push closure
 			std::copy(closure->values.begin(), closure->values.end(), std::back_inserter(stack));
 			
 			// Push arguments
-			std::copy(arguments.begin(), arguments.end(), std::back_inserter(stack));
+			std::move(arguments.begin(), arguments.end(), std::back_inserter(stack));
 			
 			// Execute alloc instructions
 			for(const alloc_instruction_t& inst: func.allocs) {

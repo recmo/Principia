@@ -18,7 +18,7 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	
 	Machine::run();
 	
-	Machine::print(cp);
+	// Machine::print(cp);
 	
 	return Command::success;
 },

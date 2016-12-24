@@ -77,6 +77,9 @@ The base and exponent are written in decimal using `₀`—`₉` and `⁰`—`�
 
 ### Scoped statements (advanced)
 
+Identifier scoping, binding, collision, importing and resolving.
+
+
 Statements can be scoped by 
 
 ```

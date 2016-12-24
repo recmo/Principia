@@ -1,5 +1,14 @@
 # To do list
 
+[x] Compile to stack based language
+[x] Execute in stack based language
+[ ] Reference counting memory manager
+[ ] Statically analyse possible functions at tail call site
+[ ] Inline functions
+[ ] Statically analyse closure life-times
+[ ] Investigate different memory allocation strategies
+
+
 /// TODO: Use alloca when we can
 
 /// TODO: Background thread to analyse the performance oprofile style

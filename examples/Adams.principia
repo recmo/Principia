@@ -1,9 +1,6 @@
-title “The answer to Scott”
-
-author “Remco Bloemen”
-
-date “2016-07-01”
-
+title       “The answer to Scott”
+author      “Remco Bloemen”
+date        “2016-07-01”
 description “
 	
 	This file implements Scott numerals and decimal printing using
@@ -21,7 +18,7 @@ description “
 section “Print helpers”
 
 λ print-newline ret
-print “
+	print “
 ” ret
 
 λ print-line arg ret
@@ -174,3 +171,70 @@ section “Main”
 	λ fail
 		print-newline (λ ·)
 		print-line “Failed!” exit
+
+section “Meta circular evaluator”
+
+doc “A meta-circular evaluator is nothing more or less than having parts of the
+runtime be available at runtime in the language through an API.
+
+Ideally, we would have
+
+   String --parser--> Graph --passes--> ... --compiler--> LLVM --runtime--|
+
+Homoiconicity means that the ‘graph’ representation, is available for
+introspection at runtime. Reflection means that the other passes are available
+as builtin functions. Or at least the very last one, the runtime.
+
+”
+
+compilation “
+
+
+x Function:
+	* has a closure of M arguments. Fixed on compile.
+	* takes in N arguments. Fixed in code.
+	
+	These are the only values available on entering the function. As a
+	consequence, they represent the complete machine state at that point.
+	
+	Inside the function, new values can be created. This can only be done
+	through allocating closures.
+	
+	xᵢ = <function id> <list of closure arguments for function>
+	
+	CLOSE <function id> <value ids>…
+	
+	Finally, the function does a tail call to one of the values/closures
+	
+	CALL <value ids> <value ids>…
+
+
+# Stack-based approach:
+
+x Function:
+	Stack contains N values form arguments
+	Stack contains M values from closure
+	
+	* SWAP_n DUP_n POP_n to move things arround
+	
+	* No PUSH. All constants are part of the closure (really?)
+	
+	CLOSE_y: Pops M_y values from the stack and pushes a closure for function y on the stack.
+	
+	At the end of the function body, the closure on top of the stack is called
+	with the remainder of the stack as arguments.
+	
+	To call the closure, the closure contents are pushed on the stack. Execution
+	then jumps to the closure function body and the process repeats.
+
+# Other
+
+x Function:
+	Array of closure values
+	Array of argument values
+	
+	Size of new argument values array
+	
+	Index of closure
+
+”

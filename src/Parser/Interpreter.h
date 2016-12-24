@@ -23,7 +23,6 @@ struct Value {
 
 typedef std::vector<Value> Values;
 
-
 void run(const Program& p, const std::wstring& function);
 
 void run(const Program& p, const Function& function);

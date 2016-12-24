@@ -265,6 +265,34 @@ parameters. Instantiate two global values.
 
 TASK: Create a 
 
+
+# Parallelism
+
+There is a build in function fork that takes three functions as arguments:
+
+	Fork func_1 func_2 join
+
+The closures `func_1` `func_2` get executed in parallel. Both of them
+receive as argument a single closure, called `join` taking one argument.
+
+When both `func_1` `func_2` have called their `join` functions with their
+respective results, the `join` function is called with as arguments the
+result from `func_1` and the result from `func_2`.
+
+A serial implementation of this Fork function would be:
+
+	λ Fork func_1 func_2 join
+		func_1 (λ · a)
+		func_2 (λ · b)
+		join a b
+
+This also contains a clue to how this can be automated. The exact algorithm to
+determine when this can be done is yet to be determined, but it is something
+along the lines of `a` not being used as an argument to `func_2` other than as
+a closure argument to be ultimately used as an argument to `join`. Dataflow
+analysis may be the key here.
+
+
 # Syntax 
 
 Syntax rules:

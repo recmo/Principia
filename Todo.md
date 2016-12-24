@@ -4,7 +4,10 @@
 [x] Execute in stack based language
 [x] Unify imports and constants
 [x] Virtual stack
-[ ] Promote constant closures to constants
+[x] Remove the stack
+[x] Seperate numbering for constants, closures, arguments and allocs
+[ ] Promote constant allocs to constant closures
+[ ] Promote closure alllocs to closure values
 [ ] Global list of constants
 [ ] Deduplicated constants
 [ ] Reference counting memory manager

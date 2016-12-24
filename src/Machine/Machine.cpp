@@ -1,6 +1,12 @@
 #include "Machine.h"
 namespace Machine {
 
+// There are four kinds of memory addresses
+const uint16_t type_mask     = 0xC000;
+const uint16_t type_constant = 0x0000;
+const uint16_t type_closure  = 0x4000;
+const uint16_t type_argument = 0x8000;
+const uint16_t type_alloc    = 0xC000;
 
 struct value_t {
 	
@@ -54,55 +60,43 @@ void load(const Compile::Program& program)
 			main_index = functions.size();
 		}
 		
-		//
-		// Symbolic execution on stack machine
-		//
+		// Map from symbols to memory addresses
+		std::map<Parser::Symbol, uint16_t> symbol_map;
 		
 		// Create empty stack, list of imports and list of constants
-		std::vector<Compile::Symbol> stack;
 		std::vector<std::shared_ptr<value_t>> constants;
 		
-		// Push imports on the stack
+		// Layout imports as constants
 		for(const auto& import: compile_func.imports) {
-			stack.push_back(import.first);
+			symbol_map[import.first] = type_constant | constants.size();
 			std::shared_ptr<value_t> value = std::make_shared<value_t>();
 			value->import = import.second;
 			constants.push_back(value);
 		}
 		
-		// Push constants on the stack
+		// Layout constant
 		for(const auto& constant: compile_func.constants) {
-			stack.push_back(constant.first);
+			symbol_map[constant.first] = type_constant | constants.size();
 			std::shared_ptr<value_t> value = std::make_shared<value_t>();
 			value->constant = constant.second;
 			constants.push_back(value);
 		}
 		
-		// Push closure arguments on the stack
-		std::copy(compile_func.closure.begin(), compile_func.closure.end(), std::back_inserter(stack));
-		
-		// Push call arguments on the stack
-		std::copy(compile_func.arguments.begin(), compile_func.arguments.end(), std::back_inserter(stack));
-		
-		// Push allocations on the stack
-		for(uint fid: compile_func.allocations) {
-			stack.push_back(std::make_pair(fid, 0));
+		// Layout closure arguments
+		for(uint i = 0; i < compile_func.closure.size(); ++i) {
+			symbol_map[compile_func.closure[i]] = type_closure | i;
 		}
 		
-		//
-		// Turn allocation and tail call symbols into stack indices
-		//
-		
-		// Extract a stack map from symbol to stack index
-		std::map<Parser::Symbol, uint16_t> symbol_map;
-		for(uint i = 0; i < stack.size(); ++i) {
-			if(symbol_map.find(stack[i]) != symbol_map.end()) {
-				std::wcerr << L"Duplicate symbol:" << stack[i] << L"\n";
-				throw "Duplicate symbol";
-			}
-			symbol_map[stack[i]] = i;
+		// Layout call arguments
+		for(uint i = 0; i < compile_func.arguments.size(); ++i) {
+			symbol_map[compile_func.arguments[i]] = type_argument | i;
 		}
-		// std::wcerr << symbol_map << std::endl;
+		
+		// Layout allocations
+		for(uint i = 0; i < compile_func.allocations.size(); ++i) {
+			const Parser::Symbol symbol = std::make_pair(compile_func.allocations[i], 0);
+			symbol_map[symbol] = type_alloc | i;
+		}
 		
 		// Create the machine function
 		function_t machine_func;
@@ -207,22 +201,18 @@ void run()
 			std::vector<std::shared_ptr<value_t>> allocs;
 			allocs.reserve(func.allocs.size());
 			
-			// Virtual stack
-			std::function<std::shared_ptr<value_t>(uint)> stack = [&](uint index) {
-				if(index < func.constants.size()) {
-					return func.constants[index];
+			// Virtual Memory
+			std::function<std::shared_ptr<value_t>(uint)> memory = [&](uint index) {
+				const uint type = index & type_mask;
+				index &= ~type_mask;
+				switch(type) {
+				case type_constant: return func.constants[index];
+				case type_closure:  return closure->values[index];
+				case type_argument: return arguments[index];
+				case type_alloc:    return allocs[index];
 				}
-				index -= func.constants.size();
-				if(index < func.closures) {
-					return closure->values[index];
-				}
-				index -= func.closures;
-				if(index < func.arguments) {
-					return arguments[index];
-				}
-				index -= func.arguments;
-				assert(index < allocs.size());
-				return allocs[index];
+				assert(false);
+				return std::shared_ptr<value_t>();
 			};
 			
 			// Execute alloc instructions
@@ -230,7 +220,7 @@ void run()
 				std::shared_ptr<value_t> closure = std::make_shared<value_t>();
 				closure->function_index = inst.function_index;
 				for(uint16_t index: inst.closure) {
-					closure->values.push_back(stack(index));
+					closure->values.push_back(memory(index));
 				}
 				allocs.push_back(std::move(closure));
 			}
@@ -240,9 +230,9 @@ void run()
 			std::vector<std::shared_ptr<value_t>> new_arguments;
 			new_arguments.reserve(func.call.size() - 1);
 			for(uint i = 1; i < func.call.size(); ++i) {
-				new_arguments.push_back(stack(func.call[i]));
+				new_arguments.push_back(memory(func.call[i]));
 			}
-			closure = stack(func.call[0]);
+			closure = memory(func.call[0]);
 			arguments = std::move(new_arguments);
 			continue;
 			

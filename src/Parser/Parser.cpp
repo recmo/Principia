@@ -533,7 +533,7 @@ Program compile(std::shared_ptr<Node> module)
 			p.symbols[node.bind_index] = node.identifier;
 		}
 	});
-	std::wcerr << p.symbols << "\n";
+	// std::wcerr << p.symbols << "\n";
 	
 	// Associate closures with calls
 	// The associated call is the first call after the closure.

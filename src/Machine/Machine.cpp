@@ -47,6 +47,8 @@ bool running = false;
 std::shared_ptr<value_t> closure;
 std::vector<std::shared_ptr<value_t>> arguments;
 
+void optimize(function_t& function);
+
 void load(const Compile::Program& program)
 {
 	// Reset
@@ -137,6 +139,10 @@ void load(const Compile::Program& program)
 			assert(symbol_map.find(symbol) != symbol_map.end());
 			machine_func.call.push_back(symbol_map[symbol]);
 		}
+		
+		// Optimize
+		optimize(machine_func);
+		
 		functions.push_back(std::move(machine_func));
 	}
 	
@@ -145,6 +151,113 @@ void load(const Compile::Program& program)
 	const function_t& main = functions[main_index];
 	assert(main.closures == 0);
 	assert(main.arguments == 1);
+}
+
+void replace_index(function_t& function, uint16_t from, uint16_t to)
+{
+	for(alloc_instruction_t& alloc: function.allocs) {
+		for(uint16_t& index: alloc.closure) {
+			if(index == from) {
+				index = to;
+			}
+		}
+	}
+	for(uint16_t& index: function.call) {
+		if(index == from) {
+			index = to;
+		}
+	}
+}
+
+// Removes an alloc instruction and renumbers indices
+void remove_alloc(function_t& function, uint16_t alloc_index)
+{
+	assert((alloc_index & type_mask) == type_alloc);
+	assert((alloc_index & ~type_mask) < function.allocs.size());
+	for(alloc_instruction_t& alloc: function.allocs) {
+		for(uint16_t& index: alloc.closure) {
+			assert(index != alloc_index);
+			if((index & type_mask) == type_alloc && (index > alloc_index)) {
+				--index;
+			}
+		}
+	}
+	for(uint16_t& index: function.call) {
+		assert(index != alloc_index);
+		if((index & type_mask) == type_alloc && (index > alloc_index)) {
+			--index;
+		}
+	}
+	std::vector<alloc_instruction_t> new_allocs;
+	for(uint i = 0; i < function.allocs.size(); ++i) {
+		if((i | type_alloc) == alloc_index)
+			continue;
+		new_allocs.push_back(function.allocs[i]);
+	}
+	function.allocs = new_allocs;
+}
+
+// Find constant and/or closure allocs
+void optimize(function_t& function)
+{
+	std::vector<bool> alloc_uses_closure;
+	std::vector<bool> alloc_uses_arguments;
+	
+	for(uint i = 0; i < function.allocs.size(); ++i) {
+		const uint16_t alloc_address = type_alloc | i;
+		const alloc_instruction_t& alloc = function.allocs[i];
+		
+		bool uses_closure = false;
+		bool uses_arguments = false;
+		for(uint16_t index: alloc.closure) {
+			const uint16_t type = index & type_mask;
+			index &= ~type_mask;
+			switch(type) {
+			case type_constant:
+				continue;
+			case type_closure:
+				uses_closure = true;
+				continue;
+			case type_argument:
+				uses_arguments = true;
+				continue;
+			case type_alloc:
+				uses_closure |= alloc_uses_closure[index];
+				uses_arguments |= alloc_uses_arguments[index];
+				continue;
+			}
+		}
+		
+		if(!uses_closure && !uses_arguments) {
+			std::shared_ptr<value_t> value = std::make_shared<value_t>();
+			value->function_index = alloc.function_index;
+			for(uint16_t index: alloc.closure) {
+				assert((index & type_mask) == type_constant);
+				index &= ~type_mask;
+				value->values.push_back(function.constants[index]);
+			}
+			
+			// Create a new constant
+			uint16_t index = type_constant | function.constants.size();
+			function.constants.push_back(value);
+			
+			// Replace alloc by constant
+			replace_index(function, alloc_address, index);
+			
+			// Remove alloc
+			remove_alloc(function, alloc_address);
+			
+			// We lost our index position
+			index -= 1;
+			continue;
+			
+		} else if(!uses_arguments) {
+			// std::wcerr << "Alloc can be made closure!\n";
+		}
+		
+		alloc_uses_closure.push_back(uses_closure);
+		alloc_uses_arguments.push_back(uses_arguments);
+	}
 }
 
 void print(const Compile::Program& program)

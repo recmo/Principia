@@ -13,7 +13,6 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	//Compile::write(std::wcerr, cp);
 	std::wcerr << "\n";
 	
-	std::wcerr << L"ASD\n" << std::endl;
 	Machine::load(cp);
 	
 	Machine::run();

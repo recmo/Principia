@@ -6,13 +6,13 @@
 [x] Virtual stack
 [x] Remove the stack
 [x] Seperate numbering for constants, closures, arguments and allocs
-[ ] Promote constant allocs to constant closures
+[x] Promote constant allocs to constant closures
 [ ] Promote closure alllocs to closure values
+[ ] Inline functions
 [ ] Global list of constants
 [ ] Deduplicated constants
 [ ] Reference counting memory manager
 [ ] Statically analyse possible functions at tail call site
-[ ] Inline functions
 [ ] Statically analyse closure life-times
 [ ] Investigate different memory allocation strategies
 

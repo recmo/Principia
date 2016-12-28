@@ -8,7 +8,8 @@
 [x] Seperate numbering for constants, closures, arguments and allocs
 [x] Promote constant allocs to constant closures
 [x] Add address_t type and use it
-[ ] Inline functions
+[x] Inline functions
+[ ] Fixed-point constant finding and inlining
 [ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values

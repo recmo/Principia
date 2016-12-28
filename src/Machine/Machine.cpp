@@ -191,7 +191,7 @@ void load(const Compile::Program& program)
 	}
 	
 	// Optimize
-	// inline_functions(functions);
+	inline_functions(functions);
 	// TODO this may create new constant closures, which in turn may lead
 	// to new inlining opportunities.
 	
@@ -274,12 +274,13 @@ void inline_function(function_t& outer, const function_t& inner)
 		std::back_inserter(outer.allocs));
 	
 	// Map from inner addresses to outer addresses
+	const std::vector<address_t> outer_call = outer.call;
 	std::function<address_t(address_t)> map = [&](address_t address) {
 		switch(address.type) {
 		case type_constant: return address_t{type_constant, address.index + const_offset};
 		case type_closure:  return address_t{type_constant, address.index + closure_offset};
 		case type_alloc:    return address_t{type_alloc   , address.index + alloc_offset};
-		case type_argument: return outer.call[address.index + 1];
+		case type_argument: return outer_call[address.index + 1];
 		}
 		assert(false);
 		return address_t{};
@@ -362,15 +363,13 @@ void promote_allocs(function_t& function)
 	}
 }
 
-/*
 void inline_functions(std::vector<function_t>& functions)
 {
 	for(function_t& outer: functions) {
 		
 		// Check the call
-		if(outer.call[0].type == == type_constant) {
-			const uint index = outer.call[0] & ~type_mask;
-			const std::shared_ptr<value_t>& closure = outer.constants[index];
+		if(outer.call[0].type == type_constant) {
+			const std::shared_ptr<value_t>& closure = outer.constants[outer.call[0].index];
 			assert(closure->constant.empty());
 			
 			// We can not inline builtins/imports
@@ -378,22 +377,14 @@ void inline_functions(std::vector<function_t>& functions)
 				continue;
 			}
 			
-			
 			const function_t& inner = functions[closure->function_index];
-			
-			std::wcerr << "==========================\n";
-			print(outer, 0);
-			print(inner, closure->function_index);
 			inline_function(outer, inner);
-			print(outer, 0);
 			
-			
-		} else if((outer.call[0] & type_mask) == type_closure) {
+		} else if(outer.call[0].type == type_closure) {
 			std::wcerr << "Function can be closure-inlined\n";
 		}
 	}
 }
-*/
 
 void print(const function_t& f, uint index)
 {

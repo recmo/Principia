@@ -1,4 +1,5 @@
 #include "Machine.h"
+#include <limits>
 namespace Machine {
 
 // There are four kinds of memory addresses
@@ -19,9 +20,17 @@ struct address_t {
 	bool operator!=(const address_t& other) const {
 		return !operator==(other);
 	}
+	bool operator<(const address_t& other) const {
+		return (type != other.type) ?
+			type < other.type : index < other.index;
+	}
 };
 
+const uint16_t reference_max = std::numeric_limits<uint16_t>().max();
+
 struct value_t {
+	
+	uint16_t reference_count = 1;
 	
 	// Import
 	std::wstring import;
@@ -47,11 +56,22 @@ struct alloc_instruction_t {
 	std::vector<address_t> closure;
 };
 
+struct deref_instruction_t {
+	address_t address;
+};
+
+struct ref_instruction_t {
+	address_t address;
+	uint16_t  count;
+};
+
 struct function_t {
 	std::wstring name;
 	uint call_count;
 	uint16_t closures;
 	uint16_t arguments;
+	std::vector<deref_instruction_t> derefs;
+	std::vector<ref_instruction_t>   refs;
 	std::vector<alloc_instruction_t> allocs;
 	std::vector<address_t> call;
 };
@@ -69,7 +89,30 @@ bool running = false;
 std::shared_ptr<value_t> closure;
 std::vector<std::shared_ptr<value_t>> arguments;
 
+void deref(value_t* value)
+{
+	if(value->reference_count == reference_max) {
+		
+	}
+	value->reference_count -= 1;
+	if(value->reference_count == 0) {
+		// TODO: Recurse on closure
+		delete value;
+	}
+}
+
+void ref(value_t* value, uint16_t additional)
+{
+	if(value->reference_count == reference_max)
+		return;
+	assert(value->reference_count < reference_max - additional);
+	value->reference_count += additional;
+}
+
 // Optimization passes
+void replace_index(function_t& function, address_t from, address_t to);
+void remove_unused_allocs(function_t& function);
+void update_reference_counts(function_t& function);
 void remove_alloc(function_t& function, address_t alloc_index);
 bool promote_allocs(function_t& function);
 void inline_function(function_t& outer, const function_t& inner);
@@ -102,8 +145,6 @@ void print(const function_t& f, uint index);
 
 address_t make_constant(const value_t& value)
 {
-	std::wcerr << constants << " ? " << value << "\n";
-	
 	// Find and return existing constant
 	for(uint i = 0; i < constants.size(); ++i) {
 		if(*constants[i] == value) {
@@ -115,6 +156,7 @@ address_t make_constant(const value_t& value)
 	const address_t addr{type_constant, constants.size()};
 	constants.push_back(std::make_shared<value_t>(value));
 	assert(*constants[addr.index] == value);
+	constants[addr.index]->reference_count = reference_max;
 	return addr;
 }
 
@@ -216,6 +258,11 @@ void load(const Compile::Program& program)
 	// TODO this may create new constant closures, which in turn may lead
 	// to new inlining opportunities.
 	
+	// Update reference counts
+	for(function_t& func: functions) {
+		remove_unused_allocs(func);
+	}
+	
 	// Make sure we have a valid main
 	assert(main_index != -1);
 	const function_t& main = functions[main_index];
@@ -223,20 +270,101 @@ void load(const Compile::Program& program)
 	assert(main.arguments == 1);
 }
 
+void remove_unused_allocs(function_t& function)
+{
+	// Find unused allocs
+	std::vector<bool> used(function.allocs.size(), false);
+	for(const alloc_instruction_t& alloc: function.allocs)
+		for(const address_t addr: alloc.closure)
+			if(addr.type == type_alloc)
+				used[addr.index] = true;
+	for(const address_t addr: function.call)
+		if(addr.type == type_alloc)
+			used[addr.index] = true;
+	
+	// Remove unused allocs
+	std::vector<alloc_instruction_t> new_allocs;
+	for(uint i = 0; i < function.allocs.size(); ++i) {
+		if(used[i]) {
+			new_allocs.push_back(function.allocs[i]);
+		}
+	}
+	function.allocs = new_allocs;
+	
+	// Relabel addresses
+	address_t old_address{type_alloc, 0};
+	address_t new_address{type_alloc, 0};
+	for(bool is_used: used) {
+		if(is_used) {
+			assert(old_address.index < used.size());
+			assert(new_address.index < function.allocs.size());
+			replace_index(function, old_address, new_address);
+			old_address.index++;
+			new_address.index++;
+		} else {
+			old_address.index++;
+		}
+	}
+}
+
+void update_reference_counts(function_t& function)
+{
+	// Remove unused allocs first
+	remove_unused_allocs(function);
+	
+	// Count references of closures, arguments and allocs
+	std::map<address_t, uint> reference_count;
+	for(uint i = 0; i < function.closures; ++i)
+		reference_count[address_t{type_closure, i}] = 0;
+	for(uint i = 0; i < function.arguments; ++i)
+		reference_count[address_t{type_argument, i}] = 0;
+	for(uint i = 0; i < function.allocs.size(); ++i)
+		reference_count[address_t{type_alloc, i}] = 0;
+	for(const alloc_instruction_t& alloc: function.allocs)
+		for(const address_t addr: alloc.closure)
+			if(addr.type != type_constant)
+				reference_count[addr]++;
+	for(const address_t addr: function.call)
+		if(addr.type != type_constant)
+			reference_count[addr]++;
+	if(function.call[0].type != type_constant)
+	reference_count[function.call[0]]--;
+	
+	// Clear existing
+	function.derefs.clear();
+	function.refs.clear();
+	
+	// Create new deref and ref instructions
+	for(const auto& pair: reference_count) {
+		
+		// Deref instructions
+		if(pair.second == 0) {
+			assert(pair.first.type != type_alloc); // Clean up uneccesary allocs first
+			function.derefs.push_back(deref_instruction_t{pair.first});
+			
+		// We inherited a reference on everything, so one means
+		// no change
+		} else if(pair.second == 1) {
+			continue;
+			
+		// Reference instruction
+		} else {
+			function.refs.push_back(ref_instruction_t{pair.first, pair.second - 1});
+		}
+	}
+}
+
 void replace_index(function_t& function, address_t from, address_t to)
 {
-	for(alloc_instruction_t& alloc: function.allocs) {
-		for(address_t& index: alloc.closure) {
-			if(index == from) {
+	if(from == to)
+		return;
+	for(alloc_instruction_t& alloc: function.allocs)
+		for(address_t& index: alloc.closure)
+			if(index == from)
 				index = to;
-			}
-		}
-	}
-	for(address_t& index: function.call) {
-		if(index == from) {
+	for(address_t& index: function.call)
+		if(index == from)
 			index = to;
-		}
-	}
 }
 
 // Removes an alloc instruction and renumbers indices
@@ -438,6 +566,8 @@ void print(const function_t& f, uint index)
 void print()
 {
 	std::wcerr << "Constants: " << constants << "\n";
+	std::wcerr << "Constants: " << constants.size() << "\n";
+	return;
 	uint index = 0;
 	for(const auto& f: functions) {
 		print(f, index);

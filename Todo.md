@@ -12,8 +12,11 @@
 [x] Fixed-point constant finding and inlining
 [x] Global list of constants
 [x] Deduplicated constants
+[x] Remove unused allocs
+[ ] Remove unused closures
+[ ] Explicit reference count instructions
+[ ] Explicit reference counting (instead of std::shared_ptr)
 [ ] Remove unused functions, allocs, constants
-[ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
 [ ] Reference counting memory manager

@@ -7,14 +7,40 @@
 [x] Remove the stack
 [x] Seperate numbering for constants, closures, arguments and allocs
 [x] Promote constant allocs to constant closures
-[ ] Promote closure alllocs to closure values
+[x] Add address_t type and use it
 [ ] Inline functions
+[ ] Explicit `dealloc` instruction
+[ ] Benchmarking per closure, histogram per function
+[ ] Promote closure alllocs to closure values
 [ ] Global list of constants
 [ ] Deduplicated constants
 [ ] Reference counting memory manager
 [ ] Statically analyse possible functions at tail call site
 [ ] Statically analyse closure life-times
 [ ] Investigate different memory allocation strategies
+
+# Calling convention
+
+Arguments are passed in registers, if there are not enough registers, the
+remaining arguments are passed through static global variables. Since we know
+in advance what the the maximum number of arguments is going to be, we can
+allocate this array staticall (if required at all).
+
+If the function has a non-empty closure, a pointer to the closure is passed as
+the first argument.
+
+Idea: pass the closure values in registers as well.
+
+Idea: Re-order arguments such that at runtime, the minimum amount of register
+shuffling is required. Use profiling data to determine how to order.
+
+Idea: Re-order functions such that fall-through instead of a jump to share code
+between an inlined function and the un-inlined version (at least for one
+location where it is inlined). Use profiling data to determine which function.
+
+Idea: Provide a native "syscall" function, use this to implement an stdlib.
+http://syscalls.kernelgrok.com/
+http://www.muppetlabs.com/~breadbox/software/tiny/teensy.html
 
 
 /// TODO: Use alloca when we can

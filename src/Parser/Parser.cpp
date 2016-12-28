@@ -551,7 +551,7 @@ Program compile(std::shared_ptr<Node> module)
 					p.closure_call[current_closure_index] = node.call_index;
 					current_closure_index = none;
 				} else {
-					std::wcerr << "Unassociated call\n";
+					// std::wcerr << "Unassociated call" << "\n";
 				}
 			}
 		}

@@ -14,10 +14,8 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	std::wcerr << "\n";
 	
 	Machine::load(cp);
-	
+	//Machine::print();
 	Machine::run();
-	
-	// Machine::print(cp);
 	
 	return Command::success;
 },

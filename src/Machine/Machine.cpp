@@ -30,8 +30,16 @@ struct value_t {
 	std::wstring constant;
 	
 	// Closure
-	uint16_t function_index;
+	uint16_t function_index = 0;
 	std::vector<std::shared_ptr<value_t>> values;
+	
+	bool operator==(const value_t& other) const {
+		return import == other.import && constant == other.constant &&
+			function_index == other.function_index && values == other.values;
+	}
+	bool operator!=(const value_t& other) const {
+		return !operator==(other);
+	}
 };
 
 struct alloc_instruction_t {
@@ -92,6 +100,24 @@ void print(const function_t& f, uint index);
 } namespace Machine {
 
 
+address_t make_constant(const value_t& value)
+{
+	std::wcerr << constants << " ? " << value << "\n";
+	
+	// Find and return existing constant
+	for(uint i = 0; i < constants.size(); ++i) {
+		if(*constants[i] == value) {
+			return address_t{type_constant, i};
+		}
+	}
+	
+	// Make a new constant
+	const address_t addr{type_constant, constants.size()};
+	constants.push_back(std::make_shared<value_t>(value));
+	assert(*constants[addr.index] == value);
+	return addr;
+}
+
 void load(const Compile::Program& program)
 {
 	// Reset
@@ -111,18 +137,16 @@ void load(const Compile::Program& program)
 		
 		// Layout imports as constants
 		for(const auto& import: compile_func.imports) {
-			symbol_map[import.first] = address_t{type_constant, constants.size()};
-			std::shared_ptr<value_t> value = std::make_shared<value_t>();
-			value->import = import.second;
-			constants.push_back(value);
+			value_t value;
+			value.import = import.second;
+			symbol_map[import.first] = make_constant(value);
 		}
 		
 		// Layout constant
 		for(const auto& constant: compile_func.constants) {
-			symbol_map[constant.first] = address_t{type_constant, constants.size()};
-			std::shared_ptr<value_t> value = std::make_shared<value_t>();
-			value->constant = constant.second;
-			constants.push_back(value);
+			value_t value;
+			value.constant = constant.second;
+			symbol_map[constant.first] = make_constant(value);
 		}
 		
 		// Layout closure arguments
@@ -255,10 +279,11 @@ void inline_function(function_t& outer, const function_t& inner)
 	assert(closure->constant.empty());
 	assert(closure->import.empty());
 	
-	// Append closure values to constants
-	const uint closure_offset = constants.size();
-	std::copy(closure->values.begin(), closure->values.end(),
-		std::back_inserter(constants));
+	// Add closure values to constants
+	std::vector<address_t> closure_constants;
+	for(const std::shared_ptr<value_t>& value: closure->values) {
+		closure_constants.push_back(make_constant(*value));
+	}
 	
 	// Append inner allocs to outer allocs
 	const uint alloc_offset = outer.allocs.size();
@@ -270,7 +295,7 @@ void inline_function(function_t& outer, const function_t& inner)
 	std::function<address_t(address_t)> map = [&](address_t address) {
 		switch(address.type) {
 		case type_constant: return address;
-		case type_closure:  return address_t{type_constant, address.index + closure_offset};
+		case type_closure:  return closure_constants[address.index];
 		case type_alloc:    return address_t{type_alloc, address.index + alloc_offset};
 		case type_argument: return outer_call[address.index + 1];
 		}
@@ -326,16 +351,15 @@ bool promote_allocs(function_t& function)
 		
 		// Constant closures
 		if(!uses_closure && !uses_arguments) {
-			std::shared_ptr<value_t> value = std::make_shared<value_t>();
-			value->function_index = alloc.function_index;
-			for(const address_t& addr: alloc.closure) {
-				assert(addr.type == type_constant);
-				value->values.push_back(constants[addr.index]);
-			}
 			
 			// Create a new constant
-			address_t addr{type_constant, constants.size()};
-			constants.push_back(value);
+			value_t value;
+			value.function_index = alloc.function_index;
+			for(const address_t& addr: alloc.closure) {
+				assert(addr.type == type_constant);
+				value.values.push_back(constants[addr.index]);
+			}
+			const address_t addr = make_constant(value);
 			
 			// Replace alloc by constant
 			replace_index(function, alloc_address, addr);

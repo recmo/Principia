@@ -11,8 +11,8 @@
 [x] Inline functions
 [x] Fixed-point constant finding and inlining
 [x] Global list of constants
-[ ] Deduplicated constants
-[ ] Remove unused constants
+[x] Deduplicated constants
+[ ] Remove unused functions, allocs, constants
 [ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)

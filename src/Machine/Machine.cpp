@@ -63,7 +63,7 @@ std::vector<std::shared_ptr<value_t>> arguments;
 
 // Optimization passes
 void remove_alloc(function_t& function, address_t alloc_index);
-void promote_allocs(function_t& function);
+bool promote_allocs(function_t& function);
 void inline_function(function_t& outer, const function_t& inner);
 void inline_functions(std::vector<function_t>& functions);
 
@@ -247,7 +247,7 @@ void remove_alloc(function_t& function, address_t alloc_address)
 
 void inline_function(function_t& outer, const function_t& inner)
 {
-	std::wcerr << "Inlining " << inner.name << " in " << outer.name << "\n";
+	// std::wcerr << "Inlining " << inner.name << " in " << outer.name << "\n";
 	
 	// Inline functions when outer calls inner with a constant closure
 	assert(&outer != &inner);
@@ -303,8 +303,9 @@ void inline_function(function_t& outer, const function_t& inner)
 }
 
 // Find constant and/or closure allocs
-void promote_allocs(function_t& function)
+bool promote_allocs(function_t& function)
 {
+	bool promoted = false;
 	std::vector<bool> alloc_uses_closure;
 	std::vector<bool> alloc_uses_arguments;
 	
@@ -352,6 +353,7 @@ void promote_allocs(function_t& function)
 			
 			// We lost our index position
 			i -= 1;
+			promoted = true;
 			continue;
 			
 		} else if(!uses_arguments) {
@@ -361,28 +363,44 @@ void promote_allocs(function_t& function)
 		alloc_uses_closure.push_back(uses_closure);
 		alloc_uses_arguments.push_back(uses_arguments);
 	}
+	
+	return promoted;
 }
 
 void inline_functions(std::vector<function_t>& functions)
 {
 	for(function_t& outer: functions) {
-		
-		// Check the call
-		if(outer.call[0].type == type_constant) {
-			const std::shared_ptr<value_t>& closure = outer.constants[outer.call[0].index];
-			assert(closure->constant.empty());
+		bool finished = false;
+		uint itter = 0;
+		while(!finished) {
+			finished = true;
 			
-			// We can not inline builtins/imports
-			if(!closure->import.empty()) {
-				continue;
+			// Check the call
+			if(outer.call[0].type == type_constant) {
+				const std::shared_ptr<value_t>& closure = outer.constants[outer.call[0].index];
+				assert(closure->constant.empty());
+				
+				// We can not inline builtins/imports
+				if(!closure->import.empty()) {
+					break;
+				}
+				
+				// Inline inner function
+				const function_t& inner = functions[closure->function_index];
+				inline_function(outer, inner);
+				
+				// Re-optimize constant closures
+				const bool repeat = promote_allocs(outer);
+				
+				// Repeat
+				finished = false;
+				++itter;
+				
+			} else if(outer.call[0].type == type_closure) {
+				std::wcerr << "Function " << outer.name << " can have inner closure-inlined\n";
 			}
-			
-			const function_t& inner = functions[closure->function_index];
-			inline_function(outer, inner);
-			
-		} else if(outer.call[0].type == type_closure) {
-			std::wcerr << "Function can be closure-inlined\n";
 		}
+		//std::wcerr << "Inlined " << itter << " times!\n";
 	}
 }
 

@@ -9,7 +9,7 @@
 [x] Promote constant allocs to constant closures
 [x] Add address_t type and use it
 [x] Inline functions
-[ ] Fixed-point constant finding and inlining
+[x] Fixed-point constant finding and inlining
 [ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values

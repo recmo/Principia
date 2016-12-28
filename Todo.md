@@ -10,11 +10,12 @@
 [x] Add address_t type and use it
 [x] Inline functions
 [x] Fixed-point constant finding and inlining
+[x] Global list of constants
+[ ] Deduplicated constants
+[ ] Remove unused constants
 [ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
-[ ] Global list of constants
-[ ] Deduplicated constants
 [ ] Reference counting memory manager
 [ ] Statically analyse possible functions at tail call site
 [ ] Statically analyse closure life-times

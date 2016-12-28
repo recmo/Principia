@@ -42,7 +42,6 @@ struct alloc_instruction_t {
 struct function_t {
 	std::wstring name;
 	uint call_count;
-	std::vector<std::shared_ptr<value_t>> constants;
 	uint16_t closures;
 	uint16_t arguments;
 	std::vector<alloc_instruction_t> allocs;
@@ -51,6 +50,7 @@ struct function_t {
 
 // Program definition
 
+std::vector<std::shared_ptr<value_t>> constants;
 std::vector<function_t> functions;
 
 uint main_index;
@@ -95,6 +95,7 @@ void print(const function_t& f, uint index);
 void load(const Compile::Program& program)
 {
 	// Reset
+	constants.clear();
 	functions.clear();
 	main_index = -1;
 	
@@ -107,9 +108,6 @@ void load(const Compile::Program& program)
 		
 		// Map from symbols to memory addresses
 		std::map<Parser::Symbol, address_t> symbol_map;
-		
-		// Create empty stack, list of imports and list of constants
-		std::vector<std::shared_ptr<value_t>> constants;
 		
 		// Layout imports as constants
 		for(const auto& import: compile_func.imports) {
@@ -147,7 +145,6 @@ void load(const Compile::Program& program)
 		function_t machine_func;
 		machine_func.name = compile_func.name;
 		machine_func.call_count = 0;
-		machine_func.constants = std::move(constants);
 		machine_func.closures = compile_func.closure.size();
 		machine_func.arguments = compile_func.arguments.size();
 		
@@ -253,20 +250,15 @@ void inline_function(function_t& outer, const function_t& inner)
 	assert(&outer != &inner);
 	assert(outer.call.size() == inner.arguments + 1);
 	assert(outer.call[0].type == type_constant);
-	assert(outer.call[0].index < outer.constants.size());
-	const std::shared_ptr<value_t> closure = outer.constants[outer.call[0].index];
+	assert(outer.call[0].index < constants.size());
+	const std::shared_ptr<value_t> closure = constants[outer.call[0].index];
 	assert(closure->constant.empty());
 	assert(closure->import.empty());
 	
-	// Append inner constants to outer constants
-	const uint const_offset = outer.constants.size();
-	std::copy(inner.constants.begin(), inner.constants.end(),
-		std::back_inserter(outer.constants));
-	
-	// Append closure values to outer constants
-	const uint closure_offset = outer.constants.size();
+	// Append closure values to constants
+	const uint closure_offset = constants.size();
 	std::copy(closure->values.begin(), closure->values.end(),
-		std::back_inserter(outer.constants));
+		std::back_inserter(constants));
 	
 	// Append inner allocs to outer allocs
 	const uint alloc_offset = outer.allocs.size();
@@ -277,9 +269,9 @@ void inline_function(function_t& outer, const function_t& inner)
 	const std::vector<address_t> outer_call = outer.call;
 	std::function<address_t(address_t)> map = [&](address_t address) {
 		switch(address.type) {
-		case type_constant: return address_t{type_constant, address.index + const_offset};
+		case type_constant: return address;
 		case type_closure:  return address_t{type_constant, address.index + closure_offset};
-		case type_alloc:    return address_t{type_alloc   , address.index + alloc_offset};
+		case type_alloc:    return address_t{type_alloc, address.index + alloc_offset};
 		case type_argument: return outer_call[address.index + 1];
 		}
 		assert(false);
@@ -338,12 +330,12 @@ bool promote_allocs(function_t& function)
 			value->function_index = alloc.function_index;
 			for(const address_t& addr: alloc.closure) {
 				assert(addr.type == type_constant);
-				value->values.push_back(function.constants[addr.index]);
+				value->values.push_back(constants[addr.index]);
 			}
 			
 			// Create a new constant
-			address_t addr{type_constant, function.constants.size()};
-			function.constants.push_back(value);
+			address_t addr{type_constant, constants.size()};
+			constants.push_back(value);
 			
 			// Replace alloc by constant
 			replace_index(function, alloc_address, addr);
@@ -377,7 +369,7 @@ void inline_functions(std::vector<function_t>& functions)
 			
 			// Check the call
 			if(outer.call[0].type == type_constant) {
-				const std::shared_ptr<value_t>& closure = outer.constants[outer.call[0].index];
+				const std::shared_ptr<value_t>& closure = constants[outer.call[0].index];
 				assert(closure->constant.empty());
 				
 				// We can not inline builtins/imports
@@ -408,7 +400,6 @@ void print(const function_t& f, uint index)
 {
 	std::wcerr << "Function " << index << " " << f.name << "\n";
 	std::wcerr << "\tcall count: " << f.call_count << "\n";
-	std::wcerr << "\tconstants:  " << f.constants << "\n";
 	std::wcerr << "\tclosures:   " << f.closures << "\n";
 	std::wcerr << "\targuments:  " << f.arguments << "\n";
 	std::wcerr << "\tallocates:  " << f.allocs.size() << "\n";
@@ -422,6 +413,7 @@ void print(const function_t& f, uint index)
 
 void print()
 {
+	std::wcerr << "Constants: " << constants << "\n";
 	uint index = 0;
 	for(const auto& f: functions) {
 		print(f, index);
@@ -465,7 +457,7 @@ void run()
 			std::function<std::shared_ptr<value_t>(address_t)> memory =
 				[&](address_t addr) {
 				switch(addr.type) {
-				case type_constant: return func.constants[addr.index];
+				case type_constant: return constants[addr.index];
 				case type_closure:  return closure->values[addr.index];
 				case type_argument: return arguments[addr.index];
 				case type_alloc:    return allocs[addr.index];

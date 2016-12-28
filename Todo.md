@@ -12,7 +12,7 @@
 [x] Fixed-point constant finding and inlining
 [ ] Explicit `dealloc` instruction
 [ ] Benchmarking per closure, histogram per function
-[ ] Promote closure alllocs to closure values
+[ ] Promote closure alllocs to closure values (closure-inlining)
 [ ] Global list of constants
 [ ] Deduplicated constants
 [ ] Reference counting memory manager
@@ -41,8 +41,7 @@ location where it is inlined). Use profiling data to determine which function.
 
 Idea: Provide a native "syscall" function, use this to implement an stdlib.
 http://syscalls.kernelgrok.com/
-http://www.muppetlabs.com/~breadbox/software/tiny/teensy.html
-
+See teensy.asm
 
 /// TODO: Use alloca when we can
 

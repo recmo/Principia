@@ -670,11 +670,29 @@ void run()
 	closure = &main;
 	arguments.clear();
 	arguments.push_back(&exit);
+	
+	// Allocate arrays out of the loop
+	value_t* new_closure;
+	std::vector<value_t*> new_arguments;
+	std::vector<value_t*> allocs;
+	
+	// Virtual Memory
+	std::function<value_t*(address_t)> memory = [&](address_t addr) -> value_t* {
+		switch(addr.type) {
+		case type_constant: return constants[addr.index];
+		case type_closure:  return closure->values[addr.index];
+		case type_argument: return arguments[addr.index];
+		case type_alloc:    return allocs[addr.index];
+		}
+		assert(false);
+		return nullptr;
+	};
+	
 	running = true;
 	while(running) {
 		
 		// Validate state
-		validate_reference_counts();
+		// validate_reference_counts();
 		
 		// Regular functions
 		if(closure->import.empty()) {
@@ -685,22 +703,6 @@ void run()
 			assert(closure->values.size() == func.closures);
 			assert(arguments.size() == func.arguments);
 			func.call_count += 1;
-			
-			// Create space for allocs
-			std::vector<value_t*> allocs;
-			allocs.reserve(func.allocs.size());
-			
-			// Virtual Memory
-			std::function<value_t*(address_t)> memory = [&](address_t addr) -> value_t* {
-				switch(addr.type) {
-				case type_constant: return constants[addr.index];
-				case type_closure:  return closure->values[addr.index];
-				case type_argument: return arguments[addr.index];
-				case type_alloc:    return allocs[addr.index];
-				}
-				assert(false);
-				return nullptr;
-			};
 			
 			// Execute deref instructions. Do them recusively
 			// since loss of the closure here, means loss of access
@@ -713,7 +715,6 @@ void run()
 			// Execute alloc instructions
 			for(const alloc_instruction_t& inst: func.allocs) {
 				value_t* closure = new value_t();
-				assert(closure->reference_count == 1);
 				closure->function_index = inst.function_index;
 				for(const address_t& addr: inst.closure) {
 					value_t* value = memory(addr);
@@ -730,21 +731,22 @@ void run()
 			
 			// Load call instruction
 			assert(func.call.size() >= 1);
-			std::vector<value_t*> new_arguments;
-			new_arguments.reserve(func.call.size() - 1);
+			new_arguments.clear();
 			for(uint i = 1; i < func.call.size(); ++i) {
 				value_t* value = memory(func.call[i]);
 				new_arguments.push_back(value);
 			}
-			value_t* old_closure = closure;
-			closure = memory(func.call[0]);
-			arguments = std::move(new_arguments);
+			new_closure = memory(func.call[0]);
 			
 			// Deref the called closure and add a reference to all the values.
 			// We can do this in one operation, to save in the common case
 			// where the closure's refcount is one.
-			deref_unpack(old_closure);
+			deref_unpack(closure);
 			
+			// Reset & repeat
+			allocs.clear();
+			closure = new_closure;
+			std::swap(arguments, new_arguments);
 			continue;
 			
 		// Builtin functions

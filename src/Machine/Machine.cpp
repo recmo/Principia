@@ -40,7 +40,7 @@ struct value_t {
 	
 	// Closure
 	uint16_t function_index = 0;
-	std::vector<std::shared_ptr<value_t>> values;
+	std::vector<value_t*> values;
 	
 	bool operator==(const value_t& other) const {
 		return import == other.import && constant == other.constant &&
@@ -71,14 +71,14 @@ struct function_t {
 	uint16_t closures;
 	uint16_t arguments;
 	std::vector<deref_instruction_t> derefs;
-	std::vector<ref_instruction_t>   refs;
 	std::vector<alloc_instruction_t> allocs;
+	std::vector<ref_instruction_t>   refs;
 	std::vector<address_t> call;
 };
 
 // Program definition
 
-std::vector<std::shared_ptr<value_t>> constants;
+std::vector<value_t*> constants;
 std::vector<function_t> functions;
 
 uint main_index;
@@ -86,27 +86,58 @@ uint main_index;
 // Runtime state
 
 bool running = false;
-std::shared_ptr<value_t> closure;
-std::vector<std::shared_ptr<value_t>> arguments;
+value_t* closure = nullptr;
+std::vector<value_t*> arguments;
+
+// Reference counting
+void ref(value_t* value, uint16_t additional);
+void deref(value_t* value);
+void deref_unpack(value_t* value);
+
+void ref(value_t* value, uint16_t additional)
+{
+	assert(value != nullptr);
+	if(value->reference_count == reference_max)
+		return;
+	assert(value->reference_count > 0);
+	assert(value->reference_count < reference_max - additional);
+	value->reference_count += additional;
+}
 
 void deref(value_t* value)
 {
+	assert(value != nullptr);
 	if(value->reference_count == reference_max) {
-		
+		return;
 	}
+	assert(value->reference_count > 0);
 	value->reference_count -= 1;
 	if(value->reference_count == 0) {
-		// TODO: Recurse on closure
+		for(value_t* rec: value->values) {
+			deref(rec);
+		}
 		delete value;
 	}
 }
 
-void ref(value_t* value, uint16_t additional)
+// Combined add reference to children, plus dereference parent
+void deref_unpack(value_t* value)
 {
-	if(value->reference_count == reference_max)
+	assert(value != nullptr);
+	if(value->reference_count == reference_max) {
 		return;
-	assert(value->reference_count < reference_max - additional);
-	value->reference_count += additional;
+	}
+	assert(value->reference_count > 0);
+	value->reference_count -= 1;
+	if(value->reference_count == 0) {
+		// Destroy the closure, but keep the references to the children.
+		delete value;
+	} else {
+		// Closure was not destroyed, issue new references to the children.
+		for(value_t* rec: value->values) {
+			ref(rec, 1);
+		}
+	}
 }
 
 // Optimization passes
@@ -142,6 +173,15 @@ void print(const function_t& f, uint index);
 	return out;
 } namespace Machine {
 
+} std::wostream& operator<<(std::wostream& out, const Machine::deref_instruction_t& value) {
+	out << value.address;
+	return out;
+} namespace Machine {
+
+} std::wostream& operator<<(std::wostream& out, const Machine::ref_instruction_t& value) {
+	out << value.address << ": " << value.count;
+	return out;
+} namespace Machine {
 
 address_t make_constant(const value_t& value)
 {
@@ -154,10 +194,19 @@ address_t make_constant(const value_t& value)
 	
 	// Make a new constant
 	const address_t addr{type_constant, constants.size()};
-	constants.push_back(std::make_shared<value_t>(value));
+	constants.push_back(new value_t(value));
 	assert(*constants[addr.index] == value);
 	constants[addr.index]->reference_count = reference_max;
 	return addr;
+}
+
+void unload()
+{
+	for(value_t* c: constants) {
+		delete c;
+	}
+	constants.clear();
+	functions.clear();
 }
 
 void load(const Compile::Program& program)
@@ -261,6 +310,7 @@ void load(const Compile::Program& program)
 	// Update reference counts
 	for(function_t& func: functions) {
 		remove_unused_allocs(func);
+		update_reference_counts(func);
 	}
 	
 	// Make sure we have a valid main
@@ -274,13 +324,17 @@ void remove_unused_allocs(function_t& function)
 {
 	// Find unused allocs
 	std::vector<bool> used(function.allocs.size(), false);
-	for(const alloc_instruction_t& alloc: function.allocs)
-		for(const address_t addr: alloc.closure)
-			if(addr.type == type_alloc)
-				used[addr.index] = true;
+	std::function<void(address_t)> use = [&](address_t addr) {
+		if(addr.type != type_alloc)
+			return;
+		if(used[addr.index])
+			return;
+		used[addr.index] = true;
+		for(address_t rec: function.allocs[addr.index].closure)
+			use(rec);
+	};
 	for(const address_t addr: function.call)
-		if(addr.type == type_alloc)
-			used[addr.index] = true;
+		use(addr);
 	
 	// Remove unused allocs
 	std::vector<alloc_instruction_t> new_allocs;
@@ -309,17 +363,18 @@ void remove_unused_allocs(function_t& function)
 
 void update_reference_counts(function_t& function)
 {
-	// Remove unused allocs first
-	remove_unused_allocs(function);
-	
 	// Count references of closures, arguments and allocs
 	std::map<address_t, uint> reference_count;
+	
+	// Initialize counts at zero
 	for(uint i = 0; i < function.closures; ++i)
 		reference_count[address_t{type_closure, i}] = 0;
 	for(uint i = 0; i < function.arguments; ++i)
 		reference_count[address_t{type_argument, i}] = 0;
 	for(uint i = 0; i < function.allocs.size(); ++i)
 		reference_count[address_t{type_alloc, i}] = 0;
+	
+	// Count references
 	for(const alloc_instruction_t& alloc: function.allocs)
 		for(const address_t addr: alloc.closure)
 			if(addr.type != type_constant)
@@ -327,8 +382,10 @@ void update_reference_counts(function_t& function)
 	for(const address_t addr: function.call)
 		if(addr.type != type_constant)
 			reference_count[addr]++;
-	if(function.call[0].type != type_constant)
-	reference_count[function.call[0]]--;
+	
+	// Note: The call instruction already derefs it's first argument, but it
+	// does so in a non-recursive fashion (the closure values get passed to
+	// the called function).
 	
 	// Clear existing
 	function.derefs.clear();
@@ -339,16 +396,20 @@ void update_reference_counts(function_t& function)
 		
 		// Deref instructions
 		if(pair.second == 0) {
+			// Really only unused arguments should be dereffed.
+			assert(pair.first.type != type_constant); // Can't deref constants
 			assert(pair.first.type != type_alloc); // Clean up uneccesary allocs first
+			assert(pair.first.type != type_closure); // Clean up uneccesary closures first
 			function.derefs.push_back(deref_instruction_t{pair.first});
 			
-		// We inherited a reference on everything, so one means
-		// no change
+		// On call, we inherited everything with a reference off one. In most
+		// cases we keep this refcount.
 		} else if(pair.second == 1) {
 			continue;
 			
-		// Reference instruction
+		// Add reference instructions
 		} else {
+			assert(pair.first.type != type_constant); // Can't ref constants
 			function.refs.push_back(ref_instruction_t{pair.first, pair.second - 1});
 		}
 	}
@@ -403,13 +464,13 @@ void inline_function(function_t& outer, const function_t& inner)
 	assert(outer.call.size() == inner.arguments + 1);
 	assert(outer.call[0].type == type_constant);
 	assert(outer.call[0].index < constants.size());
-	const std::shared_ptr<value_t> closure = constants[outer.call[0].index];
+	const value_t* closure = constants[outer.call[0].index];
 	assert(closure->constant.empty());
 	assert(closure->import.empty());
 	
 	// Add closure values to constants
 	std::vector<address_t> closure_constants;
-	for(const std::shared_ptr<value_t>& value: closure->values) {
+	for(const value_t* value: closure->values) {
 		closure_constants.push_back(make_constant(*value));
 	}
 	
@@ -521,7 +582,7 @@ void inline_functions(std::vector<function_t>& functions)
 			
 			// Check the call
 			if(outer.call[0].type == type_constant) {
-				const std::shared_ptr<value_t>& closure = constants[outer.call[0].index];
+				const value_t* closure = constants[outer.call[0].index];
 				assert(closure->constant.empty());
 				
 				// We can not inline builtins/imports
@@ -554,10 +615,12 @@ void print(const function_t& f, uint index)
 	std::wcerr << "\tcall count: " << f.call_count << "\n";
 	std::wcerr << "\tclosures:   " << f.closures << "\n";
 	std::wcerr << "\targuments:  " << f.arguments << "\n";
+	std::wcerr << "\tderefs:     " << f.derefs << "\n";
 	std::wcerr << "\tallocates:  " << f.allocs.size() << "\n";
 	for(const auto& alloc: f.allocs) {
 		std::wcerr << "\t\t" << alloc.function_index << " " << alloc.closure << "\n";
 	}
+	std::wcerr << "\trefs:       " << f.refs << "\n";
 	std::wcerr << "\ttail call:\n";
 	std::wcerr << "\t\t" << f.call << "\n";
 	std::wcerr << "\n";
@@ -566,8 +629,6 @@ void print(const function_t& f, uint index)
 void print()
 {
 	std::wcerr << "Constants: " << constants << "\n";
-	std::wcerr << "Constants: " << constants.size() << "\n";
-	return;
 	uint index = 0;
 	for(const auto& f: functions) {
 		print(f, index);
@@ -575,23 +636,45 @@ void print()
 	}
 }
 
+void validate_reference_counts()
+{
+	std::map<const value_t*, uint> counts;
+	std::function<void(const value_t*)> count = [&](const value_t* value) {
+		assert(value != nullptr);
+		const bool seen = counts[value] > 0;
+		counts[value]++;
+		if(!seen)
+			for(const value_t* v: value->values)
+				count(v);
+	};
+	count(closure);
+	for(const value_t* v: arguments) {
+		count(v);
+	}
+	for(const auto& pair: counts) {
+		if(pair.first->reference_count == reference_max)
+			continue;
+		assert(pair.first->reference_count == pair.second);
+	}
+}
+
 void run()
 {
 	// Start at "main" with the built-in "exit" as the only argument
-	closure = std::make_shared<value_t>();
-	closure->function_index = main_index;
-	std::shared_ptr<value_t> exit = std::make_shared<value_t>();
-	exit->import = L"exit";
+	value_t main;
+	main.reference_count = reference_max;
+	main.function_index = main_index;
+	value_t exit;
+	exit.reference_count = reference_max;
+	exit.import = L"exit";
+	closure = &main;
 	arguments.clear();
-	arguments.push_back(exit);
+	arguments.push_back(&exit);
 	running = true;
 	while(running) {
 		
 		// Validate state
-		assert(closure != nullptr);
-		for(const auto& arg: arguments) {
-			assert(arg != nullptr);
-		}
+		validate_reference_counts();
 		
 		// Regular functions
 		if(closure->import.empty()) {
@@ -604,12 +687,11 @@ void run()
 			func.call_count += 1;
 			
 			// Create space for allocs
-			std::vector<std::shared_ptr<value_t>> allocs;
+			std::vector<value_t*> allocs;
 			allocs.reserve(func.allocs.size());
 			
 			// Virtual Memory
-			std::function<std::shared_ptr<value_t>(address_t)> memory =
-				[&](address_t addr) {
+			std::function<value_t*(address_t)> memory = [&](address_t addr) -> value_t* {
 				switch(addr.type) {
 				case type_constant: return constants[addr.index];
 				case type_closure:  return closure->values[addr.index];
@@ -617,52 +699,82 @@ void run()
 				case type_alloc:    return allocs[addr.index];
 				}
 				assert(false);
-				return std::shared_ptr<value_t>();
+				return nullptr;
 			};
+			
+			// Execute deref instructions. Do them recusively
+			// since loss of the closure here, means loss of access
+			// to the values.
+			for(const deref_instruction_t& inst: func.derefs) {
+				value_t* value = memory(inst.address);
+				deref(value);
+			}
 			
 			// Execute alloc instructions
 			for(const alloc_instruction_t& inst: func.allocs) {
-				std::shared_ptr<value_t> closure = std::make_shared<value_t>();
+				value_t* closure = new value_t();
+				assert(closure->reference_count == 1);
 				closure->function_index = inst.function_index;
 				for(const address_t& addr: inst.closure) {
-					closure->values.push_back(memory(addr));
+					value_t* value = memory(addr);
+					closure->values.push_back(value);
 				}
-				allocs.push_back(std::move(closure));
+				allocs.push_back(closure);
+			}
+			
+			// Execute ref instructions
+			for(const ref_instruction_t& inst: func.refs) {
+				value_t* value = memory(inst.address);
+				ref(value, inst.count);
 			}
 			
 			// Load call instruction
 			assert(func.call.size() >= 1);
-			std::vector<std::shared_ptr<value_t>> new_arguments;
+			std::vector<value_t*> new_arguments;
 			new_arguments.reserve(func.call.size() - 1);
 			for(uint i = 1; i < func.call.size(); ++i) {
-				new_arguments.push_back(memory(func.call[i]));
+				value_t* value = memory(func.call[i]);
+				new_arguments.push_back(value);
 			}
+			value_t* old_closure = closure;
 			closure = memory(func.call[0]);
 			arguments = std::move(new_arguments);
+			
+			// Deref the called closure and add a reference to all the values.
+			// We can do this in one operation, to save in the common case
+			// where the closure's refcount is one.
+			deref_unpack(old_closure);
+			
 			continue;
 			
 		// Builtin functions
 		} else {
 			
 			if(closure->import == L"print") {
+				assert(closure->values.size() == 0);
 				assert(arguments.size() == 2);
 				
 				// Print arg₀
 				assert(arguments[0]->import.empty());
 				assert(arguments[0]->function_index == 0);
 				std::wcout << arguments[0]->constant;
+				deref(arguments[0]);
 				
 				// Call arg₁
+				deref(closure);
 				closure = arguments[1];
 				arguments.clear();
 				continue;
 			}
 			
 			if(closure->import == L"exit") {
+				assert(closure->values.size() == 0);
+				assert(arguments.size() == 0);
 				
 				// Exit
+				deref(closure);
 				running = false;
-				closure.reset();
+				closure = nullptr;
 				arguments.clear();
 				continue;
 			}

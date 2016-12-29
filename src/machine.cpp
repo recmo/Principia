@@ -4,6 +4,7 @@
 #include <Machine/Machine.h>
 
 Command machine(L"machine", [](Command::Arguments arguments) {
+	
 	assert(arguments.size() == 2);
 	
 	Parser::Program pp = Parser::compile(Parser::parseFile(arguments[0]));
@@ -16,6 +17,7 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	Machine::load(cp);
 	Machine::print();
 	Machine::run();
+	Machine::unload();
 	
 	return Command::success;
 },

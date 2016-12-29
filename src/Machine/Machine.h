@@ -4,6 +4,8 @@
 #include <vector>
 namespace Machine {
 
+void unload();
+
 void load(const Compile::Program& program);
 
 void print();

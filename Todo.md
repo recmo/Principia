@@ -13,9 +13,10 @@
 [x] Global list of constants
 [x] Deduplicated constants
 [x] Remove unused allocs
+[x] Explicit reference count instructions
+[x] Explicit reference counting (instead of std::shared_ptr)
+[ ] Deduplicate allocs
 [ ] Remove unused closures
-[ ] Explicit reference count instructions
-[ ] Explicit reference counting (instead of std::shared_ptr)
 [ ] Remove unused functions, allocs, constants
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)

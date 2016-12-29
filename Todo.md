@@ -15,6 +15,7 @@
 [x] Remove unused allocs
 [x] Explicit reference count instructions
 [x] Explicit reference counting (instead of std::shared_ptr)
+[x] Allocate closures as header + values
 [ ] Deduplicate allocs
 [ ] Remove unused closures
 [ ] Remove unused functions, allocs, constants

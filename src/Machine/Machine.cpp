@@ -2,6 +2,8 @@
 #include <limits>
 namespace Machine {
 
+// Program definition
+
 // There are four kinds of memory addresses
 enum address_type {
 	type_constant = 0,
@@ -23,31 +25,6 @@ struct address_t {
 	bool operator<(const address_t& other) const {
 		return (type != other.type) ?
 			type < other.type : index < other.index;
-	}
-};
-
-const uint16_t reference_max = std::numeric_limits<uint16_t>().max();
-
-struct value_t {
-	
-	uint16_t reference_count = 1;
-	
-	// Import
-	std::wstring import;
-	
-	// Constant
-	std::wstring constant;
-	
-	// Closure
-	uint16_t function_index = 0;
-	std::vector<value_t*> values;
-	
-	bool operator==(const value_t& other) const {
-		return import == other.import && constant == other.constant &&
-			function_index == other.function_index && values == other.values;
-	}
-	bool operator!=(const value_t& other) const {
-		return !operator==(other);
 	}
 };
 
@@ -76,14 +53,116 @@ struct function_t {
 	std::vector<address_t> call;
 };
 
-// Program definition
-
-std::vector<value_t*> constants;
 std::vector<function_t> functions;
-
 uint main_index;
 
 // Runtime state
+
+enum value_type {
+	value_closure = 0,
+	value_import  = 1,
+	value_string  = 2
+};
+
+const uint32_t reference_max = 0x3FFF;
+
+struct value_t {
+	unsigned int type            :  2;
+	unsigned int reference_count : 14;
+	
+	static value_t* make_closure(uint size) {
+		const size_t msize = sizeof(value_t)
+			+ sizeof(uint16_t)
+			+ size * sizeof(value_t*);
+		value_t* r = reinterpret_cast<value_t*>(malloc(msize));
+		r->reference_count = 1;
+		r->type = value_closure;
+		return r;
+	}
+	
+	static value_t* make_import(const std::wstring& value) {
+		const size_t msize = sizeof(value_t) + sizeof(std::wstring);
+		value_t* r = reinterpret_cast<value_t*>(malloc(msize));
+		r->reference_count = 1;
+		r->type = value_import;
+		new (&(r->string())) std::wstring(value);
+		return r;
+	}
+	
+	static value_t* make_string(const std::wstring& value) {
+		const size_t msize = sizeof(value_t) + sizeof(std::wstring);
+		value_t* r = reinterpret_cast<value_t*>(malloc(msize));
+		r->reference_count = 1;
+		r->type = value_string;
+		new (&(r->string())) std::wstring(value);
+		return r;
+	}
+	
+	std::wstring& string() {
+		void* data = this + 1;
+		return *reinterpret_cast<std::wstring*>(data);
+	}
+	
+	const std::wstring& string() const {
+		const void* data = this + 1;
+		return *reinterpret_cast<const std::wstring*>(data);
+	}
+	
+	uint16_t& function() {
+		void* data = this + 1;
+		return *reinterpret_cast<uint16_t*>(data);
+	}
+	
+	const uint16_t& function() const {
+		const void* data = this + 1;
+		return *reinterpret_cast<const uint16_t*>(data);
+	}
+	
+	value_t** values() {
+		void* data = this + 1;
+		return reinterpret_cast<value_t**>(data + sizeof(uint16_t));
+	}
+	
+	value_t** values() const {
+		void* data = const_cast<value_t*>(this) + 1;
+		return reinterpret_cast<value_t**>(data + sizeof(uint16_t));
+	}
+	
+	bool operator==(const value_t& other) const {
+		if(this == &other)
+			return true;
+		if(type != other.type)
+			return false;
+		switch(type) {
+		case value_closure: {
+			if(function() != other.function())
+				return false;
+			const uint size = functions[function()].closures;
+			for(uint i = 0; i < size; ++i) {
+				if(values()[i] != other.values()[i]) {
+					return false;
+				}
+			}
+			return true;
+		}
+		case value_import:
+		case value_string:
+			return string() == other.string();
+		default:
+			return false;
+		}
+	}
+	
+	bool operator!=(const value_t& other) const {
+		return !operator==(other);
+	}
+	
+private:
+	value_t();
+} __attribute__((packed));
+
+
+std::vector<value_t*> constants;
 
 bool running = false;
 value_t* closure = nullptr;
@@ -113,10 +192,13 @@ void deref(value_t* value)
 	assert(value->reference_count > 0);
 	value->reference_count -= 1;
 	if(value->reference_count == 0) {
-		for(value_t* rec: value->values) {
-			deref(rec);
+		if(value->type == value_closure) {
+			const uint size = functions[value->function()].closures;
+			for(uint i = 0; i < size; ++i) {
+				deref(value->values()[i]);
+			}
 		}
-		delete value;
+		free(value);
 	}
 }
 
@@ -127,15 +209,17 @@ void deref_unpack(value_t* value)
 	if(value->reference_count == reference_max) {
 		return;
 	}
+	assert(value->type == value_closure);
 	assert(value->reference_count > 0);
 	value->reference_count -= 1;
 	if(value->reference_count == 0) {
 		// Destroy the closure, but keep the references to the children.
-		delete value;
+		free(value);
 	} else {
 		// Closure was not destroyed, issue new references to the children.
-		for(value_t* rec: value->values) {
-			ref(rec, 1);
+		const uint size = functions[value->function()].closures;
+		for(uint i = 0; i < size; ++i) {
+			ref(value->values()[i], 1);
 		}
 	}
 }
@@ -163,12 +247,12 @@ void print(const function_t& f, uint index);
 } namespace Machine {
 
 } std::wostream& operator<<(std::wostream& out, const Machine::value_t& value) {
-	if(!value.import.empty()) {
-		out << value.import;
-	} else if(!value.constant.empty()) {
-		out << L"“" << value.constant << L"”";
+	if(value.type == Machine::value_import) {
+		out << value.string();
+	} else if(value.type == Machine::value_string) {
+		out << L"“" << value.string() << L"”";
 	} else {
-		out << (unsigned long)value.function_index << "(" << (unsigned long)value.values.size() << ")";
+		out << (unsigned long)value.function();
 	}
 	return out;
 } namespace Machine {
@@ -183,19 +267,22 @@ void print(const function_t& f, uint index);
 	return out;
 } namespace Machine {
 
-address_t make_constant(const value_t& value)
+address_t make_constant(value_t* value)
 {
 	// Find and return existing constant
 	for(uint i = 0; i < constants.size(); ++i) {
-		if(*constants[i] == value) {
+		if(*constants[i] == *value) {
+			if(constants[i] != value) {
+				free(value);
+			}
 			return address_t{type_constant, i};
 		}
 	}
 	
 	// Make a new constant
 	const address_t addr{type_constant, constants.size()};
-	constants.push_back(new value_t(value));
-	assert(*constants[addr.index] == value);
+	constants.push_back(value);
+	assert(*constants[addr.index] == *value);
 	constants[addr.index]->reference_count = reference_max;
 	return addr;
 }
@@ -207,6 +294,9 @@ void unload()
 	}
 	constants.clear();
 	functions.clear();
+	
+	std::wcerr << sizeof(value_t) << "\n";
+	std::wcerr << sizeof(value_t) << "\n";
 }
 
 void load(const Compile::Program& program)
@@ -216,11 +306,27 @@ void load(const Compile::Program& program)
 	functions.clear();
 	main_index = -1;
 	
+	// Pre-pass to create data structures
 	for(const Compile::Function& compile_func: program) {
-		
+		function_t machine_func;
+		machine_func.name = compile_func.name;
+		machine_func.call_count = 0;
+		machine_func.closures = compile_func.closure.size();
+		machine_func.arguments = compile_func.arguments.size();
+		machine_func.allocs.reserve(compile_func.allocations.size());
+		functions.push_back(machine_func);
+	}
+	
+	uint index = 0;
+	for(const Compile::Function& compile_func: program) {
+				
+		// Create the machine function
+		assert(index < functions.size());
+		function_t& machine_func = functions[index];
+
 		// Find main function
 		if(compile_func.name == L"main") {
-			main_index = functions.size();
+			main_index = index;
 		}
 		
 		// Map from symbols to memory addresses
@@ -228,15 +334,13 @@ void load(const Compile::Program& program)
 		
 		// Layout imports as constants
 		for(const auto& import: compile_func.imports) {
-			value_t value;
-			value.import = import.second;
+			value_t* value = value_t::make_import(import.second);
 			symbol_map[import.first] = make_constant(value);
 		}
 		
 		// Layout constant
 		for(const auto& constant: compile_func.constants) {
-			value_t value;
-			value.constant = constant.second;
+			value_t* value = value_t::make_string(constant.second);
 			symbol_map[constant.first] = make_constant(value);
 		}
 		
@@ -255,13 +359,6 @@ void load(const Compile::Program& program)
 			const Parser::Symbol symbol = std::make_pair(compile_func.allocations[i], 0);
 			symbol_map[symbol] = address_t{type_alloc, i};
 		}
-		
-		// Create the machine function
-		function_t machine_func;
-		machine_func.name = compile_func.name;
-		machine_func.call_count = 0;
-		machine_func.closures = compile_func.closure.size();
-		machine_func.arguments = compile_func.arguments.size();
 		
 		// Add allocation instructions
 		for(uint fid: compile_func.allocations) {
@@ -299,7 +396,7 @@ void load(const Compile::Program& program)
 		// Optimize
 		promote_allocs(machine_func);
 		
-		functions.push_back(std::move(machine_func));
+		index++;
 	}
 	
 	// Optimize
@@ -465,13 +562,13 @@ void inline_function(function_t& outer, const function_t& inner)
 	assert(outer.call[0].type == type_constant);
 	assert(outer.call[0].index < constants.size());
 	const value_t* closure = constants[outer.call[0].index];
-	assert(closure->constant.empty());
-	assert(closure->import.empty());
+	assert(closure->type == value_closure);
 	
 	// Add closure values to constants
 	std::vector<address_t> closure_constants;
-	for(const value_t* value: closure->values) {
-		closure_constants.push_back(make_constant(*value));
+	for(uint i = 0; i < inner.closures; ++i) {
+		// make_constant should always return an existing address here.
+		closure_constants.push_back(make_constant(closure->values()[i]));
 	}
 	
 	// Append inner allocs to outer allocs
@@ -542,11 +639,13 @@ bool promote_allocs(function_t& function)
 		if(!uses_closure && !uses_arguments) {
 			
 			// Create a new constant
-			value_t value;
-			value.function_index = alloc.function_index;
+			value_t* value = value_t::make_closure(alloc.closure.size());
+			value_t** values = value->values();
+			value->function() = alloc.function_index;
 			for(const address_t& addr: alloc.closure) {
 				assert(addr.type == type_constant);
-				value.values.push_back(constants[addr.index]);
+				*values = constants[addr.index];
+				++values;
 			}
 			const address_t addr = make_constant(value);
 			
@@ -583,15 +682,15 @@ void inline_functions(std::vector<function_t>& functions)
 			// Check the call
 			if(outer.call[0].type == type_constant) {
 				const value_t* closure = constants[outer.call[0].index];
-				assert(closure->constant.empty());
+				assert(closure->type != value_string);
 				
 				// We can not inline builtins/imports
-				if(!closure->import.empty()) {
+				if(closure->type != value_closure) {
 					break;
 				}
 				
 				// Inline inner function
-				const function_t& inner = functions[closure->function_index];
+				const function_t& inner = functions[closure->function()];
 				inline_function(outer, inner);
 				
 				// Re-optimize constant closures
@@ -643,9 +742,12 @@ void validate_reference_counts()
 		assert(value != nullptr);
 		const bool seen = counts[value] > 0;
 		counts[value]++;
-		if(!seen)
-			for(const value_t* v: value->values)
-				count(v);
+		if(!seen && value->type == value_closure) {
+			uint size = functions[value->function()].closures;
+			for(uint i = 0; i < size; ++i) {
+				count(value->values()[i]);
+			}
+		}
 	};
 	count(closure);
 	for(const value_t* v: arguments) {
@@ -661,15 +763,11 @@ void validate_reference_counts()
 void run()
 {
 	// Start at "main" with the built-in "exit" as the only argument
-	value_t main;
-	main.reference_count = reference_max;
-	main.function_index = main_index;
-	value_t exit;
-	exit.reference_count = reference_max;
-	exit.import = L"exit";
-	closure = &main;
+	value_t* main = value_t::make_closure(0);
+	main->function() = main_index;
+	closure = main;
 	arguments.clear();
-	arguments.push_back(&exit);
+	arguments.push_back(value_t::make_import(L"exit"));
 	
 	// Allocate arrays out of the loop
 	value_t* new_closure;
@@ -680,7 +778,7 @@ void run()
 	std::function<value_t*(address_t)> memory = [&](address_t addr) -> value_t* {
 		switch(addr.type) {
 		case type_constant: return constants[addr.index];
-		case type_closure:  return closure->values[addr.index];
+		case type_closure:  return closure->values()[addr.index];
 		case type_argument: return arguments[addr.index];
 		case type_alloc:    return allocs[addr.index];
 		}
@@ -695,12 +793,11 @@ void run()
 		// validate_reference_counts();
 		
 		// Regular functions
-		if(closure->import.empty()) {
+		if(closure->type == value_closure) {
 			
 			// Get the function
-			assert(closure->function_index < functions.size());
-			function_t& func = functions[closure->function_index];
-			assert(closure->values.size() == func.closures);
+			assert(closure->function() < functions.size());
+			function_t& func = functions[closure->function()];
 			assert(arguments.size() == func.arguments);
 			func.call_count += 1;
 			
@@ -714,11 +811,12 @@ void run()
 			
 			// Execute alloc instructions
 			for(const alloc_instruction_t& inst: func.allocs) {
-				value_t* closure = new value_t();
-				closure->function_index = inst.function_index;
+				value_t* closure = value_t::make_closure(inst.closure.size());
+				closure->function() = inst.function_index;
+				value_t** values = closure->values();
 				for(const address_t& addr: inst.closure) {
-					value_t* value = memory(addr);
-					closure->values.push_back(value);
+					*values = memory(addr);
+					++values;
 				}
 				allocs.push_back(closure);
 			}
@@ -751,15 +849,14 @@ void run()
 			
 		// Builtin functions
 		} else {
+			assert(closure->type == value_import);
 			
-			if(closure->import == L"print") {
-				assert(closure->values.size() == 0);
+			if(closure->string() == L"print") {
 				assert(arguments.size() == 2);
 				
 				// Print arg₀
-				assert(arguments[0]->import.empty());
-				assert(arguments[0]->function_index == 0);
-				std::wcout << arguments[0]->constant;
+				assert(arguments[0]->type == value_string);
+				std::wcout << arguments[0]->string();
 				deref(arguments[0]);
 				
 				// Call arg₁
@@ -769,8 +866,7 @@ void run()
 				continue;
 			}
 			
-			if(closure->import == L"exit") {
-				assert(closure->values.size() == 0);
+			if(closure->string() == L"exit") {
 				assert(arguments.size() == 0);
 				
 				// Exit
@@ -781,6 +877,7 @@ void run()
 				continue;
 			}
 			
+			std::wcerr << "Unknown builtin: " << closure->string() << "\n";
 			assert(false);
 		}
 	}

@@ -18,6 +18,7 @@
 [x] Allocate closures as header + values
 [x] Remove unused functions
 [x] Remove unused closure values
+[x] Inline calls to allocs
 [ ] Deduplicate allocs
 [ ] Deduplicate functions
 [ ] Benchmarking per closure, histogram per function

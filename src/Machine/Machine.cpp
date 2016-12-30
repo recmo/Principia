@@ -605,7 +605,7 @@ void remove_unused_functions_and_constants()
 	std::vector<function_t> new_functions;
 	for(uint i = 0; i < functions.size(); ++i) {
 		if(used_functions[i] == false) {
-			std::wcerr << "Remove function " << i << "\n";
+			// std::wcerr << "Remove function " << i << "\n";
 		} else {
 			function_map[i] = new_functions.size();
 			new_functions.push_back(functions[i]);
@@ -631,7 +631,7 @@ void remove_unused_functions_and_constants()
 	std::vector<value_t*> new_constants;
 	for(uint i = 0; i < constants.size(); ++i) {
 		if(used_constants[i] == false) {
-			std::wcerr << "Remove constant " << i << "\n";
+			// std::wcerr << "Remove constant " << i << "\n";
 			free(constants[i]);
 		} else {
 	        constant_map[i] = new_constants.size();
@@ -650,59 +650,6 @@ void remove_unused_functions_and_constants()
 		for(address_t& addr: func.call)
 			if(addr.type == type_constant)
 				addr.index = constant_map[addr.index];
-	}
-}
-
-void inline_function(function_t& outer, const function_t& inner)
-{
-	// std::wcerr << "Inlining " << inner.name << " in " << outer.name << "\n";
-	
-	// Inline functions when outer calls inner with a constant closure
-	assert(&outer != &inner);
-	assert(outer.call.size() == inner.arguments + 1);
-	assert(outer.call[0].type == type_constant);
-	assert(outer.call[0].index < constants.size());
-	const value_t* closure = constants[outer.call[0].index];
-	assert(closure->type == value_closure);
-	
-	// Add closure values to constants
-	std::vector<address_t> closure_constants;
-	for(uint i = 0; i < inner.closures; ++i) {
-		// make_constant should always return an existing address here.
-		closure_constants.push_back(make_constant(closure->values()[i]));
-	}
-	
-	// Append inner allocs to outer allocs
-	const uint alloc_offset = outer.allocs.size();
-	std::copy(inner.allocs.begin(), inner.allocs.end(),
-		std::back_inserter(outer.allocs));
-	
-	// Map from inner addresses to outer addresses
-	const std::vector<address_t> outer_call = outer.call;
-	std::function<address_t(address_t)> map = [&](address_t address) {
-		switch(address.type) {
-		case type_constant: return address;
-		case type_closure:  return closure_constants[address.index];
-		case type_alloc:    return address_t{type_alloc, address.index + alloc_offset};
-		case type_argument: return outer_call[address.index + 1];
-		}
-		assert(false);
-		return address_t{};
-	};
-	
-	// Remap inner alloc instructions
-	for(uint i = alloc_offset; i < outer.allocs.size(); ++i) {
-		alloc_instruction_t& alloc = outer.allocs[i];
-		for(uint j = 0; j < alloc.closure.size(); ++j) {
-			address_t& address = alloc.closure[j];
-			address = map(address);
-		}
-	}
-	
-	// Replace outer call with remapped inner call
-	outer.call = inner.call;
-	for(address_t& address: outer.call) {
-		address = map(address);
 	}
 }
 
@@ -772,40 +719,133 @@ bool promote_allocs(function_t& function)
 	return promoted;
 }
 
+void inline_constant_function(function_t& outer)
+{
+	// Inline functions when outer calls inner with a constant closure
+	assert(outer.call.size() > 0);
+	assert(outer.call[0].type == type_constant);
+	assert(outer.call[0].index < constants.size());
+	const value_t* closure = constants[outer.call[0].index];
+	assert(closure->type == value_closure);
+	assert(closure->function() < functions.size());
+	const function_t& inner = functions[closure->function()];
+	
+	// Add closure values to constants
+	std::vector<address_t> closure_constants;
+	for(uint i = 0; i < inner.closures; ++i) {
+		// make_constant should always return an existing address here.
+		closure_constants.push_back(make_constant(closure->values()[i]));
+	}
+	
+	// Append inner allocs to outer allocs
+	const uint alloc_offset = outer.allocs.size();
+	std::copy(inner.allocs.begin(), inner.allocs.end(),
+		std::back_inserter(outer.allocs));
+	
+	// Map from inner addresses to outer addresses
+	const std::vector<address_t> outer_call = outer.call;
+	std::function<address_t(address_t)> map = [&](address_t address) {
+		switch(address.type) {
+		case type_constant: return address;
+		case type_closure:  return closure_constants[address.index];
+		case type_alloc:    return address_t{type_alloc, address.index + alloc_offset};
+		case type_argument: return outer_call[address.index + 1];
+		}
+		assert(false);
+		return address_t{};
+	};
+	
+	// Remap inner alloc instructions
+	for(uint i = alloc_offset; i < outer.allocs.size(); ++i) {
+		alloc_instruction_t& alloc = outer.allocs[i];
+		for(uint j = 0; j < alloc.closure.size(); ++j) {
+			address_t& address = alloc.closure[j];
+			address = map(address);
+		}
+	}
+	
+	// Replace outer call with remapped inner call
+	outer.call = inner.call;
+	for(address_t& address: outer.call) {
+		address = map(address);
+	}
+}
+
+void inline_alloc_function(function_t& outer)
+{
+	// Inline functions when outer calls an alloc it itself created
+	assert(outer.call.size() > 0);
+	assert(outer.call[0].type == type_alloc);
+	assert(outer.call[0].index < outer.allocs.size());
+	const alloc_instruction_t alloc = outer.allocs[outer.call[0].index];
+	const function_t& inner = functions[alloc.function_index];
+	
+	// Append inner allocs to outer allocs
+	const uint alloc_offset = outer.allocs.size();
+	std::copy(inner.allocs.begin(), inner.allocs.end(),
+		std::back_inserter(outer.allocs));
+	
+	// Map from inner addresses to outer addresses
+	const std::vector<address_t> outer_call = outer.call;
+	std::function<address_t(address_t)> map = [&](address_t address) {
+		switch(address.type) {
+		case type_constant: return address;
+		case type_closure:  return alloc.closure[address.index];
+		case type_alloc:    return address_t{type_alloc, address.index + alloc_offset};
+		case type_argument: return outer_call[address.index + 1];
+		}
+		assert(false);
+		return address_t{};
+	};
+	
+	// Remap inner alloc instructions
+	for(uint i = alloc_offset; i < outer.allocs.size(); ++i) {
+		alloc_instruction_t& alloc = outer.allocs[i];
+		for(uint j = 0; j < alloc.closure.size(); ++j) {
+			address_t& address = alloc.closure[j];
+			address = map(address);
+		}
+	}
+	
+	// Replace outer call with remapped inner call
+	outer.call = inner.call;
+	for(address_t& address: outer.call) {
+		address = map(address);
+	}
+}
+
 void inline_functions(std::vector<function_t>& functions)
 {
 	for(function_t& outer: functions) {
 		bool finished = false;
-		uint itter = 0;
+		uint itterations = 0;
 		while(!finished) {
 			finished = true;
 			
-			// Check the call
-			if(outer.call[0].type == type_constant) {
-				const value_t* closure = constants[outer.call[0].index];
-				assert(closure->type != value_string);
-				
-				// We can not inline builtins/imports
-				if(closure->type != value_closure) {
-					break;
-				}
-				
-				// Inline inner function
-				const function_t& inner = functions[closure->function()];
-				inline_function(outer, inner);
-				
-				// Re-optimize constant closures
-				const bool repeat = promote_allocs(outer);
-				
-				// Repeat
+			// (Re)optimize
+			remove_unused_allocs(outer);
+			promote_allocs(outer);
+			
+			if(outer.call[0].type == type_constant
+				&& constants[outer.call[0].index]->type == value_closure) {
+				//std::wcerr << "Function " << outer.name << " can have inner constant-inlined\n";
+				inline_constant_function(outer);
 				finished = false;
-				++itter;
+				
+			} else if(outer.call[0].type == type_alloc) {
+				// std::wcerr << "Function " << outer.name << " can have inner alloc-inlined\n";
+				inline_alloc_function(outer);
+				finished = false;
 				
 			} else if(outer.call[0].type == type_closure) {
-				std::wcerr << "Function " << outer.name << " can have inner closure-inlined\n";
+				//std::wcerr << "Function " << outer.name << " can have inner closure-inlined\n";
 			}
+			
+			// Stop after a number of itterations
+			++itterations;
+			if(itterations > 10000)
+				break;
 		}
-		//std::wcerr << "Inlined " << itter << " times!\n";
 	}
 }
 

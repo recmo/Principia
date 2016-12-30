@@ -16,9 +16,10 @@
 [x] Explicit reference count instructions
 [x] Explicit reference counting (instead of std::shared_ptr)
 [x] Allocate closures as header + values
+[x] Remove unused functions
+[x] Remove unused closure values
 [ ] Deduplicate allocs
-[ ] Remove unused closures
-[ ] Remove unused functions, allocs, constants
+[ ] Deduplicate functions
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
 [ ] Reference counting memory manager

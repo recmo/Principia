@@ -232,6 +232,7 @@ void remove_alloc(function_t& function, address_t alloc_index);
 bool promote_allocs(function_t& function);
 void inline_function(function_t& outer, const function_t& inner);
 void inline_functions(std::vector<function_t>& functions);
+void remove_unused_functions_and_constants();
 
 void print(const function_t& f, uint index);
 
@@ -269,6 +270,11 @@ void print(const function_t& f, uint index);
 
 address_t make_constant(value_t* value)
 {
+	// Validate
+	if(value->type == value_closure) {
+		assert(value->function() < functions.size());
+	}
+	
 	// Find and return existing constant
 	for(uint i = 0; i < constants.size(); ++i) {
 		if(*constants[i] == *value) {
@@ -393,16 +399,20 @@ void load(const Compile::Program& program)
 			machine_func.call.push_back(symbol_map[symbol]);
 		}
 		
-		// Optimize
-		promote_allocs(machine_func);
-		
 		index++;
 	}
 	
+	// Cleanup
+	remove_unused_functions_and_constants();
+	
 	// Optimize
+	for(function_t& func: functions) {
+		promote_allocs(func);
+	}
 	inline_functions(functions);
-	// TODO this may create new constant closures, which in turn may lead
-	// to new inlining opportunities.
+	
+	// Cleanup
+	remove_unused_functions_and_constants();
 	
 	// Update reference counts
 	for(function_t& func: functions) {
@@ -550,6 +560,97 @@ void remove_alloc(function_t& function, address_t alloc_address)
 		new_allocs.push_back(function.allocs[i]);
 	}
 	function.allocs = new_allocs;
+}
+
+void remove_unused_functions_and_constants()
+{
+	// Find used functions
+	std::vector<bool> used_functions(functions.size(), false);
+	std::vector<bool> used_constants(constants.size(), false);
+	std::function<void(address_t)> use_address;
+	std::function<void(uint)> use_function = [&](uint index) {
+		assert(index < functions.size());
+		if(used_functions[index])
+			return;
+		      used_functions[index] = true;
+		for(const alloc_instruction_t& alloc: functions[index].allocs) {
+			use_function(alloc.function_index);
+			for(address_t addr: alloc.closure)
+				use_address(addr);
+		}
+		for(address_t addr: functions[index].call)
+			use_address(addr);
+	};
+	use_address = [&](address_t addr) {
+		if(addr.type != type_constant)
+			return;
+		if(used_constants[addr.index])
+			return;
+		used_constants[addr.index] = true;
+		const value_t* con = constants[addr.index];
+		if(con->type != value_closure)
+			return;
+		assert(con->function() < functions.size());
+		use_function(con->function());
+		const function_t& func = functions[con->function()];
+		for(uint i = 0; i < func.closures; ++i) {
+			// All constants (should) have addresses
+			use_address(make_constant(con->values()[i]));
+		}
+	};
+	use_function(main_index);
+	
+	// Remove unused functions
+	std::vector<uint> function_map(functions.size(), -1);
+	std::vector<function_t> new_functions;
+	for(uint i = 0; i < functions.size(); ++i) {
+		if(used_functions[i] == false) {
+			std::wcerr << "Remove function " << i << "\n";
+		} else {
+			function_map[i] = new_functions.size();
+			new_functions.push_back(functions[i]);
+		}
+	}
+	functions = new_functions;
+	
+	// Remap function indices
+	main_index = function_map[main_index];
+	for(function_t& func: functions) {
+		for(alloc_instruction_t& alloc: func.allocs) {
+			alloc.function_index = function_map[alloc.function_index];
+		}
+	}
+	for(value_t* con: constants) {
+		if(con->type == value_closure) {
+			con->function() = function_map[con->function()];
+		}
+	}
+	
+	// Remove unused constants
+	std::vector<uint> constant_map(constants.size(), -1);
+	std::vector<value_t*> new_constants;
+	for(uint i = 0; i < constants.size(); ++i) {
+		if(used_constants[i] == false) {
+			std::wcerr << "Remove constant " << i << "\n";
+			free(constants[i]);
+		} else {
+	        constant_map[i] = new_constants.size();
+			new_constants.push_back(constants[i]);
+		}
+	}
+	constants = new_constants;
+	
+	// Remap constant indices
+	for(function_t& func: functions) {
+		for(alloc_instruction_t& alloc: func.allocs) {
+			for(address_t& addr: alloc.closure)
+				if(addr.type == type_constant)
+					addr.index = constant_map[addr.index];
+		}
+		for(address_t& addr: func.call)
+			if(addr.type == type_constant)
+				addr.index = constant_map[addr.index];
+	}
 }
 
 void inline_function(function_t& outer, const function_t& inner)

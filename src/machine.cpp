@@ -5,7 +5,7 @@
 
 Command machine(L"machine", [](Command::Arguments arguments) {
 	
-	assert(arguments.size() == 2);
+	assert(arguments.size() == 1);
 	
 	Parser::Program pp = Parser::compile(Parser::parseFile(arguments[0]));
 	// Parser::write(std::wcerr, pp);

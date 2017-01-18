@@ -300,9 +300,6 @@ void unload()
 	}
 	constants.clear();
 	functions.clear();
-	
-	std::wcerr << sizeof(value_t) << "\n";
-	std::wcerr << sizeof(value_t) << "\n";
 }
 
 void load(const Compile::Program& program)
@@ -843,7 +840,7 @@ void inline_functions(std::vector<function_t>& functions)
 			
 			// Stop after a number of itterations
 			++itterations;
-			if(itterations > 10000)
+			if(itterations > 1000)
 				break;
 		}
 	}

@@ -1,0 +1,149 @@
+include     “fizzbuzz.principa”
+title       “FizzBuzz”
+author      “Remco Bloemen”
+date        “2016-07-01”
+description “
+	
+	This file implements Scott numerals and decimal printing using
+	only a “print” function that takes a single string constant:
+	
+		λ print value ret
+	
+	Other than this, the file is entirely self-contained.
+	
+	Write a program that prints the numbers from 1 to 100. But for multiples
+	of three print "Fizz" instead of the number and for the multiples of five
+	print "Buzz". For numbers which are multiples of both three and five print
+	"FizzBuzz".
+”
+
+section “Print helpers”
+
+λ print-newline ret
+	print “
+” ret
+
+λ print-line arg ret
+	print arg (λ ·)
+	print-newline ret
+
+section “Scott numerals”
+
+λ Z   (· (λ · (·) _    ))
+λ S n (· (λ ·  _ (· n) ))
+
+λ n0 z s (z)
+λ n1 z s (s n0)
+λ n2 z s (s n1)
+λ n3 z s (s n2)
+λ n4 z s (s n3)
+λ n5 z s (s n4)
+λ n6 z s (s n5)
+λ n7 z s (s n6)
+λ n8 z s (s n7)
+λ n9 z s (s n8)
+λ n10 z s (s n9)
+
+λ if_zero n then else
+	n then (λ · n')
+	else
+
+λ if_equal m n then else
+	m m_zero m_nonzero
+	λ m_zero
+		if_zero n then else
+	λ m_nonzero m'
+		n else recurse
+		λ recurse n'
+			if_equal m' n' then else
+
+λ add m n ret
+	m m_zero m_nonzero
+	λ m_zero
+		ret n
+	λ m_nonzero m'
+		S n recurse
+		λ recurse n'
+			add m' n' ret
+
+λ sub m n ret fail
+	n n_zero n_nonzero
+	λ n_zero
+		ret m
+	λ n_nonzero n'
+		m fail recurse
+		λ recurse m'
+			sub m' n' ret fail
+
+λ mul m n ret
+	m m_zero m_nonzero
+	λ m_zero
+		Z ret
+	λ m_nonzero m'
+		mul m' n (λ · r)
+		add r n ret
+
+λ div m n ret
+	sub m n recurse done
+	λ done
+		ret n0 m
+	λ recurse m'
+		div m' n (λ · q r)
+		S q (λ · q')
+		ret q' r
+
+λ divides m n then else
+	div m n (λ · q r)
+	if_equal r n0 then else
+
+λ for start end func ret
+	loop start
+	λ loop n
+		func n (λ ·)
+		if_equal n end ret (λ ·)
+		S n (λ · m)
+		loop m
+
+section “Decimal output”
+
+λ print-decimal n ret fail
+	if_equal n n0 (λ · (print “0” ret)) (λ ·)
+	if_equal n n1 (λ · (print “1” ret)) (λ ·)
+	if_equal n n2 (λ · (print “2” ret)) (λ ·)
+	if_equal n n3 (λ · (print “3” ret)) (λ ·)
+	if_equal n n4 (λ · (print “4” ret)) (λ ·)
+	if_equal n n5 (λ · (print “5” ret)) (λ ·)
+	if_equal n n6 (λ · (print “6” ret)) (λ ·)
+	if_equal n n7 (λ · (print “7” ret)) (λ ·)
+	if_equal n n8 (λ · (print “8” ret)) (λ ·)
+	if_equal n n9 (λ · (print “9” ret)) (λ ·)
+	fail
+
+λ print-number n ret
+	div n n10 (λ · q r)
+	if_zero q done recurse
+	λ recurse
+		print-number q done ret
+	λ done
+		print-decimal r ret ret
+
+section “Main”
+
+λ fizzbuzz_number n ret
+	mul n3 n5 (λ · n15)
+	divides n n15 fizzbuzz (λ ·)
+	divides n n3 fizz (λ ·)
+	divides n n5 buzz (λ ·)
+	print-number n end
+	λ fizzbuzz
+		print “FizzBuzz” end
+	λ fizz
+		print “Fizz” end
+	λ buzz
+		print “Buzz” end
+	λ end
+		print-newline ret
+
+λ main exit
+	mul n10 n10 (λ · n100)
+	for n1 n100 fizzbuzz_number exit

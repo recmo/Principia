@@ -31,6 +31,13 @@ struct address_t {
 struct alloc_instruction_t {
 	uint16_t function_index;
 	std::vector<address_t> closure;
+	
+	bool operator==(const alloc_instruction_t& other) const {
+		return function_index == other.function_index && closure == other.closure;
+	}
+	bool operator!=(const alloc_instruction_t& other) const {
+		return !operator==(other);
+	}
 };
 
 struct deref_instruction_t {
@@ -233,8 +240,15 @@ void inline_function(function_t& outer, const function_t& inner);
 void inline_functions(std::vector<function_t>& functions);
 void remove_unused_functions_and_constants();
 void remove_unused_closures(function_t& function);
+void deduplicate_allocs(function_t& function);
 
 void print(const function_t& f, uint index);
+
+	
+} std::wostream& operator<<(std::wostream& out, const Machine::alloc_instruction_t& value) {
+	out << value.function_index << value.closure;
+	return out;
+} namespace Machine {
 
 } std::wostream& operator<<(std::wostream& out, const Machine::address_t& value) {
 	switch(value.type) {
@@ -416,6 +430,7 @@ void load(const Compile::Program& program)
 		remove_unused_allocs(func);
 		remove_unused_closures(func);
 		update_reference_counts(func);
+		deduplicate_allocs(func);
 	}
 	
 	// Make sure we have a valid main
@@ -521,17 +536,24 @@ void update_reference_counts(function_t& function)
 	}
 }
 
+void remap_function_addresses(function_t& function,
+	const std::function<address_t(address_t)>& map)
+{
+	for(alloc_instruction_t& alloc: function.allocs) {
+		for(address_t& address: alloc.closure) {
+			address = map(address);
+		}
+	}
+	for(address_t& address: function.call) {
+		address = map(address);
+	}
+}
+
 void replace_index(function_t& function, address_t from, address_t to)
 {
-	if(from == to)
-		return;
-	for(alloc_instruction_t& alloc: function.allocs)
-		for(address_t& index: alloc.closure)
-			if(index == from)
-				index = to;
-	for(address_t& index: function.call)
-		if(index == from)
-			index = to;
+	remap_function_addresses(function, [=](address_t address) {
+		return (address == from) ? to : address;
+	});
 }
 
 // Removes an alloc instruction and renumbers indices
@@ -661,19 +683,6 @@ uint16_t find_function_index(const function_t& function)
 		}
 	}
 	throw L"Unknown function reference";
-}
-
-void remap_function_addresses(function_t& function,
-	const std::function<address_t(address_t)>& map)
-{
-	for(alloc_instruction_t& alloc: function.allocs) {
-		for(address_t& address: alloc.closure) {
-			address = map(address);
-		}
-	}
-	for(address_t& address: function.call) {
-		address = map(address);
-	}
 }
 
 void remove_function_closure(const uint16_t function_index, const uint16_t closure_index)
@@ -806,6 +815,45 @@ bool promote_allocs(function_t& function)
 	}
 	
 	return promoted;
+}
+
+void deduplicate_allocs(function_t& function)
+{
+	address_t first{type_alloc, 0};
+	address_t second{type_alloc, 0};
+	for(first.index = 0; first.index < function.allocs.size(); ++first.index) {
+		const alloc_instruction_t& first_alloc = function.allocs[first.index];
+		for(second.index = first.index + 1; second.index < function.allocs.size(); ++second.index) {
+			const alloc_instruction_t& second_alloc = function.allocs[second.index];
+			
+			// Filter for identical allocs
+			if(first_alloc != second_alloc) {
+				continue;
+			}
+			
+			// Replace references to second by the first
+			replace_index(function, second, first);
+			
+			// Remove the now redundant second
+			remove_alloc(function, second);
+			
+			// Move the itterator one step back, since
+			// we removed the current item
+			second.index -= 1;
+		}
+	}
+}
+
+void deduplicate_functions()
+{
+	// NOTE: Naive comparisson will not detect equivalence
+	//       of (mutually) recursive functions.
+	
+	// Comparisson must be made modulo
+	// * Shuffling order of closure arguments
+	// * Shuffling order of allocs
+	// * Shuffling order of arguments
+	// It is assumed constants are already unique
 }
 
 void inline_constant_function(function_t& outer)

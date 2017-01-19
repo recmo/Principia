@@ -3,7 +3,7 @@
 ; ./teensy
 ;
 ; It is recommended to use the VDSO instead of syscalls directly, but
-; looking at [1] it apprears very few calls are optimized. This is confirmed
+; looking at [1] it appears very few calls are optimized. This is confirmed
 ; with
 ;
 ;    objdump -T /lib/modules/(uname -r)/vdso/vdso64.so

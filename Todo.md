@@ -1,5 +1,6 @@
-# To do list
+# To do lists
 
+## Virtual machine
 [x] Compile to stack based language
 [x] Execute in stack based language
 [x] Unify imports and constants
@@ -20,7 +21,7 @@
 [x] Remove unused closure values
 [x] Inline calls to allocs
 [x] Remove unused closure places
-[ ] Deduplicate allocs
+[x] Deduplicate allocs
 [ ] Deduplicate functions
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
@@ -28,6 +29,14 @@
 [ ] Statically analyse possible functions at tail call site
 [ ] Statically analyse closure life-times
 [ ] Investigate different memory allocation strategies
+[ ] Compile to assembler (see teensy.asm)
+
+## Language
+[ ] Add read intrinsic, similar to print for write
+[ ] Add intrinsics for string processing
+[ ] Add file handles for read/write
+[ ] Add Linux syscall mechanism
+[ ] Add proof language
 
 # Calling convention
 

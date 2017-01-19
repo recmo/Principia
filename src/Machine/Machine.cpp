@@ -161,7 +161,6 @@ private:
 	value_t();
 } __attribute__((packed));
 
-
 std::vector<value_t*> constants;
 
 bool running = false;
@@ -233,6 +232,7 @@ bool promote_allocs(function_t& function);
 void inline_function(function_t& outer, const function_t& inner);
 void inline_functions(std::vector<function_t>& functions);
 void remove_unused_functions_and_constants();
+void remove_unused_closures(function_t& function);
 
 void print(const function_t& f, uint index);
 
@@ -414,6 +414,7 @@ void load(const Compile::Program& program)
 	// Update reference counts
 	for(function_t& func: functions) {
 		remove_unused_allocs(func);
+		remove_unused_closures(func);
 		update_reference_counts(func);
 	}
 	
@@ -500,7 +501,8 @@ void update_reference_counts(function_t& function)
 		
 		// Deref instructions
 		if(pair.second == 0) {
-			// Really only unused arguments should be dereffed.
+			
+			// Realy only unused arguments should be dereffed.
 			assert(pair.first.type != type_constant); // Can't deref constants
 			assert(pair.first.type != type_alloc); // Clean up uneccesary allocs first
 			assert(pair.first.type != type_closure); // Clean up uneccesary closures first
@@ -650,7 +652,97 @@ void remove_unused_functions_and_constants()
 	}
 }
 
-// Find constant and/or closure allocs
+uint16_t find_function_index(const function_t& function)
+{
+	for(uint i = 0; i < functions.size(); ++i) {
+		const function_t& at = functions[i];
+		if(&at == &function) {
+			return i;
+		}
+	}
+	throw L"Unknown function reference";
+}
+
+void remap_function_addresses(function_t& function,
+	const std::function<address_t(address_t)>& map)
+{
+	for(alloc_instruction_t& alloc: function.allocs) {
+		for(address_t& address: alloc.closure) {
+			address = map(address);
+		}
+	}
+	for(address_t& address: function.call) {
+		address = map(address);
+	}
+}
+
+void remove_function_closure(const uint16_t function_index, const uint16_t closure_index)
+{
+	// Remove the closure from other functions:
+	// * For each alloc of this function:
+	// * Remove the current closure from the alloc value list
+	// NOTE: Removing the closure from other functions allocs has cascading
+	//       effects, and requires a re-optimization of functions.
+	
+	// For each alloc of function_index
+	for(function_t& function: functions) {
+		for(alloc_instruction_t& alloc: function.allocs) {
+			if(alloc.function_index != function_index) {
+				continue;
+			}
+			
+			// Remove the closure parameter at position closure_index
+			alloc.closure.erase(alloc.closure.begin() + closure_index);
+		}
+	}
+	
+	// Remove the closure from the current function:
+	// * Deduct one from closure count
+	// * Deduct one from all closure addresses higher than this one
+	
+	// Remove the entry from the closure parameters
+	function_t& func = functions[function_index];
+	func.closures -= 1;
+	
+	// Relabel all closure addresses
+	remap_function_addresses(func, [&](address_t address) {
+		if(address.type != type_closure) {
+			return address;
+		}
+		if(address.index < closure_index) {
+			return address;
+		} else if(address.index == closure_index) {
+			throw L"Closure was not unused";
+		} else {
+			assert(address.index > closure_index);
+			return address_t{type_closure, address.index - 1};
+		}
+	});
+}
+
+void remove_unused_closures(function_t& function)
+{
+	std::vector<bool> used(function.closures, false);
+	
+	// Check uses
+	// NOTE: Assumes unused allocs are already removed
+	for(const alloc_instruction_t& alloc: function.allocs)
+		for(const address_t addr: alloc.closure)
+			if(addr.type == type_closure)
+				used[addr.index] = true;
+	for(const address_t addr: function.call)
+		if(addr.type == type_closure)
+			used[addr.index] = true;
+	
+	for(uint i = 0; i < function.closures; ++i) {
+		if(used[i])
+			continue;
+		
+		remove_function_closure(find_function_index(function), i);
+	}
+}
+
+// Find allocs that can be promoted to constants or closures
 bool promote_allocs(function_t& function)
 {
 	bool promoted = false;

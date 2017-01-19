@@ -19,6 +19,7 @@
 [x] Remove unused functions
 [x] Remove unused closure values
 [x] Inline calls to allocs
+[x] Remove unused closure places
 [ ] Deduplicate allocs
 [ ] Deduplicate functions
 [ ] Benchmarking per closure, histogram per function

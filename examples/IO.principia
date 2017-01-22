@@ -1,0 +1,16 @@
+λ print-newline ret
+	print “
+” ret
+
+λ print-line msg ret
+	print msg (λ ·)
+	print-newline ret
+
+λ main exit
+	print-line “What is your name?” (λ ·)
+	print “> ” (λ ·)
+	read (λ · r)
+	print-newline (λ ·)
+	print “Hello, ” (λ ·)
+	print-line r (λ ·)
+	exit

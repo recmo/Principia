@@ -12,4 +12,6 @@ void print();
 
 void run();
 
+void assemble();
+
 }

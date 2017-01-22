@@ -1,5 +1,7 @@
 #include "Machine.h"
 #include <limits>
+#include <algorithm>
+#include <sstream>
 namespace Machine {
 
 // Program definition
@@ -74,8 +76,8 @@ enum value_type {
 const uint32_t reference_max = 0x3FFF;
 
 struct value_t {
-	unsigned int type            :  2;
 	unsigned int reference_count : 14;
+	unsigned int type            :  2;
 	
 	static value_t* make_closure(uint size) {
 		const size_t msize = sizeof(value_t)
@@ -1006,6 +1008,9 @@ void print(const function_t& f, uint index)
 void print()
 {
 	std::wcerr << "Constants: " << constants << "\n";
+	for(value_t* value: constants) {
+		std::wcerr << *value << "\n";
+	}
 	uint index = 0;
 	for(const auto& f: functions) {
 		print(f, index);
@@ -1045,7 +1050,7 @@ void run()
 	main->function() = main_index;
 	closure = main;
 	arguments.clear();
-	arguments.push_back(value_t::make_import(L"exit"));
+	arguments.push_back(value_t::make_import(L"vm_exit"));
 	
 	// Allocate arrays out of the loop
 	value_t* new_closure;
@@ -1144,7 +1149,23 @@ void run()
 				continue;
 			}
 			
-			if(closure->string() == L"exit") {
+			if(closure->string() == L"read") {
+				assert(arguments.size() == 1);
+				
+				// Read from stdin
+				std::wstring str;
+				std::getline(std::wcin, str);
+				value_t* value = value_t::make_string(str);
+				
+				// Call arg₁ with the new string as argument
+				deref(closure);
+				closure = arguments[1];
+				arguments.clear();
+				arguments.push_back(value);
+				continue;
+			}
+			
+			if(closure->string() == L"vm_exit") {
 				assert(arguments.size() == 0);
 				
 				// Exit
@@ -1158,6 +1179,186 @@ void run()
 			std::wcerr << "Unknown builtin: " << closure->string() << "\n";
 			assert(false);
 		}
+	}
+}
+
+std::wstring assemble_value(address_t address)
+{
+	std::wstringstream ss;
+	if(address.type == type_constant) {
+		ss << "constant_" << address.index;
+	}
+	// rax, rbx, rcx, rdx,
+	// rbp, rsp, rsi, rdi,
+	// r8,  r9,  r10, r11,
+	// r12, r13, r14, r15
+	if(address.type == type_argument) {
+		const std::wstring regs[] = {
+			L"rax", L"rbx", L"rcx", L"rdx"
+		};
+		assert(address.index < sizeof(regs));
+		ss << regs[address.index];
+	}
+	if(address.type == type_closure) {
+		const std::wstring regs[] = {
+			L"r8", L"r9", L"r10", L"r11"
+		};
+		assert(address.index < sizeof(regs));
+		ss << regs[address.index];
+	}
+	if(address.type == type_alloc) {
+		const std::wstring regs[] = {
+			L"r12", L"r13", L"r14", L"r15"
+		};
+		assert(address.index < sizeof(regs));
+		ss << regs[address.index];
+	}
+	return ss.str();
+}
+
+void assemble()
+{
+	std::wcout <<
+		"; Output from Principia"
+		"; nasm -f elf64 -\n"
+		"%include \"runtime.asm\"\n"
+		"\n"
+		"section .data\n"
+		"\n";
+	std::wcout <<
+		"function_table:\n"
+		"	dq type_invalid  ;  0\n"
+		"	dq type_string   ;  1\n"
+		"	dq mem_alloc     ;  2\n"
+		"	dq mem_deref     ;  3\n"
+		"	dq mem_unpack    ;  4\n"
+		"	dq exit          ;  5\n"
+		"	dq print         ;  6\n"
+		"	dq read          ;  7\n";
+	for(uint i = 0; i < functions.size(); ++i) {
+		std::wcout << "	dq func_" << i << "        ;  " << (i + 8) << "\n";
+	}
+	std::wcout << "\n";
+	
+	std::wcout <<
+		"size_table:\n"
+		"	db 0             ;  0\n"
+		"	db 0             ;  1\n"
+		"	db 0             ;  2\n"
+		"	db 0             ;  3\n"
+		"	db 0             ;  4\n"
+		"	db 0             ;  5\n"
+		"	db 0             ;  6\n"
+		"	db 0             ;  7\n";
+	for(uint i = 0; i < functions.size(); ++i) {
+		std::wcout << "	db " << functions[i].closures
+			<< "             ;  " << (i + 8) << "\n";
+	}
+	std::wcout << "\n";
+	
+	for(uint i = 0; i < constants.size(); ++i) {
+		const value_t* value = constants[i];
+		if(value->type == value_string) {
+			std::wstring str = value->string();
+			std::wcout <<
+				"constant_" << i << ": ; string\n"
+				"	dw 0x0000        ; reference_count (zero for static)\n"
+				"	dw 0x0006        ; function_index (type_string)\n";
+			if(str == L"\n") {
+				std::wcout <<
+					"	dd 10            ; \n"
+					"\n";
+			} else {
+				std::wcout <<
+					"	db \"" << str << "\"\n"
+					"\n";
+			}
+		}
+		if(value->type == value_import) {
+			uint16_t index = 0;
+			if(value->string() == L"exit")
+				index = 5;
+			if(value->string() == L"print")
+				index = 6;
+			if(value->string() == L"read")
+				index = 7;
+			std::wcout <<
+				"constant_" << i << ": ; Static closure for " << value->string() << " \n"
+				"	dw 0x0000        ; reference_count (zero for static)\n"
+				"	dw " << index << " ; function_index (" << value->string() << ")\n"
+				"\n";
+		}
+		if(value->type == value_closure) {
+			
+		}
+	}
+	
+	std::wcout <<
+		"section .text\n"
+		"\n";
+	
+	for(uint i = 0; i < functions.size(); ++i) {
+		const function_t& func = functions[i];
+		std::wcout <<
+			"func_" << i << ": ; " << func.name << "\n"
+			"	; Unpack closure\n";
+		for(uint j = 0; j < func.closures; ++j) {
+			std::wcout <<
+				"	mov " << assemble_value(address_t{type_closure, j}) << ", "
+				"[rsi + " << (4 + j * 8) << "]\n";
+		}
+		std::wcout <<
+			"	mov rdi, .ret_0  ; return address\n"
+			"	jmp mem_unpack    ; closure in rsi\n"
+			"	.ret_0:\n"
+			"	\n";
+		
+		for(uint j = 0; j < func.allocs.size(); ++j) {
+			const alloc_instruction_t& alloc = func.allocs[j];
+			const std::wstring reg = assemble_value(address_t{type_alloc, j});
+			std::wcout <<
+				"	; Alloc " << alloc << "\n"
+				"	mov rsi, " << alloc.closure.size() << "\n"
+				"	mov rdi, .ret_" << (j + 1) << "\n"
+				"	jmp mem_alloc\n"
+				"	.ret_" << (j + 1) << ":\n"
+				"	mov " << reg << ", rsi\n"
+				"	mov word [" << reg << " + 2], "
+				<< (alloc.function_index + 8) << "\n";
+			for(uint k = 0; k < alloc.closure.size(); ++k) {
+				std::wcout <<
+					"	mov [" << reg << " + " << (4 + k * 8) << "], " <<
+					assemble_value(alloc.closure[k]) << "\n";
+			}
+			std::wcout << "	\n";
+		}
+		
+		for(uint j = 0; j < func.refs.size(); ++j) {
+			const ref_instruction_t& ref = func.refs[j];
+			std::wcout <<
+				"	; Ref " << ref << "\n"
+				"	\n";
+		}
+		
+		for(uint j = 0; j < func.derefs.size(); ++j) {
+			const deref_instruction_t& deref = func.derefs[j];
+			std::wcout <<
+				"	; Deref " << deref << "\n"
+				"	\n";
+		}
+		
+		std::wcout <<
+			"	; Call " << func.call << "\n"
+			"	mov rsi, " << assemble_value(func.call[0]) << "\n";
+		for(uint j = 0; j < func.call.size() - 1; ++j) {
+			std::wcout <<
+				"	mov " << assemble_value(address_t{type_argument, j}) << ", "
+				<< assemble_value(func.call[j + 1]) << "\n";
+		}
+		std::wcout <<
+			"	mov di, [rsi + 2]\n"
+			"	jmp [function_table + rdi * 8]\n"
+			"\n";
 	}
 }
 

@@ -22,14 +22,19 @@
 [x] Inline calls to allocs
 [x] Remove unused closure places
 [x] Deduplicate allocs
-[ ] Deduplicate functions
+[x] Compile to assembler (see teensy.asm)
+[ ] Generate ref calls
+[ ] Implement assemble mem_ref
+[ ] Implement assembler mem_alloc
+[ ] Recursive assembler mem_deref
+[ ] Implement assembler read
+[ ] Deduplicate functions (Is there a unique reduced form?)
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
 [ ] Reference counting memory manager
 [ ] Statically analyse possible functions at tail call site
 [ ] Statically analyse closure life-times
 [ ] Investigate different memory allocation strategies
-[ ] Compile to assembler (see teensy.asm)
 
 ## Language
 [ ] Add read intrinsic, similar to print for write
@@ -37,6 +42,8 @@
 [ ] Add file handles for read/write
 [ ] Add Linux syscall mechanism
 [ ] Add proof language
+[ ] Code over multiple files
+[ ] Mechanism for code modules
 
 # Calling convention
 

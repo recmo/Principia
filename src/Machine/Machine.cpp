@@ -1219,7 +1219,7 @@ std::wstring assemble_value(address_t address)
 void assemble()
 {
 	std::wcout <<
-		"; Output from Principia"
+		"; Output from Principia\n"
 		"; nasm -f elf64 -\n"
 		"%include \"runtime.asm\"\n"
 		"\n"
@@ -1263,7 +1263,8 @@ void assemble()
 			std::wcout <<
 				"constant_" << i << ": ; string\n"
 				"	dw 0x0000        ; reference_count (zero for static)\n"
-				"	dw 0x0006        ; function_index (type_string)\n";
+				"	dw 0x0006        ; function_index (type_string)\n"
+				"	dd " << str.size() << "            ; num_bytes\n";
 			if(str == L"\n") {
 				std::wcout <<
 					"	dd 10            ; \n"
@@ -1295,6 +1296,7 @@ void assemble()
 	
 	std::wcout <<
 		"section .text\n"
+		"	global main\n"
 		"\n";
 	
 	for(uint i = 0; i < functions.size(); ++i) {
@@ -1312,13 +1314,17 @@ void assemble()
 			"	jmp mem_unpack    ; closure in rsi\n"
 			"	.ret_0:\n"
 			"	\n";
+		if(i == main_index) {
+			assert(func.closures == 0);
+			std::wcout << "main:\n";
+		}
 		
 		for(uint j = 0; j < func.allocs.size(); ++j) {
 			const alloc_instruction_t& alloc = func.allocs[j];
 			const std::wstring reg = assemble_value(address_t{type_alloc, j});
 			std::wcout <<
 				"	; Alloc " << alloc << "\n"
-				"	mov rsi, " << alloc.closure.size() << "\n"
+				"	mov rsi, " << (4 + 8 * alloc.closure.size()) << "\n"
 				"	mov rdi, .ret_" << (j + 1) << "\n"
 				"	jmp mem_alloc\n"
 				"	.ret_" << (j + 1) << ":\n"
@@ -1356,8 +1362,9 @@ void assemble()
 				<< assemble_value(func.call[j + 1]) << "\n";
 		}
 		std::wcout <<
-			"	mov di, [rsi + 2]\n"
-			"	jmp [function_table + rdi * 8]\n"
+			"	xor rdi, rdi                   ; Clear rdi\n"
+			"	mov di, [rsi + 2]              ; Store function_index in rdi\n"
+			"	jmp [function_table + rdi * 8] ; Jump to function table entry\n"
 			"\n";
 	}
 }

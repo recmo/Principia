@@ -23,9 +23,10 @@
 [x] Remove unused closure places
 [x] Deduplicate allocs
 [x] Compile to assembler (see teensy.asm)
+[x] Implement assembler mem_alloc
+[x] Implement assemble mem_unpack
 [ ] Generate ref calls
 [ ] Implement assemble mem_ref
-[ ] Implement assembler mem_alloc
 [ ] Recursive assembler mem_deref
 [ ] Implement assembler read
 [ ] Deduplicate functions (Is there a unique reduced form?)

@@ -1,6 +1,13 @@
+section .data
+
+read_fixed: ; string
+	dw 0x0000        ; reference_count (zero for static)
+	dw 0x0006        ; function_index (type_string)
+	dd 4             ; num_bytes
+	db "TODO"
+
 section .text
-	extern malloc
-	extern free
+	extern realloc
 
 type_invalid:
 	mov rax, 60  ; sys_exit
@@ -13,11 +20,42 @@ type_string:
 	syscall      ; Execution stops here
 
 mem_alloc:
-	; rsi contains the size (4 + rsi * 8)
+	; rsi contains the size rsi = 4 + n * 8
 	; rdi contains the return address
 	; rsi contains the allocated address on return
 	; All other registers need to be preserved
-	; TODO
+	
+	; Preserve all register clobbered by call except rsi
+	push rax
+	push rcx
+	push rdx
+	push rdi
+	push r8
+	push r9
+	push r10
+	push r11
+	
+	; Allocate
+	mov rdi, 0     ; rdi = 0
+	;mov rsi, rsi  ; rsi = rsi
+	call realloc   ; rax = realloc(rdi, rsi)
+	mov rsi, rax
+	
+	; Restore all registers clobbered by call except rsi
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdi
+	pop rdx
+	pop rcx
+	pop rax
+	
+	; Initialize ref_count to one
+	mov word [rsi], 1
+	
+	; Return
+	.end:
 	jmp rdi
 
 mem_ref:
@@ -35,22 +73,24 @@ mem_deref:
 	; All other registers need to be preserved
 	
 	push rax           ; Preserve rax
-	mov ax, [rsi]      ; Load reference count
+	xor rax, rax       ; Clear rax
+	mov ax, word [rsi] ; Load reference count
 	or rax, rax        ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
 	jz .free           ; Free if zero
-	mov [rsi], ax      ; Store reference count
-	pop rax            ; Restore rax
+	mov word [rsi], ax ; Store reference count
 	.end:              ;
+	pop rax            ; Restore rax
 	jmp rdi            ; Return
 	
 	; Free closure
 	.free:             ; Free the closure
+	jmp .free
 	push rdi           ; Preserve rdi
 	mov rdi, rsi       ; First argument passed in rdi
 	; TODO: Recurse
-	call free          ; Call free form stdlib
+	;call free          ; Call free form stdlib
 	; TODO: unclobber linux calling convetion clobbered registers
 	pop rdi            ; Restore rdi
 	jmp .end           ; Resume computation
@@ -61,31 +101,54 @@ mem_unpack:
 	; All other registers need to be preserved
 	
 	push rax           ; Preserve rax
-	mov ax, [rsi]      ; Load reference count
+	xor rax, rax       ; Clear rax
+	mov ax, word [rsi] ; Load reference count
 	or rax, rax        ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
 	jz .free           ; Free if zero
-	mov [rsi], ax      ; Store reference count
-	pop rax            ; Restore rax
+	mov word [rsi], ax ; Store reference count
 	.end:              ;
+	pop rax            ; Restore rax
 	jmp rdi            ; Return
 	
 	; Free closure
-	.free:             ; Free the closure
-	push rdi           ; Preserve rdi
+	.free:
+	
+	; Preserve all register clobbered by C function call
+	; push rax ; Done separately
+	push rcx
+	push rdx
+	push rsi
+	push rdi
+	push r8
+	push r9
+	push r10
+	push r11
+	
+	; Call realloc(rsi, 0)
 	mov rdi, rsi       ; First argument passed in rdi
-	call free          ; Call free form stdlib
-	; TODO: unclobber linux calling convetion clobbered registers
-	pop rdi            ; Restore rdi
+	mov rsi, 0         ; Second argument zero
+	call realloc       ; rax = realloc(rdi, rsi)
+	
+	; Restore all registers clobbered by C function call
+	pop r11
+	pop r10
+	pop r9
+	pop r8
+	pop rdi
+	pop rsi
+	pop rdx
+	pop rcx
+	; pop rax ; Done separately
+	
 	jmp .end           ; Resume computation
 
 exit:
-	; Deref closure
-	mov r12, rax
-	mov r13, .next_1
-	jmp mem_deref
-	.next_1:
+	; Unpack closure
+	mov rdi, .ret_0  ; return address
+	jmp mem_unpack    ; closure in rsi
+	.ret_0:
 	
 	; Syscall exit
 	mov rax, 60        ; sys_exit
@@ -93,35 +156,47 @@ exit:
 	syscall            ; Call kernel, never returns
 
 print: ; message, ret
+	; Unpack closure
+	mov rdi, .ret_0    ; return address
+	jmp mem_unpack     ; closure in rsi
+	.ret_0:
+	
+	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
 	
 	; Print message
 	mov r12, rax       ; save rax
-	mov r13, rcx       ; save rcx
 	mov rax, 1         ; sys_write
 	mov rdi, 1         ; param 1 fd (unsigned int)
-	mov rsi, rbx       ; param 2 buf (const char __user *)
+	mov rsi, r12       ; param 2 buf (const char __user *)
 	add rsi, 8         ; offset 8
-	mov edx, [rbx + 4] ; param 3 count (size_t)
+	mov edx, [r12 + 4] ; param 3 count (size_t)
 	syscall            ; returns in rax, clobbers rcx and r11
-	mov rax, r12       ; restore rax
-	mov rcx, r13       ; restore rcx
-	
-	; Deref closure
-	mov r12, rax
-	mov r13, .next_1
-	jmp mem_unpack
-	.next_1:
 	
 	; Deref message
-	mov r12, rbx
-	mov r13, .next_2
+	mov rsi, r12
+	mov rdi, .ret_1
 	jmp mem_deref
-	.next_2:
+	.ret_1:
 	
 	; Call ret closure
-	mov rax, rcx
-	mov r15w, [rax + 2]
-	jmp [function_table + r15 * 8]
+	mov rsi, rbx                   ; Closure from second argument
+	xor rdi, rdi                   ; Clear rdi
+	mov di, [rsi + 2]              ; Store function_index in rdi
+	jmp [function_table + rdi * 8] ; Jump to function table entry
 
 read: ; ret
+	; Unpack closure
+	mov rdi, .ret_0  ; return address
+	jmp mem_unpack    ; closure in rsi
+	.ret_0:
 	
+	; Fake by loading a fixed constant
+	; defined above as read_fixed
+	
+	; Call [a0 C]
+	mov rsi, rax
+	mov rax, read_fixed
+	mov di, [rsi + 2]
+	jmp [function_table + rdi * 8]
+
+

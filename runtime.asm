@@ -178,7 +178,7 @@ print: ; message, ret
 	jmp mem_deref
 	.ret_1:
 	
-	; Call ret closure
+	; Call [a1]
 	mov rsi, rbx                   ; Closure from second argument
 	xor rdi, rdi                   ; Clear rdi
 	mov di, [rsi + 2]              ; Store function_index in rdi
@@ -194,9 +194,8 @@ read: ; ret
 	; defined above as read_fixed
 	
 	; Call [a0 C]
-	mov rsi, rax
-	mov rax, read_fixed
-	mov di, [rsi + 2]
-	jmp [function_table + rdi * 8]
-
-
+	mov rsi, rax                   ; Closure from second argument
+	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
+	xor rdi, rdi                   ; Clear rdi
+	mov di, [rsi + 2]              ; Store function_index in rdi
+	jmp [function_table + rdi * 8] ; Jump to function table entry

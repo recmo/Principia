@@ -25,6 +25,7 @@
 [x] Compile to assembler (see teensy.asm)
 [x] Implement assembler mem_alloc
 [x] Implement assemble mem_unpack
+[ ] Fix register assignment order for arguments to arguments
 [ ] Generate ref calls
 [ ] Implement assemble mem_ref
 [ ] Recursive assembler mem_deref

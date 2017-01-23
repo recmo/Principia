@@ -28,8 +28,8 @@
 [x] Generate refs
 [x] Fix register assignment order for arguments to arguments
 [x] Recursive assembler mem_unpack
+[x] Recursive assembler mem_deref
 [ ] Handle overflow in assembler ref
-[ ] Recursive assembler mem_deref
 [ ] Implement assembler read
 [ ] Implement fixed-size pool allocators with free-lists
 [ ] Deduplicate functions (Is there a unique reduced form?)

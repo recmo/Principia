@@ -83,7 +83,37 @@ mem_deref:
 	
 	; Free closure
 	.free:             ; Free the closure
-	; jmp .end ; DISABLED
+	
+	; Recursively call mem_deref on all values
+	
+	push rbx
+	push rcx
+	push rsi
+	push rdi
+	
+	xor rax, rax           ; Clear rax
+	mov word ax, [rsi + 2] ; Load funcion_index
+	xor rbx, rbx           ; Clear rbx
+	mov byte bl, [size_table + rax] ; Load the closure size
+	or rbx, rbx
+	jz .end_loop           ; Skip if no values
+	mov rcx, rsi
+	add rcx, 4             ; Point rcx to the first value
+	
+	.loop:                 ; For each value in the closure
+	mov rsi, [rcx]         ; Load value (pointer to other closure)
+	mov rdi, .ret          ; Return to loop
+	jmp mem_deref          ; Recurse on closure
+	.ret:                  ;
+	add rcx, 8             ; Increase value pointer
+	dec rbx                ; Decrease loop counter
+	jnz .loop              ; Repeat if non-zero
+	.end_loop:
+	
+	pop rdi
+	pop rsi
+	pop rcx
+	pop rbx
 	
 	; Preserve all register clobbered by C function call
 	; push rax ; Done separately
@@ -95,8 +125,6 @@ mem_deref:
 	push r9
 	push r10
 	push r11
-	
-	; TODO: recurse on closure values
 	
 	; Call realloc(rsi, 0)
 	mov rdi, rsi       ; First argument passed in rdi
@@ -170,7 +198,6 @@ mem_unpack:
 	
 	; Free closure
 	.free:
-	; jmp .end ; DISABLED
 	
 	; Preserve all register clobbered by C function call
 	; push rax ; Done separately

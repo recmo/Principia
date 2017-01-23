@@ -3,7 +3,7 @@
 #include <Parser/Compile.h>
 #include <Machine/Machine.h>
 
-Command machine(L"machine", [](Command::Arguments arguments) {
+Command assemble(L"assemble", [](Command::Arguments arguments) {
 	
 	assert(arguments.size() == 1);
 	
@@ -16,13 +16,13 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	
 	Machine::load(cp);
 	// Machine::print();
-	Machine::run();
+	Machine::assemble();
 	Machine::unload();
 	
 	return Command::success;
 },
-L"run virtual machine",
-L"<source file> <funcion>\n\n"
+L"routput assembler (nasm compatible)",
+L"<source file>\n\n"
 "The source file is parsed and the resulting structure printed to\n"
 "the standard output.\n"
 );

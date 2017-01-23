@@ -1,5 +1,6 @@
 ; make; and ./Principia machine examples/FizzBuzz.principia  > FizzBuzz.asm; and nasm -f elf64 FizzBuzz.asm; and gcc FizzBuzz.o -o FizzBuzz; valgrind ./FizzBuzz
 section .data
+%include "memory.asm"
 
 read_fixed: ; string
 	dw 0x0000        ; reference_count (zero for static)
@@ -12,8 +13,7 @@ exit_closure:
 	dw 0x0005        ; function_index (exit)
 
 section .text
-	extern realloc
-	global main
+	global _start
 
 type_invalid:
 	mov rax, 60  ; sys_exit
@@ -42,9 +42,8 @@ mem_alloc:
 	push r11
 	
 	; Allocate
-	mov rdi, 0     ; rdi = 0
-	;mov rsi, rsi  ; rsi = rsi
-	call realloc   ; rax = realloc(rdi, rsi)
+	mov rdi, rsi   ; rdi = 0
+	call malloc    ; rax = malloc(rdi)
 	mov rsi, rax
 	
 	; Restore all registers clobbered by call except rsi
@@ -126,10 +125,9 @@ mem_deref:
 	push r10
 	push r11
 	
-	; Call realloc(rsi, 0)
+	; Call free(rsi)
 	mov rdi, rsi       ; First argument passed in rdi
-	mov rsi, 0         ; Second argument zero
-	call realloc       ; rax = realloc(rdi, rsi)
+	call free          ; rax = free(rdi)
 	
 	; Restore all registers clobbered by C function call
 	pop r11
@@ -210,10 +208,9 @@ mem_unpack:
 	push r10
 	push r11
 	
-	; Call realloc(rsi, 0)
+	; Call free(rsi)
 	mov rdi, rsi       ; First argument passed in rdi
-	mov rsi, 0         ; Second argument zero
-	call realloc       ; rax = realloc(rdi, rsi)
+	call free          ; rax = free(rdi)
 	
 	; Restore all registers clobbered by C function call
 	pop r11
@@ -284,7 +281,10 @@ read: ; ret
 	mov di, [rsi + 2]              ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
 
-main:
+_start:
+	call init
+	
+	; Call main closure with exit as argument
 	mov rsi, main_closure
 	mov rax, exit_closure
 	xor rdi, rdi                   ; Clear rdi

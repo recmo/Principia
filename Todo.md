@@ -25,11 +25,13 @@
 [x] Compile to assembler (see teensy.asm)
 [x] Implement assembler mem_alloc
 [x] Implement assemble mem_unpack
-[ ] Fix register assignment order for arguments to arguments
-[ ] Generate ref calls
-[ ] Implement assemble mem_ref
+[x] Generate refs
+[x] Fix register assignment order for arguments to arguments
+[x] Recursive assembler mem_unpack
+[ ] Handle overflow in assembler ref
 [ ] Recursive assembler mem_deref
 [ ] Implement assembler read
+[ ] Implement fixed-size pool allocators with free-lists
 [ ] Deduplicate functions (Is there a unique reduced form?)
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)

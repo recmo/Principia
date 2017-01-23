@@ -16,8 +16,7 @@ Command machine(L"machine", [](Command::Arguments arguments) {
 	
 	Machine::load(cp);
 	Machine::print();
-	//Machine::run();
-	Machine::assemble();
+	Machine::run();
 	Machine::unload();
 	
 	return Command::success;

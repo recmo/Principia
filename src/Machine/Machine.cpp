@@ -442,6 +442,16 @@ void load(const Compile::Program& program)
 	assert(main.arguments == 1);
 }
 
+uint constant_index(const value_t* constant)
+{
+	for(uint i = 0; i < constants.size(); ++i) {
+		if(constants[i] == constant) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 void remove_unused_allocs(function_t& function)
 {
 	// Find unused allocs
@@ -1182,38 +1192,45 @@ void run()
 	}
 }
 
-std::wstring assemble_value(address_t address)
+std::wstring reg_allocator(uint function_index, address_t address)
 {
-	std::wstringstream ss;
+	// Constants do not need registers
 	if(address.type == type_constant) {
+		std::wstringstream ss;
 		ss << "constant_" << address.index;
+		return ss.str();
 	}
-	// rax, rbx, rcx, rdx,
-	// rbp, rsp, rsi, rdi,
-	// r8,  r9,  r10, r11,
-	// r12, r13, r14, r15
+	
+	// X86-64 registers
+	const std::wstring regs[] = {
+		L"rax", L"rbx", L"rcx", L"rdx",
+		// rbp, rsp, rsi, rdi, (These are rather special and skipped)
+		L"r8",  L"r9",  L"r10", L"r11",
+		L"r12", L"r13", L"r14", L"r15"
+	};
+	
+	const function_t& func = functions[function_index];
+	uint index = 0;
 	if(address.type == type_argument) {
-		const std::wstring regs[] = {
-			L"rax", L"rbx", L"rcx", L"rdx"
-		};
-		assert(address.index < sizeof(regs));
-		ss << regs[address.index];
+		index += address.index;
+		assert(index < sizeof(regs));
+		return regs[index];
+	} else {
+		index += func.arguments;
 	}
 	if(address.type == type_closure) {
-		const std::wstring regs[] = {
-			L"r8", L"r9", L"r10", L"r11"
-		};
-		assert(address.index < sizeof(regs));
-		ss << regs[address.index];
+		index += address.index;
+		assert(index < sizeof(regs));
+		return regs[index];
+	} else {
+		index += func.closures;
 	}
 	if(address.type == type_alloc) {
-		const std::wstring regs[] = {
-			L"r12", L"r13", L"r14", L"r15"
-		};
-		assert(address.index < sizeof(regs));
-		ss << regs[address.index];
+		index += address.index;
+		assert(index < sizeof(regs));
+		return regs[index];
 	}
-	return ss.str();
+	throw "Invalid address";
 }
 
 void assemble()
@@ -1254,7 +1271,11 @@ void assemble()
 		std::wcout << "	db " << functions[i].closures
 			<< "             ;  " << (i + 8) << "\n";
 	}
-	std::wcout << "\n";
+	std::wcout << "\n"
+		"main_closure:\n"
+		"	dw 0x0000        ; reference_count (zero for static)'\n"
+		"	dw " << (main_index + 8) << " ;  function_index (" << functions[main_index].name << " )\n"
+		"\n";
 	
 	for(uint i = 0; i < constants.size(); ++i) {
 		const value_t* value = constants[i];
@@ -1290,13 +1311,25 @@ void assemble()
 				"\n";
 		}
 		if(value->type == value_closure) {
-			
+			const uint16_t index = value->function();
+			const function_t& func = functions[index];
+			std::wcout <<
+				"constant_" << i << ": ; Static closure for " << func.name << " \n"
+				"	dw 0x0000        ; reference_count (zero for static)\n"
+				"	dw " << (index + 8) << " ; function_index (" << func.name << ")\n";
+			for(uint j = 0; j < func.closures; ++j) {
+				const uint ref_index = constant_index(value->values()[j]);
+				std::wcout <<
+					"	dq constant_" << ref_index << " ; TODO\n";
+				// TODO
+			}
+			std::wcout <<
+				"\n";
 		}
 	}
 	
 	std::wcout <<
 		"section .text\n"
-		"	global main\n"
 		"\n";
 	
 	for(uint i = 0; i < functions.size(); ++i) {
@@ -1306,7 +1339,7 @@ void assemble()
 			"	; Unpack closure\n";
 		for(uint j = 0; j < func.closures; ++j) {
 			std::wcout <<
-				"	mov " << assemble_value(address_t{type_closure, j}) << ", "
+				"	mov " << reg_allocator(i, address_t{type_closure, j}) << ", "
 				"[rsi + " << (4 + j * 8) << "]\n";
 		}
 		std::wcout <<
@@ -1314,14 +1347,22 @@ void assemble()
 			"	jmp mem_unpack    ; closure in rsi\n"
 			"	.ret_0:\n"
 			"	\n";
-		if(i == main_index) {
-			assert(func.closures == 0);
-			std::wcout << "main:\n";
+		
+		for(uint j = 0; j < func.derefs.size(); ++j) {
+			const deref_instruction_t& deref = func.derefs[j];
+			const uint r = 1 + func.allocs.size() + func.refs.size() + j;
+			std::wcout <<
+				"	; Deref " << deref << "\n"
+				"	mov rsi, " << reg_allocator(i, deref.address) << "\n"
+				"	mov rdi, .ret_" << r << "\n"
+				"	jmp mem_deref\n"
+				"	.ret_" << r << ":\n"
+				"	\n";
 		}
 		
 		for(uint j = 0; j < func.allocs.size(); ++j) {
 			const alloc_instruction_t& alloc = func.allocs[j];
-			const std::wstring reg = assemble_value(address_t{type_alloc, j});
+			const std::wstring reg = reg_allocator(i, address_t{type_alloc, j});
 			std::wcout <<
 				"	; Alloc " << alloc << "\n"
 				"	mov rsi, " << (4 + 8 * alloc.closure.size()) << "\n"
@@ -1333,33 +1374,38 @@ void assemble()
 				<< (alloc.function_index + 8) << "\n";
 			for(uint k = 0; k < alloc.closure.size(); ++k) {
 				std::wcout <<
-					"	mov [" << reg << " + " << (4 + k * 8) << "], " <<
-					assemble_value(alloc.closure[k]) << "\n";
+					"	mov qword [" << reg << " + " << (4 + k * 8) << "], " <<
+					reg_allocator(i, alloc.closure[k]) << "\n";
 			}
 			std::wcout << "	\n";
 		}
 		
 		for(uint j = 0; j < func.refs.size(); ++j) {
 			const ref_instruction_t& ref = func.refs[j];
+			const uint r = 1 + func.allocs.size() + j;
 			std::wcout <<
 				"	; Ref " << ref << "\n"
-				"	\n";
-		}
-		
-		for(uint j = 0; j < func.derefs.size(); ++j) {
-			const deref_instruction_t& deref = func.derefs[j];
-			std::wcout <<
-				"	; Deref " << deref << "\n"
+				"	xor rsi, rsi       ; Clear rsi\n"
+				"	mov si, word [" << reg_allocator(i, ref.address) << "] ; Load ref_count\n"
+				"	or rsi, rsi        ; Test for zero\n"
+				"	jz .ret_" << r << "          ; Skip if zero\n"
+				"	add rsi, " << ref.count << "         ; Increase reference count\n"
+				"	mov word [" << reg_allocator(i, ref.address) << "], si ; Store reference count\n"
+				"	.ret_" << r << ":            ;\n"
 				"	\n";
 		}
 		
 		std::wcout <<
 			"	; Call " << func.call << "\n"
-			"	mov rsi, " << assemble_value(func.call[0]) << "\n";
+			"	mov rsi, " << reg_allocator(i, func.call[0]) << "\n";
 		for(uint j = 0; j < func.call.size() - 1; ++j) {
 			std::wcout <<
-				"	mov " << assemble_value(address_t{type_argument, j}) << ", "
-				<< assemble_value(func.call[j + 1]) << "\n";
+				"	push " << reg_allocator(i, func.call[j + 1]) << "\n";
+		}
+		for(uint j = 0; j < func.call.size() - 1; ++j) {
+			const std::wstring reg = reg_allocator(i, address_t{type_argument, func.call.size() - j - 2});
+			std::wcout <<
+				"	pop " << reg << "\n";
 		}
 		std::wcout <<
 			"	xor rdi, rdi                   ; Clear rdi\n"

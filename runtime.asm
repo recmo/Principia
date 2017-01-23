@@ -1,6 +1,12 @@
 ; make; and ./Principia machine examples/FizzBuzz.principia  > FizzBuzz.asm; and nasm -f elf64 FizzBuzz.asm; and gcc FizzBuzz.o -o FizzBuzz; valgrind ./FizzBuzz
+
 section .data
-%include "memory.asm"
+
+current_brk:
+	dq 0
+
+free_list:
+	dq 0
 
 read_fixed: ; string
 	dw 0x0000        ; reference_count (zero for static)
@@ -14,6 +20,20 @@ exit_closure:
 
 section .text
 	global _start
+
+_start:
+	; Compute the current break
+	mov rax, 12       ; sys_brk
+	mov rdi, 0        ; void* addr
+	syscall           ; returns in rax, clobbers rcx and r11
+	mov [current_brk], rax ; Store in current_brk
+	
+	; Call main closure with exit as argument
+	mov rsi, main_closure
+	mov rax, exit_closure
+	xor rdi, rdi                   ; Clear rdi
+	mov di, [rsi + 2]              ; Store function_index in rdi
+	jmp [function_table + rdi * 8] ; Jump to function table entry
 
 type_invalid:
 	mov rax, 60  ; sys_exit
@@ -31,22 +51,47 @@ mem_alloc:
 	; rsi contains the allocated address on return
 	; All other registers need to be preserved
 	
-	; Preserve all register clobbered by call except rsi
+	; Check the free_list
+	mov rsi, [free_list]       ; Load current free object
+	or rsi, rsi                ; Test for zero
+	jz .new                    ; Create new if zero
+	
+	; Pop from the free list
+	push rax
+	mov rax, [rsi]             ; Load pointer to next free object
+	mov [free_list], rax       ; Store in free_list
+	pop rax
+	jmp .end
+	
+	.new: ; Allocate new space
+	
+	; Compute the new break in rdi
 	push rax
 	push rcx
 	push rdx
+	;push rsi
 	push rdi
 	push r8
 	push r9
 	push r10
 	push r11
+	mov rdi, [current_brk]
+	add rdi, 36
 	
-	; Allocate
-	mov rdi, rsi   ; rdi = 0
-	call malloc    ; rax = malloc(rdi)
+	; Call brk
+	mov rax, 12       ; sys_brk
+	;mov rdi, 0       ; void* addr
+	syscall           ; returns in rax, clobbers rcx and r11
+	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
+	
+	; On success, rax contains the new break, else it contains the current break
+	;cmp rax, rdi
+	; TODO test
+	
+	mov [current_brk], rax
+	sub rax, 36
 	mov rsi, rax
 	
-	; Restore all registers clobbered by call except rsi
 	pop r11
 	pop r10
 	pop r9
@@ -56,11 +101,9 @@ mem_alloc:
 	pop rcx
 	pop rax
 	
-	; Initialize ref_count to one
-	mov word [rsi], 1
-	
 	; Return
 	.end:
+	mov word [rsi], 1   ; Initialize ref_count to one
 	jmp rdi
 
 mem_deref:
@@ -114,31 +157,10 @@ mem_deref:
 	pop rcx
 	pop rbx
 	
-	; Preserve all register clobbered by C function call
-	; push rax ; Done separately
-	push rcx
-	push rdx
-	push rsi
-	push rdi
-	push r8
-	push r9
-	push r10
-	push r11
-	
-	; Call free(rsi)
-	mov rdi, rsi       ; First argument passed in rdi
-	call free          ; rax = free(rdi)
-	
-	; Restore all registers clobbered by C function call
-	pop r11
-	pop r10
-	pop r9
-	pop r8
-	pop rdi
-	pop rsi
-	pop rdx
-	pop rcx
-	; pop rax ; Done separately
+	; Push [rsi] onto free list
+	mov rax, [free_list]
+	mov [rsi], rax
+	mov [free_list], rsi
 	
 	jmp .end           ; Resume computation
 
@@ -156,12 +178,11 @@ mem_unpack:
 	jz .free           ; Free if zero
 	mov word [rsi], ax ; Store reference count
 	
-	; Issue additional references to the values
-	
+	; Issue additional references to the values if we keep the closure
+	; arround after unpacking
 	push rbx
 	push rcx
 	push rdx
-	
 	xor rax, rax           ; Clear rax
 	mov word ax, [rsi + 2] ; Load funcion_index
 	xor rbx, rbx           ; Clear rbx
@@ -170,7 +191,6 @@ mem_unpack:
 	jz .end_loop           ; Skip if no values
 	mov rcx, rsi
 	add rcx, 4             ; Point rcx to the first value
-	
 	.loop:                 ; For each value in the closure
 	mov rdx, [rcx]         ; Load value (pointer to other closure)
 	xor rax, rax           ; Clear rax
@@ -179,13 +199,11 @@ mem_unpack:
 	jz .skip               ; Skip if zero
 	add rax, 1             ; Increase reference count
 	mov word [rdx], ax     ; Store reference count
-	
 	.skip:                 ;
 	add rcx, 8             ; Increase value pointer
 	dec rbx                ; Decrease loop counter
 	jnz .loop              ; Stop if zero
 	.end_loop:
-	
 	pop rdx
 	pop rcx
 	pop rbx
@@ -197,31 +215,10 @@ mem_unpack:
 	; Free closure
 	.free:
 	
-	; Preserve all register clobbered by C function call
-	; push rax ; Done separately
-	push rcx
-	push rdx
-	push rsi
-	push rdi
-	push r8
-	push r9
-	push r10
-	push r11
-	
-	; Call free(rsi)
-	mov rdi, rsi       ; First argument passed in rdi
-	call free          ; rax = free(rdi)
-	
-	; Restore all registers clobbered by C function call
-	pop r11
-	pop r10
-	pop r9
-	pop r8
-	pop rdi
-	pop rsi
-	pop rdx
-	pop rcx
-	; pop rax ; Done separately
+	; Push [rsi] onto free list
+	mov rax, [free_list]
+	mov [rsi], rax
+	mov [free_list], rsi
 	
 	jmp .end           ; Resume computation
 
@@ -281,12 +278,33 @@ read: ; ret
 	mov di, [rsi + 2]              ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
 
-_start:
-	call init
+malloc:
+	; Check the free_list
+	mov rax, [free_list]       ; Load current free object
+	or rax, rax                ; Test for zero
+	jz .new                    ; Create new if zero
 	
-	; Call main closure with exit as argument
-	mov rsi, main_closure
-	mov rax, exit_closure
-	xor rdi, rdi                   ; Clear rdi
-	mov di, [rsi + 2]              ; Store function_index in rdi
-	jmp [function_table + rdi * 8] ; Jump to function table entry
+	; Pop from the free list
+	mov rdi, [rax]             ; Load pointer to next free object
+	mov [free_list], rdi       ; Store in free_list
+	ret                        ; Return current free object (in rax)
+	
+	.new: ; Allocate new space
+	
+	; Compute the new break in rdi
+	mov rdi, [current_brk]
+	add rdi, 36
+	
+	; Call brk
+	mov rax, 12       ; sys_brk
+	;mov rdi, 0       ; void* addr
+	syscall           ; returns in rax, clobbers rcx and r11
+	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
+	
+	; On success, rax contains the new break, else it contains the current break
+	;cmp rax, rdi
+	; TODO test
+	
+	mov [current_brk], rax
+	sub rax, 36
+	ret

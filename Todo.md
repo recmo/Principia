@@ -29,7 +29,7 @@
 [x] Fix register assignment order for arguments to arguments
 [x] Recursive assembler mem_unpack
 [x] Recursive assembler mem_deref
-[ ] Simple free-list allocator, fixed size, using sys_brk
+[x] Simple free-list allocator, fixed size, using sys_brk
 [ ] Inline memory
 [ ] Handle overflow in assembler ref
 [ ] Implement assembler read

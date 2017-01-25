@@ -30,6 +30,8 @@
 [x] Recursive assembler mem_unpack
 [x] Recursive assembler mem_deref
 [x] Simple free-list allocator, fixed size, using sys_brk
+[x] Clear rsi on first ref only
+[x] Direct jmp when target func is known (const, alloc)
 [ ] Inline memory
 [ ] Handle overflow in assembler ref
 [ ] Implement assembler read

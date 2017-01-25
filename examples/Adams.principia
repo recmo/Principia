@@ -163,8 +163,8 @@ section “Main”
 	exp n4 n4 (λ · f)
 	print-number f (λ ·) fail
 	print-newline (λ ·)
-	print “10! = ” (λ ·)
-	fact n10 (λ · f)
+	print “11! = ” (λ ·)
+	fact n11 (λ · f)
 	print-number f (λ ·) fail
 	print-newline (λ ·)
 	print “The answer to the universe, life and everything is: ” (λ ·)

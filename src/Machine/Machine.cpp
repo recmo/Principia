@@ -974,6 +974,8 @@ void inline_functions(std::vector<function_t>& functions)
 			// (Re)optimize
 			remove_unused_allocs(outer);
 			promote_allocs(outer);
+			remove_unused_closures(outer);
+			deduplicate_allocs(outer);
 			
 			if(outer.call[0].type == type_constant
 				&& constants[outer.call[0].index]->type == value_closure) {
@@ -1381,11 +1383,14 @@ void assemble()
 		}
 		
 		for(uint j = 0; j < func.refs.size(); ++j) {
+			if(j == 0) {
+				std::wcout <<
+					"	xor rsi, rsi       ; Clear rsi\n";
+			}
 			const ref_instruction_t& ref = func.refs[j];
 			const uint r = 1 + func.allocs.size() + j;
 			std::wcout <<
 				"	; Ref " << ref << "\n"
-				"	xor rsi, rsi       ; Clear rsi\n"
 				"	mov si, word [" << reg_allocator(i, ref.address) << "] ; Load ref_count\n"
 				"	or rsi, rsi        ; Test for zero\n"
 				"	jz .ret_" << r << "          ; Skip if zero\n"
@@ -1407,11 +1412,29 @@ void assemble()
 			std::wcout <<
 				"	pop " << reg << "\n";
 		}
-		std::wcout <<
-			"	xor rdi, rdi                   ; Clear rdi\n"
-			"	mov di, [rsi + 2]              ; Store function_index in rdi\n"
-			"	jmp [function_table + rdi * 8] ; Jump to function table entry\n"
-			"\n";
+		if(func.call[0].type == type_constant) {
+			const value_t* closure = constants[func.call[0].index];
+			if(closure->type == value_import) {
+				std::wcout <<
+					"	jmp " << closure->string() << " ; Jump to function table entry\n"
+					"\n";
+			} else {
+				std::wcout <<
+					"	jmp func_" << closure->function()<< " ; Jump to function table entry\n"
+					"\n";
+			}
+		} else if (func.call[0].type == type_alloc) {
+			uint index = func.allocs[func.call[0].index].function_index;
+			std::wcout <<
+				"	jmp func_" << index << " ; Jump to function table entry\n"
+				"\n";
+		} else {
+			std::wcout <<
+				"	xor rdi, rdi                   ; Clear rdi\n"
+				"	mov di, [rsi + 2]              ; Store function_index in rdi\n"
+				"	jmp [function_table + rdi * 8] ; Jump to function table entry\n"
+				"\n";
+		}
 	}
 }
 

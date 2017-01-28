@@ -1,12 +1,6 @@
 ; make; and ./Principia machine examples/FizzBuzz.principia  > FizzBuzz.asm; and nasm -f elf64 FizzBuzz.asm; and gcc FizzBuzz.o -o FizzBuzz; valgrind ./FizzBuzz
 
-section .data
-
-current_brk:
-	dq 0
-
-free_list:
-	dq 0
+section .rodata
 
 read_fixed: ; string
 	dw 0x0000        ; reference_count (zero for static)
@@ -17,6 +11,14 @@ read_fixed: ; string
 exit_closure:
 	dw 0x0000        ; reference_count (zero for static)
 	dw 0x0005        ; function_index (exit)
+
+section .data
+
+current_brk:
+	dq 0
+
+free_list:
+	dq 0
 
 section .text
 	global _start
@@ -179,22 +181,23 @@ mem_unpack:
 	push rcx
 	push rdx
 	movzx rax, word [rsi + 2] ; Load funcion_index
-	movzx rbx, byte [size_table + rax] ; Load the closure size
-	or rbx, rbx
+	movzx rcx, byte [size_table + rax] ; Load the closure size
+	or rcx, rcx
 	jz .end_loop           ; Skip if no values
-	mov rcx, rsi
-	add rcx, 4             ; Point rcx to the first value
+	mov rbx, rsi
+	add rbx, 4             ; Point rcx to the first value
+	
 	.loop:                 ; For each value in the closure
-	mov rdx, [rcx]         ; Load value (pointer to other closure)
-	movzx rax, word [rdx]     ; Load ref_count
+	mov rdx, [rbx]         ; Load value (pointer to other closure)
+	movzx rax, word [rdx]  ; Load ref_count
 	or rax, rax            ; Test for zero
 	jz .skip               ; Skip if zero
 	add rax, 1             ; Increase reference count
 	mov word [rdx], ax     ; Store reference count
 	.skip:                 ;
-	add rcx, 8             ; Increase value pointer
-	dec rbx                ; Decrease loop counter
-	jnz .loop              ; Stop if zero
+	add rbx, 8             ; Increase value pointer
+	loop .loop             ; Decrement rcx and jump to .loop if nonzero
+	
 	.end_loop:
 	pop rdx
 	pop rcx

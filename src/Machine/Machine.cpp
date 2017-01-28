@@ -1242,7 +1242,7 @@ void assemble()
 		"; nasm -f elf64 -\n"
 		"%include \"runtime.asm\"\n"
 		"\n"
-		"section .data\n"
+		"section .rodata\n"
 		"\n";
 	std::wcout <<
 		"function_table:\n"
@@ -1337,18 +1337,23 @@ void assemble()
 	for(uint i = 0; i < functions.size(); ++i) {
 		const function_t& func = functions[i];
 		std::wcout <<
-			"func_" << i << ": ; " << func.name << "\n"
-			"	; Unpack closure\n";
-		for(uint j = 0; j < func.closures; ++j) {
+			"func_" << i << ": ; " << func.name << "\n";
+		
+		// Unpack closures for functions with non-constant closures
+		if(func.closures > 0) {
 			std::wcout <<
-				"	mov " << reg_allocator(i, address_t{type_closure, j}) << ", "
-				"[rsi + " << (4 + j * 8) << "]\n";
+				"	; Unpack closure\n";
+			for(uint j = 0; j < func.closures; ++j) {
+				std::wcout <<
+					"	mov " << reg_allocator(i, address_t{type_closure, j}) << ", "
+					"[rsi + " << (4 + j * 8) << "]\n";
+			}
+			std::wcout <<
+				"	mov rdi, .ret_0  ; return address\n"
+				"	jmp mem_unpack    ; closure in rsi\n"
+				"	.ret_0:\n"
+				"	\n";
 		}
-		std::wcout <<
-			"	mov rdi, .ret_0  ; return address\n"
-			"	jmp mem_unpack    ; closure in rsi\n"
-			"	.ret_0:\n"
-			"	\n";
 		
 		for(uint j = 0; j < func.derefs.size(); ++j) {
 			const deref_instruction_t& deref = func.derefs[j];
@@ -1365,6 +1370,7 @@ void assemble()
 		for(uint j = 0; j < func.allocs.size(); ++j) {
 			const alloc_instruction_t& alloc = func.allocs[j];
 			const std::wstring reg = reg_allocator(i, address_t{type_alloc, j});
+			assert(alloc.closure.size() > 0); // Can not alloc constants
 			std::wcout <<
 				"	; Alloc " << alloc << "\n"
 				"	mov rsi, " << (4 + 8 * alloc.closure.size()) << "\n"

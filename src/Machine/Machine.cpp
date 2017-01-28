@@ -1383,15 +1383,11 @@ void assemble()
 		}
 		
 		for(uint j = 0; j < func.refs.size(); ++j) {
-			if(j == 0) {
-				std::wcout <<
-					"	xor rsi, rsi       ; Clear rsi\n";
-			}
 			const ref_instruction_t& ref = func.refs[j];
 			const uint r = 1 + func.allocs.size() + j;
 			std::wcout <<
 				"	; Ref " << ref << "\n"
-				"	mov si, word [" << reg_allocator(i, ref.address) << "] ; Load ref_count\n"
+				"	movzx rsi, word [" << reg_allocator(i, ref.address) << "] ; Load ref_count\n"
 				"	or rsi, rsi        ; Test for zero\n"
 				"	jz .ret_" << r << "          ; Skip if zero\n"
 				"	add rsi, " << ref.count << "         ; Increase reference count\n"
@@ -1430,8 +1426,7 @@ void assemble()
 				"\n";
 		} else {
 			std::wcout <<
-				"	xor rdi, rdi                   ; Clear rdi\n"
-				"	mov di, [rsi + 2]              ; Store function_index in rdi\n"
+				"	movzx rdi, word [rsi + 2]      ; Store function_index in rdi\n"
 				"	jmp [function_table + rdi * 8] ; Jump to function table entry\n"
 				"\n";
 		}

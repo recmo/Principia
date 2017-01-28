@@ -31,8 +31,7 @@ _start:
 	; Call main closure with exit as argument
 	mov rsi, main_closure
 	mov rax, exit_closure
-	xor rdi, rdi                   ; Clear rdi
-	mov di, [rsi + 2]              ; Store function_index in rdi
+	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
 
 type_invalid:
@@ -112,8 +111,7 @@ mem_deref:
 	; All other registers need to be preserved
 	
 	push rax           ; Preserve rax
-	xor rax, rax       ; Clear rax
-	mov ax, word [rsi] ; Load reference count
+	movzx rax, word [rsi] ; Load reference count
 	or rax, rax        ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
@@ -133,10 +131,8 @@ mem_deref:
 	push rsi
 	push rdi
 	
-	xor rax, rax           ; Clear rax
-	mov word ax, [rsi + 2] ; Load funcion_index
-	xor rbx, rbx           ; Clear rbx
-	mov byte bl, [size_table + rax] ; Load the closure size
+	movzx rax, word [rsi + 2] ; Load funcion_index
+	movzx rbx, byte [size_table + rax] ; Load the closure size
 	or rbx, rbx
 	jz .end_loop           ; Skip if no values
 	mov rcx, rsi
@@ -170,8 +166,7 @@ mem_unpack:
 	; All other registers need to be preserved
 	
 	push rax           ; Preserve rax
-	xor rax, rax       ; Clear rax
-	mov ax, word [rsi] ; Load reference count
+	movzx rax, word [rsi] ; Load reference count
 	or rax, rax        ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
@@ -183,18 +178,15 @@ mem_unpack:
 	push rbx
 	push rcx
 	push rdx
-	xor rax, rax           ; Clear rax
-	mov word ax, [rsi + 2] ; Load funcion_index
-	xor rbx, rbx           ; Clear rbx
-	mov byte bl, [size_table + rax] ; Load the closure size
+	movzx rax, word [rsi + 2] ; Load funcion_index
+	movzx rbx, byte [size_table + rax] ; Load the closure size
 	or rbx, rbx
 	jz .end_loop           ; Skip if no values
 	mov rcx, rsi
 	add rcx, 4             ; Point rcx to the first value
 	.loop:                 ; For each value in the closure
 	mov rdx, [rcx]         ; Load value (pointer to other closure)
-	xor rax, rax           ; Clear rax
-	mov ax, word [rdx]     ; Load ref_count
+	movzx rax, word [rdx]     ; Load ref_count
 	or rax, rax            ; Test for zero
 	jz .skip               ; Skip if zero
 	add rax, 1             ; Increase reference count
@@ -258,8 +250,7 @@ print: ; message, ret
 	
 	; Call [a1]
 	mov rsi, rbx                   ; Closure from second argument
-	xor rdi, rdi                   ; Clear rdi
-	mov di, [rsi + 2]              ; Store function_index in rdi
+	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
 
 read: ; ret
@@ -274,8 +265,7 @@ read: ; ret
 	; Call [a0 C]
 	mov rsi, rax                   ; Closure from second argument
 	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
-	xor rdi, rdi                   ; Clear rdi
-	mov di, [rsi + 2]              ; Store function_index in rdi
+	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
 
 malloc:

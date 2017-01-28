@@ -32,13 +32,14 @@
 [x] Simple free-list allocator, fixed size, using sys_brk
 [x] Clear rsi on first ref only
 [x] Direct jmp when target func is known (const, alloc)
+[ ] Control flow analysis, to find more constants
+[ ] Deduplicate functions (Is there a unique reduced form?)
 [ ] Inline memory
 [ ] Handle overflow in assembler ref
 [ ] Implement assembler read
 [ ] Allocate memory using syscalls
 [ ] Implement fixed-size pool allocators with free-lists
 [ ] Abuse rsp, push and pop for memory management
-[ ] Deduplicate functions (Is there a unique reduced form?)
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
 [ ] Reference counting memory manager

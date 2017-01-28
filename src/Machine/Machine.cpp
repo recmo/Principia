@@ -1385,14 +1385,23 @@ void assemble()
 		std::wcout <<
 			"	; Call " << func.call << "\n"
 			"	mov rsi, " << reg_allocator(i, func.call[0]) << "\n";
-		for(uint j = 0; j < func.call.size() - 1; ++j) {
-			std::wcout <<
-				"	push " << reg_allocator(i, func.call[j + 1]) << "\n";
+		
+		// We need to re-arrange the registers to match with the call arguments
+		// TODO: Find permutations and do cycle decomposition into xchg instructions
+		/*
+		std::vector<std::wstring> old_registers;
+		std::vector<std::wstring> new_registers;
+		for(uint j = 1; j < func.call.size() - 1; ++j) {
+			old_registers.push_back(reg_allocator(i, func.call[j]));
+			new_registers.push_back(reg_allocator(i, address_t{type_argument, j - 1}));
 		}
+		std::wcerr << old_registers << " -> " << new_registers << "\n";
+		*/
+		// This naive approach works for the Adams example:
 		for(uint j = 0; j < func.call.size() - 1; ++j) {
-			const std::wstring reg = reg_allocator(i, address_t{type_argument, func.call.size() - j - 2});
+			const std::wstring reg = reg_allocator(i, address_t{type_argument, j});
 			std::wcout <<
-				"	pop " << reg << "\n";
+				"	mov " << reg << ", " << reg_allocator(i, func.call[j + 1]) << "\n";
 		}
 		
 		// Jump to the next function

@@ -33,9 +33,13 @@
 [x] Clear rsi on first ref only
 [x] Direct jmp when target func is known (const, alloc)
 [x] Allocate memory in chunks of one megabyte (to avoid many sys_brk)
-[ ] Specialize functions of constant closures by inlining to get constant empty closures
-[ ] Have unrolled mem_unpack_n and mem_deref_n functions
+[ ] Remove function_table indirection
+[ ] Refcount before closure (ie offset pointers by two)
 [ ] Generate mem_*_n functions and alloc size based on maximum closure size
+[ ] Have unrolled mem_unpack_n and mem_deref_n functions
+[ ] Specialize functions of constant closures by inlining to get constant empty closures
+[ ] Statically allocate closures that exist at most once
+[ ] Calling convention passing closure arguments in registers
 [ ] Skip setting closure pointer when calling funcs with constant empty closures
 [ ] Use rsp to point to closures, use ret to jump to them, pop to unpack them
 [ ] Control flow analysis, to find more constants

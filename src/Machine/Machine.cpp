@@ -1244,40 +1244,6 @@ void assemble()
 		"\n"
 		"section .rodata\n"
 		"\n";
-	std::wcout <<
-		"function_table:\n"
-		"	dq type_invalid  ;  0\n"
-		"	dq type_string   ;  1\n"
-		"	dq mem_alloc     ;  2\n"
-		"	dq mem_deref     ;  3\n"
-		"	dq mem_unpack    ;  4\n"
-		"	dq exit          ;  5\n"
-		"	dq print         ;  6\n"
-		"	dq read          ;  7\n";
-	for(uint i = 0; i < functions.size(); ++i) {
-		std::wcout << "	dq func_" << i << "        ;  " << (i + 8) << "\n";
-	}
-	std::wcout << "\n";
-	
-	std::wcout <<
-		"size_table:\n"
-		"	db 0             ;  0\n"
-		"	db 0             ;  1\n"
-		"	db 0             ;  2\n"
-		"	db 0             ;  3\n"
-		"	db 0             ;  4\n"
-		"	db 0             ;  5\n"
-		"	db 0             ;  6\n"
-		"	db 0             ;  7\n";
-	for(uint i = 0; i < functions.size(); ++i) {
-		std::wcout << "	db " << functions[i].closures
-			<< "             ;  " << (i + 8) << "\n";
-	}
-	std::wcout << "\n"
-		"main_closure:\n"
-		"	dw 0x0000        ; reference_count (zero for static)'\n"
-		"	dw " << (main_index + 8) << " ;  function_index (" << functions[main_index].name << " )\n"
-		"\n";
 	
 	for(uint i = 0; i < constants.size(); ++i) {
 		const value_t* value = constants[i];
@@ -1286,7 +1252,8 @@ void assemble()
 			std::wcout <<
 				"constant_" << i << ": ; string\n"
 				"	dw 0x0000        ; reference_count (zero for static)\n"
-				"	dw 0x0006        ; function_index (type_string)\n"
+				"	dw 0x0000        ; size\n"
+				"	dq type_string   ; function (type_string)\n"
 				"	dd " << str.size() << "            ; num_bytes\n";
 			if(str == L"\n") {
 				std::wcout <<
@@ -1309,7 +1276,8 @@ void assemble()
 			std::wcout <<
 				"constant_" << i << ": ; Static closure for " << value->string() << " \n"
 				"	dw 0x0000        ; reference_count (zero for static)\n"
-				"	dw " << index << " ; function_index (" << value->string() << ")\n"
+				"	dw 0x0000        ; size\n"
+				"	dq " << value->string() << " ; function pointer\n"
 				"\n";
 		}
 		if(value->type == value_closure) {
@@ -1318,12 +1286,12 @@ void assemble()
 			std::wcout <<
 				"constant_" << i << ": ; Static closure for " << func.name << " \n"
 				"	dw 0x0000        ; reference_count (zero for static)\n"
-				"	dw " << (index + 8) << " ; function_index (" << func.name << ")\n";
+				"	dw " << func.closures << "   ; size\n"
+				"	dq func_" << index << " ; function pointer\n";
 			for(uint j = 0; j < func.closures; ++j) {
 				const uint ref_index = constant_index(value->values()[j]);
 				std::wcout <<
-					"	dq constant_" << ref_index << " ; TODO\n";
-				// TODO
+					"	dq constant_" << ref_index << "\n";
 			}
 			std::wcout <<
 				"\n";
@@ -1336,6 +1304,11 @@ void assemble()
 	
 	for(uint i = 0; i < functions.size(); ++i) {
 		const function_t& func = functions[i];
+		
+		if(i == main_index) {
+			std::wcout << "main: \n";
+		}
+		
 		std::wcout <<
 			"func_" << i << ": ; " << func.name << "\n";
 		
@@ -1346,7 +1319,7 @@ void assemble()
 			for(uint j = 0; j < func.closures; ++j) {
 				std::wcout <<
 					"	mov " << reg_allocator(i, address_t{type_closure, j}) << ", "
-					"[rsi + " << (4 + j * 8) << "]\n";
+					"[rsi + " << (12 + j * 8) << "]\n";
 			}
 			std::wcout <<
 				"	mov rdi, .ret_0  ; return address\n"
@@ -1373,16 +1346,16 @@ void assemble()
 			assert(alloc.closure.size() > 0); // Can not alloc constants
 			std::wcout <<
 				"	; Alloc " << alloc << "\n"
-				"	mov rsi, " << (4 + 8 * alloc.closure.size()) << "\n"
+				"	mov rsi, " << (12 + 8 * alloc.closure.size()) << "\n"
 				"	mov rdi, .ret_" << (j + 1) << "\n"
 				"	jmp mem_alloc\n"
 				"	.ret_" << (j + 1) << ":\n"
 				"	mov " << reg << ", rsi\n"
-				"	mov word [" << reg << " + 2], "
-				<< (alloc.function_index + 8) << "\n";
+				"	mov word [" << reg << " + 2], " << alloc.closure.size() << "\n"
+				"	mov qword [" << reg << " + 4], func_"<< alloc.function_index << "\n";
 			for(uint k = 0; k < alloc.closure.size(); ++k) {
 				std::wcout <<
-					"	mov qword [" << reg << " + " << (4 + k * 8) << "], " <<
+					"	mov qword [" << reg << " + " << (12 + k * 8) << "], " <<
 					reg_allocator(i, alloc.closure[k]) << "\n";
 			}
 			std::wcout << "	\n";
@@ -1414,26 +1387,27 @@ void assemble()
 			std::wcout <<
 				"	pop " << reg << "\n";
 		}
+		
+		// Jump to the next function
 		if(func.call[0].type == type_constant) {
 			const value_t* closure = constants[func.call[0].index];
 			if(closure->type == value_import) {
 				std::wcout <<
-					"	jmp " << closure->string() << " ; Jump to function table entry\n"
+					"	jmp " << closure->string() << " ; Jump to next function\n"
 					"\n";
 			} else {
 				std::wcout <<
-					"	jmp func_" << closure->function()<< " ; Jump to function table entry\n"
+					"	jmp func_" << closure->function()<< " ; Jump to next function\n"
 					"\n";
 			}
 		} else if (func.call[0].type == type_alloc) {
 			uint index = func.allocs[func.call[0].index].function_index;
 			std::wcout <<
-				"	jmp func_" << index << " ; Jump to function table entry\n"
+				"	jmp func_" << index << " ; Jump to next function\n"
 				"\n";
 		} else {
 			std::wcout <<
-				"	movzx rdi, word [rsi + 2]      ; Store function_index in rdi\n"
-				"	jmp [function_table + rdi * 8] ; Jump to function table entry\n"
+				"	jmp [rsi + 4] ; Jump to next function\n"
 				"\n";
 		}
 	}

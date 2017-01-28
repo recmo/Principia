@@ -4,24 +4,21 @@ section .rodata
 
 read_fixed: ; string
 	dw 0x0000        ; reference_count (zero for static)
-	dw 0x0006        ; function_index (type_string)
+	dw 0x0000        ; size
+	dq type_string   ; function
 	dd 4             ; num_bytes
 	db "TODO"
 
 exit_closure:
 	dw 0x0000        ; reference_count (zero for static)
-	dw 0x0005        ; function_index (exit)
+	dw 0x0000        ; size
+	dq exit          ; function
 
 section .data
 
-current_brk:
-	dq 0
-
-alloc_top:
-	dq 0
-
-free_list:
-	dq 0
+current_brk: dq 0
+alloc_top:   dq 0
+free_list:   dq 0
 
 section .text
 	global _start
@@ -35,10 +32,8 @@ _start:
 	mov [alloc_top], rax           ; Store in alloc_top
 	
 	; Call main closure with exit as argument
-	mov rsi, main_closure
 	mov rax, exit_closure
-	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
-	jmp [function_table + rdi * 8] ; Jump to function table entry
+	jmp main
 
 type_invalid:
 	mov rax, 60  ; sys_exit
@@ -51,7 +46,7 @@ type_string:
 	syscall      ; Execution stops here
 
 mem_alloc:
-	; rsi contains the size rsi = 4 + n * 8
+	; rsi contains the size rsi = 12 + n * 8
 	; rdi contains the return address
 	; rsi contains the allocated address on return
 	; All other registers need to be preserved
@@ -74,13 +69,13 @@ mem_alloc:
 	
 	; Check the allocation pool
 	mov rsi, [alloc_top]       ; Get top of allocations
-	add rsi, 36                ; Add fixed closure size 36
+	add rsi, 44                ; Add fixed closure size 42
 	cmp rsi, [current_brk]     ; Check if below current break
 	jae .morecore              ; If not, go to more core
 	
 	; Allocate from below break
 	mov [alloc_top], rsi       ; Store new top of allocations
-	sub rsi, 36                ; Realign to start
+	sub rsi, 44                ; Realign to start
 	mov word [rsi], 1          ; Initialize ref_count to one
 	jmp rdi                    ; Return
 	
@@ -149,12 +144,11 @@ mem_deref:
 	push rsi
 	push rdi
 	
-	movzx rax, word [rsi + 2] ; Load funcion_index
-	movzx rbx, byte [size_table + rax] ; Load the closure size
+	movzx rbx, word [rsi + 2] ; Load the closure size
 	test rbx, rbx
 	jz .end_loop           ; Skip if no values
 	mov rcx, rsi
-	add rcx, 4             ; Point rcx to the first value
+	add rcx, 12            ; Point rcx to the first value
 	
 	.loop:                 ; For each value in the closure
 	mov rsi, [rcx]         ; Load value (pointer to other closure)
@@ -196,12 +190,11 @@ mem_unpack:
 	push rbx
 	push rcx
 	push rdx
-	movzx rax, word [rsi + 2] ; Load funcion_index
-	movzx rcx, byte [size_table + rax] ; Load the closure size
+	movzx rcx, byte [rsi + 2] ; Load the closure size
 	test rcx, rcx
 	jz .end_loop           ; Skip if no values
 	mov rbx, rsi
-	add rbx, 4             ; Point rcx to the first value
+	add rbx, 12             ; Point rcx to the first value
 	
 	.loop:                 ; For each value in the closure
 	mov rdx, [rbx]         ; Load value (pointer to other closure)
@@ -255,8 +248,8 @@ print: ; message, ret
 	mov rax, 1         ; sys_write
 	mov rdi, 1         ; param 1 fd (unsigned int)
 	mov rsi, r12       ; param 2 buf (const char __user *)
-	add rsi, 8         ; offset 8
-	mov edx, [r12 + 4] ; param 3 count (size_t)
+	add rsi, 16        ; offset 12 + 4
+	mov edx, [r12 + 12]; param 3 count (size_t)
 	syscall            ; returns in rax, clobbers rcx and r11
 	
 	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
@@ -269,8 +262,7 @@ print: ; message, ret
 	
 	; Call [a1]
 	mov rsi, rbx                   ; Closure from second argument
-	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
-	jmp [function_table + rdi * 8] ; Jump to function table entry
+	jmp [rsi + 4]                  ; Jump to function
 
 read: ; ret
 	; Unpack closure
@@ -284,5 +276,4 @@ read: ; ret
 	; Call [a0 C]
 	mov rsi, rax                   ; Closure from second argument
 	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
-	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
-	jmp [function_table + rdi * 8] ; Jump to function table entry
+	jmp [rsi + 4]                  ; Jump to function

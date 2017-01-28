@@ -1351,14 +1351,21 @@ void assemble()
 				"	jmp mem_alloc\n"
 				"	.ret_" << (j + 1) << ":\n"
 				"	mov " << reg << ", rsi\n"
-				"	mov word [" << reg << " + 2], " << alloc.closure.size() << "\n"
-				"	mov qword [" << reg << " + 4], func_"<< alloc.function_index << "\n";
+				"	xchg rsp, rsi\n"
+				//"	mov word [rsp + 2], " << alloc.closure.size() << "\n"
+				"	add rsp, " << (12 + 8 * alloc.closure.size()) << "\n";
+				//"	mov qword [rsi + 4], func_"<< alloc.function_index << "\n";
 			for(uint k = 0; k < alloc.closure.size(); ++k) {
 				std::wcout <<
-					"	mov qword [" << reg << " + " << (12 + k * 8) << "], " <<
-					reg_allocator(i, alloc.closure[k]) << "\n";
+					//"	mov qword [rsi + " << (12 + k * 8) << "], " <<
+					"	push " <<
+					reg_allocator(i, alloc.closure[alloc.closure.size() - k - 1]) << "\n";
 			}
-			std::wcout << "	\n";
+			std::wcout <<
+				"	push func_"<< alloc.function_index << "\n"
+				"	push word " << alloc.closure.size() << "\n"
+				"	xchg rsp, rsi\n"
+				"	\n";
 		}
 		
 		for(uint j = 0; j < func.refs.size(); ++j) {

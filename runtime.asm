@@ -17,6 +17,9 @@ section .data
 current_brk:
 	dq 0
 
+alloc_top:
+	dq 0
+
 free_list:
 	dq 0
 
@@ -25,10 +28,11 @@ section .text
 
 _start:
 	; Compute the current break
-	mov rax, 12       ; sys_brk
-	mov rdi, 0        ; void* addr
-	syscall           ; returns in rax, clobbers rcx and r11
-	mov [current_brk], rax ; Store in current_brk
+	mov rax, 12                    ; sys_brk
+	mov rdi, 0                     ; void* addr
+	syscall                        ; returns in rax, clobbers rcx and r11
+	mov [current_brk], rax         ; Store in current_brk
+	mov [alloc_top], rax           ; Store in alloc_top
 	
 	; Call main closure with exit as argument
 	mov rsi, main_closure
@@ -54,45 +58,60 @@ mem_alloc:
 	
 	; Check the free_list
 	mov rsi, [free_list]       ; Load current free object
-	or rsi, rsi                ; Test for zero
+	test rsi, rsi              ; Test for zero
 	jz .new                    ; Create new if zero
 	
 	; Pop from the free list
-	push rax
+	push rax                   ; Preserve rax
 	mov rax, [rsi]             ; Load pointer to next free object
 	mov [free_list], rax       ; Store in free_list
-	pop rax
-	jmp .end
+	pop rax                    ; Restore rax
+	mov word [rsi], 1          ; Initialize ref_count to one
+	jmp rdi                    ; Return
 	
-	.new: ; Allocate new space
+	; Allocate new space from pool
+	.new:
 	
-	; Compute the new break in rdi
+	; Check the allocation pool
+	mov rsi, [alloc_top]       ; Get top of allocations
+	add rsi, 36                ; Add fixed closure size 36
+	cmp rsi, [current_brk]     ; Check if below current break
+	jae .morecore              ; If not, go to more core
+	
+	; Allocate from below break
+	mov [alloc_top], rsi       ; Store new top of allocations
+	sub rsi, 36                ; Realign to start
+	mov word [rsi], 1          ; Initialize ref_count to one
+	jmp rdi                    ; Return
+	
+	; Increase size of pool
+	.morecore:
+	
+	; Store all syscall-clobbered registers except rsi
 	push rax
 	push rcx
 	push rdx
-	;push rsi
 	push rdi
 	push r8
 	push r9
 	push r10
 	push r11
-	mov rdi, [current_brk]
-	add rdi, 36
 	
-	; Call brk
-	mov rax, 12       ; sys_brk
-	;mov rdi, 0       ; void* addr
-	syscall           ; returns in rax, clobbers rcx and r11
+	; Compute the new break in rdi
+	mov rdi, [current_brk]     ; Load current break
+	add rdi, 0x100000          ; Add one megabyte
+	
+	; Call sys_brk
+	mov rax, 12                ; sys_brk
+	                           ; param 0 (rdi) : void* address
+	syscall                    ; returns in rax, clobbers rcx and r11
 	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
-	
 	; On success, rax contains the new break, else it contains the current break
-	;cmp rax, rdi
+	; test rax, rdi
 	; TODO test
+	mov [current_brk], rax     ; Store new break
 	
-	mov [current_brk], rax
-	sub rax, 36
-	mov rsi, rax
-	
+	; Restore all syscall-clobbered registers except rsi
 	pop r11
 	pop r10
 	pop r9
@@ -102,10 +121,7 @@ mem_alloc:
 	pop rcx
 	pop rax
 	
-	; Return
-	.end:
-	mov word [rsi], 1   ; Initialize ref_count to one
-	jmp rdi
+	jmp .new                   ; Retry allocating from alloc_top
 
 mem_deref:
 	; rsi contains pointer to closure
@@ -114,7 +130,7 @@ mem_deref:
 	
 	push rax           ; Preserve rax
 	movzx rax, word [rsi] ; Load reference count
-	or rax, rax        ; Test for zero
+	test rax, rax      ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
 	jz .free           ; Free if zero
@@ -135,7 +151,7 @@ mem_deref:
 	
 	movzx rax, word [rsi + 2] ; Load funcion_index
 	movzx rbx, byte [size_table + rax] ; Load the closure size
-	or rbx, rbx
+	test rbx, rbx
 	jz .end_loop           ; Skip if no values
 	mov rcx, rsi
 	add rcx, 4             ; Point rcx to the first value
@@ -169,7 +185,7 @@ mem_unpack:
 	
 	push rax           ; Preserve rax
 	movzx rax, word [rsi] ; Load reference count
-	or rax, rax        ; Test for zero
+	test rax, rax      ; Test for zero
 	jz .end            ; Skip if zero
 	dec rax            ; Decrease reference count
 	jz .free           ; Free if zero
@@ -182,7 +198,7 @@ mem_unpack:
 	push rdx
 	movzx rax, word [rsi + 2] ; Load funcion_index
 	movzx rcx, byte [size_table + rax] ; Load the closure size
-	or rcx, rcx
+	test rcx, rcx
 	jz .end_loop           ; Skip if no values
 	mov rbx, rsi
 	add rbx, 4             ; Point rcx to the first value
@@ -190,7 +206,7 @@ mem_unpack:
 	.loop:                 ; For each value in the closure
 	mov rdx, [rbx]         ; Load value (pointer to other closure)
 	movzx rax, word [rdx]  ; Load ref_count
-	or rax, rax            ; Test for zero
+	test rax, rax          ; Test for zero
 	jz .skip               ; Skip if zero
 	add rax, 1             ; Increase reference count
 	mov word [rdx], ax     ; Store reference count
@@ -270,34 +286,3 @@ read: ; ret
 	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
 	movzx rdi, word [rsi + 2]      ; Store function_index in rdi
 	jmp [function_table + rdi * 8] ; Jump to function table entry
-
-malloc:
-	; Check the free_list
-	mov rax, [free_list]       ; Load current free object
-	or rax, rax                ; Test for zero
-	jz .new                    ; Create new if zero
-	
-	; Pop from the free list
-	mov rdi, [rax]             ; Load pointer to next free object
-	mov [free_list], rdi       ; Store in free_list
-	ret                        ; Return current free object (in rax)
-	
-	.new: ; Allocate new space
-	
-	; Compute the new break in rdi
-	mov rdi, [current_brk]
-	add rdi, 36
-	
-	; Call brk
-	mov rax, 12       ; sys_brk
-	;mov rdi, 0       ; void* addr
-	syscall           ; returns in rax, clobbers rcx and r11
-	; NOTE: Syscalls clobber rax, rcx, rdx, rsi, rdi, r8, r9, r10 and r11
-	
-	; On success, rax contains the new break, else it contains the current break
-	;cmp rax, rdi
-	; TODO test
-	
-	mov [current_brk], rax
-	sub rax, 36
-	ret

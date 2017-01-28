@@ -1394,7 +1394,7 @@ void assemble()
 			std::wcout <<
 				"	; Ref " << ref << "\n"
 				"	movzx rsi, word [" << reg_allocator(i, ref.address) << "] ; Load ref_count\n"
-				"	or rsi, rsi        ; Test for zero\n"
+				"	test rsi, rsi      ; Test for zero\n"
 				"	jz .ret_" << r << "          ; Skip if zero\n"
 				"	add rsi, " << ref.count << "         ; Increase reference count\n"
 				"	mov word [" << reg_allocator(i, ref.address) << "], si ; Store reference count\n"

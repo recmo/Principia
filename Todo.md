@@ -33,12 +33,19 @@
 [x] Clear rsi on first ref only
 [x] Direct jmp when target func is known (const, alloc)
 [x] Allocate memory in chunks of one megabyte (to avoid many sys_brk)
-[ ] Remove function_table indirection
+[x] Remove function_table indirection
+[x] Abolish all conventional use of stack
+[x] Pass closures in rsp on call
+[x] Use scratch memory for reg save/restore instead of stack
+[x] mem_alloc returns new closure in rsp
+[ ] Statically allocate closures that exist at most once
+[ ] Specialize functions of constant closures by inlining to get constant empty closures
+[ ] Unrecurse mem_deref
+[ ] Add ref_count to alloc_instruction_t
+[ ] Shuffle call arguments by finding cycle decompositions and using xchg
 [ ] Refcount before closure (ie offset pointers by two)
 [ ] Generate mem_*_n functions and alloc size based on maximum closure size
 [ ] Have unrolled mem_unpack_n and mem_deref_n functions
-[ ] Specialize functions of constant closures by inlining to get constant empty closures
-[ ] Statically allocate closures that exist at most once
 [ ] Calling convention passing closure arguments in registers
 [ ] Skip setting closure pointer when calling funcs with constant empty closures
 [ ] Use rsp to point to closures, use ret to jump to them, pop to unpack them

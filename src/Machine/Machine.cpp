@@ -1315,15 +1315,16 @@ void assemble()
 		// Unpack closures for functions with non-constant closures
 		if(func.closures > 0) {
 			std::wcout <<
-				"	; Unpack closure\n";
+				"	; Unpack closure\n"
+				"	add rsp, 12\n";
 			for(uint j = 0; j < func.closures; ++j) {
 				std::wcout <<
-					"	mov " << reg_allocator(i, address_t{type_closure, j}) << ", "
-					"[rsi + " << (12 + j * 8) << "]\n";
+					"	pop " << reg_allocator(i, address_t{type_closure, j}) << "\n";
 			}
 			std::wcout <<
+				"	sub rsp, " << (12 + 8 * func.closures) << "\n"
 				"	mov rdi, .ret_0  ; return address\n"
-				"	jmp mem_unpack    ; closure in rsi\n"
+				"	jmp mem_unpack    ; closure in rsp\n"
 				"	.ret_0:\n"
 				"	\n";
 		}
@@ -1350,21 +1351,17 @@ void assemble()
 				"	mov rdi, .ret_" << (j + 1) << "\n"
 				"	jmp mem_alloc\n"
 				"	.ret_" << (j + 1) << ":\n"
-				"	mov " << reg << ", rsi\n"
-				"	xchg rsp, rsi\n"
-				//"	mov word [rsp + 2], " << alloc.closure.size() << "\n"
 				"	add rsp, " << (12 + 8 * alloc.closure.size()) << "\n";
-				//"	mov qword [rsi + 4], func_"<< alloc.function_index << "\n";
 			for(uint k = 0; k < alloc.closure.size(); ++k) {
 				std::wcout <<
-					//"	mov qword [rsi + " << (12 + k * 8) << "], " <<
 					"	push " <<
 					reg_allocator(i, alloc.closure[alloc.closure.size() - k - 1]) << "\n";
 			}
 			std::wcout <<
 				"	push func_"<< alloc.function_index << "\n"
 				"	push word " << alloc.closure.size() << "\n"
-				"	xchg rsp, rsi\n"
+				"	push word 1\n" // TODO: Can be merged in one push dword
+				"	mov " << reg << ", rsp\n"
 				"	\n";
 		}
 		
@@ -1382,23 +1379,34 @@ void assemble()
 				"	\n";
 		}
 		
-		std::wcout <<
-			"	; Call " << func.call << "\n"
-			"	mov rsi, " << reg_allocator(i, func.call[0]) << "\n";
+		std::wcout << "	; Call " << func.call << "\n";
+		std::wcout << "	mov rsp, " << reg_allocator(i, func.call[0]) << "\n";
 		
 		// We need to re-arrange the registers to match with the call arguments
 		// TODO: Find permutations and do cycle decomposition into xchg instructions
-		/*
 		std::vector<std::wstring> old_registers;
 		std::vector<std::wstring> new_registers;
-		for(uint j = 1; j < func.call.size() - 1; ++j) {
+		for(uint j = 1; j < func.call.size(); ++j) {
 			old_registers.push_back(reg_allocator(i, func.call[j]));
 			new_registers.push_back(reg_allocator(i, address_t{type_argument, j - 1}));
 		}
-		std::wcerr << old_registers << " -> " << new_registers << "\n";
-		*/
-		// This naive approach works for the Adams example:
+		//std::wcerr << old_registers << " -> " << new_registers << "\n";
+		
+		// This naive approach works for the Adams example (since it has no
+		// register permutations). We first set the constants, then the
+		// non-constants
 		for(uint j = 0; j < func.call.size() - 1; ++j) {
+			if(func.call[j + 1].type == type_constant) {
+				continue;
+			}
+			const std::wstring reg = reg_allocator(i, address_t{type_argument, j});
+			std::wcout <<
+				"	mov " << reg << ", " << reg_allocator(i, func.call[j + 1]) << "\n";
+		}
+		for(uint j = 0; j < func.call.size() - 1; ++j) {
+			if(func.call[j + 1].type != type_constant) {
+				continue;
+			}
 			const std::wstring reg = reg_allocator(i, address_t{type_argument, j});
 			std::wcout <<
 				"	mov " << reg << ", " << reg_allocator(i, func.call[j + 1]) << "\n";
@@ -1423,7 +1431,7 @@ void assemble()
 				"\n";
 		} else {
 			std::wcout <<
-				"	jmp [rsi + 4] ; Jump to next function\n"
+				"	jmp [rsp + 4] ; Jump to next function\n"
 				"\n";
 		}
 	}

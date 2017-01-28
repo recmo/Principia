@@ -20,6 +20,11 @@ current_brk: dq 0
 alloc_top:   dq 0
 free_list:   dq 0
 
+section .bss
+
+registers: resq 160
+registers_top:
+
 section .text
 	global _start
 
@@ -48,41 +53,38 @@ type_string:
 mem_alloc:
 	; rsi contains the size rsi = 12 + n * 8
 	; rdi contains the return address
-	; rsi contains the allocated address on return
+	; rsp contains the allocated address on return
 	; All other registers need to be preserved
 	
 	; Check the free_list
-	mov rsi, [free_list]       ; Load current free object
-	test rsi, rsi              ; Test for zero
+	mov rsp, [free_list]       ; Load current free object
+	test rsp, rsp              ; Test for zero
 	jz .new                    ; Create new if zero
 	
 	; Pop from the free list
-	push rax                   ; Preserve rax
-	mov rax, [rsi]             ; Load pointer to next free object
-	mov [free_list], rax       ; Store in free_list
-	pop rax                    ; Restore rax
-	mov word [rsi], 1          ; Initialize ref_count to one
+	mov rsi, [rsp]             ; Load pointer to next free object
+	mov [free_list], rsi       ; Store in free_list
 	jmp rdi                    ; Return
 	
 	; Allocate new space from pool
 	.new:
 	
 	; Check the allocation pool
-	mov rsi, [alloc_top]       ; Get top of allocations
-	add rsi, 44                ; Add fixed closure size 42
-	cmp rsi, [current_brk]     ; Check if below current break
+	mov rsp, [alloc_top]       ; Get top of allocations
+	add rsp, 44                ; Add fixed closure size 42
+	cmp rsp, [current_brk]     ; Check if below current break
 	jae .morecore              ; If not, go to more core
 	
 	; Allocate from below break
-	mov [alloc_top], rsi       ; Store new top of allocations
-	sub rsi, 44                ; Realign to start
-	mov word [rsi], 1          ; Initialize ref_count to one
+	mov [alloc_top], rsp       ; Store new top of allocations
+	sub rsp, 44                ; Realign to start
 	jmp rdi                    ; Return
 	
 	; Increase size of pool
 	.morecore:
 	
 	; Store all syscall-clobbered registers except rsi
+	mov rsp, registers_top
 	push rax
 	push rcx
 	push rdx
@@ -122,6 +124,9 @@ mem_deref:
 	; rsi contains pointer to closure
 	; rdi contains the return address
 	; All other registers need to be preserved
+	mov rsp, registers_top
+	
+	.recurse:
 	
 	push rax           ; Preserve rax
 	movzx rax, word [rsi] ; Load reference count
@@ -153,7 +158,7 @@ mem_deref:
 	.loop:                 ; For each value in the closure
 	mov rsi, [rcx]         ; Load value (pointer to other closure)
 	mov rdi, .ret          ; Return to loop
-	jmp mem_deref          ; Recurse on closure
+	jmp .recurse           ; RECURSE on closure
 	.ret:                  ;
 	add rcx, 8             ; Increase value pointer
 	dec rbx                ; Decrease loop counter
@@ -173,9 +178,11 @@ mem_deref:
 	jmp .end           ; Resume computation
 
 mem_unpack:
-	; rsi contains pointer to closure
+	; rsp contains pointer to closure
 	; rdi contains the return address
-	; All other registers need to be preserved
+	; All other registers need to be preserved (except rsi)
+	mov rsi, rsp
+	mov rsp, registers_top
 	
 	push rax           ; Preserve rax
 	movzx rax, word [rsi] ; Load reference count
@@ -227,22 +234,12 @@ mem_unpack:
 	jmp .end           ; Resume computation
 
 exit:
-	; Unpack closure
-	mov rdi, .ret_0  ; return address
-	jmp mem_unpack    ; closure in rsi
-	.ret_0:
-	
 	; Syscall exit
 	mov rax, 60        ; sys_exit
 	mov rdi, 0         ; status
 	syscall            ; Call kernel, never returns
 
 print: ; message, ret
-	; Unpack closure
-	mov rdi, .ret_0    ; return address
-	jmp mem_unpack     ; closure in rsi
-	.ret_0:
-	
 	; Print message
 	mov r12, rax       ; save rax
 	mov rax, 1         ; sys_write
@@ -261,19 +258,14 @@ print: ; message, ret
 	.ret_1:
 	
 	; Call [a1]
-	mov rsi, rbx                   ; Closure from second argument
-	jmp [rsi + 4]                  ; Jump to function
+	mov rsp, rbx                   ; Closure from second argument
+	jmp [rsp + 4]                  ; Jump to function
 
 read: ; ret
-	; Unpack closure
-	mov rdi, .ret_0  ; return address
-	jmp mem_unpack    ; closure in rsi
-	.ret_0:
-	
 	; Fake by loading a fixed constant
 	; defined above as read_fixed
 	
 	; Call [a0 C]
-	mov rsi, rax                   ; Closure from second argument
+	mov rsp, rax                   ; Closure from second argument
 	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
-	jmp [rsi + 4]                  ; Jump to function
+	jmp [rsp + 4]                  ; Jump to function

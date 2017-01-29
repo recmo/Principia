@@ -1240,75 +1240,17 @@ uint closure_size(uint num_values)
 	return 12 + 8 * num_values;
 }
 
-void assemble_mem_funcs()
+void assemble()
 {
 	// Find the maximum closure size
 	uint16_t max_size = 0;
 	for(const function_t& func: functions)
 		max_size = std::max(max_size, func.closures);
 	
-	// Print structures
-	std::wcout <<
-		"section .data\n"
-		"\n";
-	for(uint i = 0; i <= max_size; ++i) {
-		std::wcout << 
-			"free_list_" << i << ":   dq 0 ; For closures of size " << closure_size(i) << "\n";
-	}
-	std::wcout <<
-		"\n";
-	
-	std::wcout << 
-		"section .text\n"
-		"\n";
-	for(uint i = 0; i <= max_size; ++i) {
-		const uint s = closure_size(i);
-		std::wcout << 
-			"mem_alloc_" << i << ": ; Allocates a chunk of " << s << " bytes\n"
-			"	; rdi contains the return address\n"
-			"	; rsp contains the allocated address on return\n"
-			"	; All other registers need to be preserved except rsi\n"
-			"	\n"
-			"	; Check the free_list\n"
-			"	mov rsp, [free_list_" << i << "]     ; Load current free object\n"
-			"	test rsp, rsp              ; Test for zero\n"
-			"	jz .new                    ; Create new if zero\n"
-			"	\n"
-			"	; Pop from the free list\n"
-			"	mov rsi, [rsp]             ; Load pointer to next free object\n"
-			"	mov [free_list_" << i << "], rsi     ; Store in free_list\n"
-			"	jmp rdi                    ; Return\n"
-			"	\n"
-			"	; Allocate new space from pool\n"
-			"	.new:\n"
-			"	\n"
-			"	; Check the allocation pool\n"
-			"	mov rsp, [alloc_top]       ; Get top of allocations\n"
-			"	add rsp, " << s << "                ; Add fixed closure size\n"
-			"	cmp rsp, [current_brk]     ; Check if below current break\n"
-			"	jae .morecore              ; If not, go to more core\n"
-			"	\n"
-			"	; Allocate from below break\n"
-			"	mov [alloc_top], rsp       ; Store new top of allocations\n"
-			"	sub rsp, " << s << "                ; Realign to start\n"
-			"	jmp rdi                    ; Return\n"
-			"	\n"
-			"	.morecore:                 ; Allocate new core memory\n"
-			"	mov [registers], rdi\n"
-			"	mov rdi, .ret\n"
-			"	jmp morecore\n"
-			"	.ret:\n"
-			"	mov rdi, [registers]\n"
-			"	jmp .new                   ; Retry allocating from alloc_top\n"
-			"\n";
-	}
-}
-
-void assemble()
-{
 	std::wcout <<
 		"; Output from Principia\n"
 		"; nasm -f elf64 -\n"
+		"%assign max_size " << max_size << "\n"
 		"%include \"runtime.asm\"\n"
 		"\n"
 		"section .rodata\n"
@@ -1531,9 +1473,6 @@ void assemble()
 				"\n";
 		}
 	}
-	
-	// Add malloc / free functions
-	assemble_mem_funcs();
 }
 
 }

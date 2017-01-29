@@ -38,10 +38,11 @@
 [x] Pass closures in rsp on call
 [x] Use scratch memory for reg save/restore instead of stack
 [x] mem_alloc returns new closure in rsp
+[x] Set alloc refcount on alloc
+[ ] closure-in-registers calling mode
 [ ] Statically allocate closures that exist at most once
 [ ] Specialize functions of constant closures by inlining to get constant empty closures
 [ ] Unrecurse mem_deref
-[ ] Add ref_count to alloc_instruction_t
 [ ] Shuffle call arguments by finding cycle decompositions and using xchg
 [ ] Refcount before closure (ie offset pointers by two)
 [ ] Generate mem_*_n functions and alloc size based on maximum closure size

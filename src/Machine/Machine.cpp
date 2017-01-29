@@ -1343,6 +1343,16 @@ void assemble()
 		
 		for(uint j = 0; j < func.allocs.size(); ++j) {
 			const alloc_instruction_t& alloc = func.allocs[j];
+			
+			// Compute the total ref_count
+			uint16_t ref_count = 1;
+			for(uint k = 0; k < func.refs.size(); ++k) {
+				const ref_instruction_t& ref = func.refs[k];
+				if(ref.address.type == type_alloc && ref.address.index == j) {
+					ref_count += ref.count;
+				}
+			}
+			
 			const std::wstring reg = reg_allocator(i, address_t{type_alloc, j});
 			assert(alloc.closure.size() > 0); // Can not alloc constants
 			std::wcout <<
@@ -1360,13 +1370,16 @@ void assemble()
 			std::wcout <<
 				"	push func_"<< alloc.function_index << "\n"
 				"	push word " << alloc.closure.size() << "\n"
-				"	push word 1\n" // TODO: Can be merged in one push dword
+				"	push word " << ref_count << "\n" // TODO: Can be merged in one push dword
 				"	mov " << reg << ", rsp\n"
 				"	\n";
 		}
 		
 		for(uint j = 0; j < func.refs.size(); ++j) {
 			const ref_instruction_t& ref = func.refs[j];
+			if(ref.address.type == type_alloc) {
+				continue; // These are handled in alloc above
+			}
 			const uint r = 1 + func.allocs.size() + j;
 			std::wcout <<
 				"	; Ref " << ref << "\n"

@@ -1373,7 +1373,6 @@ void assemble()
 			assert(alloc.closure.size() > 0); // Can not alloc constants
 			std::wcout <<
 				"	; Alloc " << alloc << "\n"
-				"	mov rsi, " << (12 + 8 * alloc.closure.size()) << "\n"
 				"	mov rdi, .ret_" << (j + 1) << "\n"
 				"	jmp mem_alloc\n"
 				"	.ret_" << (j + 1) << ":\n"

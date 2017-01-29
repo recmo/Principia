@@ -1309,8 +1309,7 @@ void assemble()
 			std::wcout << "main: \n";
 		}
 		
-		std::wcout <<
-			"func_" << i << ": ; " << func.name << "\n";
+		std::wcout << "func_" << i << ": ; " << func.name << "\n";
 		
 		// Unpack closures for functions with non-constant closures
 		if(func.closures > 0) {
@@ -1323,9 +1322,9 @@ void assemble()
 			}
 			std::wcout <<
 				"	sub rsp, " << (12 + 8 * func.closures) << "\n"
-				"	mov rdi, .ret_0  ; return address\n"
-				"	jmp mem_unpack    ; closure in rsp\n"
-				"	.ret_0:\n"
+				"	mov rdi, .unpacked  ; return address\n"
+				"	jmp mem_unpack      ; closure in rsp\n"
+				"	.unpacked:\n"
 				"	\n";
 		}
 		
@@ -1353,6 +1352,12 @@ void assemble()
 				}
 			}
 			
+			// Do not emit an alloc construct if we are only going to call it
+			// (in that case, we pass the closure variables in registers)
+			if(func.call[0].type == type_alloc && func.call[0].index == j && ref_count == 1) {
+				continue;
+			}
+			
 			const std::wstring reg = reg_allocator(i, address_t{type_alloc, j});
 			assert(alloc.closure.size() > 0); // Can not alloc constants
 			std::wcout <<
@@ -1370,7 +1375,7 @@ void assemble()
 			std::wcout <<
 				"	push func_"<< alloc.function_index << "\n"
 				"	push word " << alloc.closure.size() << "\n"
-				"	push word " << ref_count << "\n" // TODO: Can be merged in one push dword
+				"	push word " << ref_count << "\n"
 				"	mov " << reg << ", rsp\n"
 				"	\n";
 		}
@@ -1438,10 +1443,19 @@ void assemble()
 					"\n";
 			}
 		} else if (func.call[0].type == type_alloc) {
-			uint index = func.allocs[func.call[0].index].function_index;
+			const alloc_instruction_t& alloc = func.allocs[func.call[0].index];
+			uint index = alloc.function_index;
+			for(uint j = 0; j < alloc.closure.size(); ++j) {
+				const std::wstring src = reg_allocator(i, alloc.closure[j]);
+				const std::wstring dest = reg_allocator(index, address_t{type_closure, j});
+				// TODO: These registers should also be taken in the permutation resolver
+				std::wcout <<
+					"	mov " << dest << ", " << src << " ; Closure in registers \n";
+			}
 			std::wcout <<
-				"	jmp func_" << index << " ; Jump to next function\n"
+				"	jmp func_" << index << ".unpacked; Jump to next function\n"
 				"\n";
+			
 		} else {
 			std::wcout <<
 				"	jmp [rsp + 4] ; Jump to next function\n"

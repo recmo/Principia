@@ -39,7 +39,7 @@
 [x] Use scratch memory for reg save/restore instead of stack
 [x] mem_alloc returns new closure in rsp
 [x] Set alloc refcount on alloc
-[ ] closure-in-registers calling mode
+[x] closure-in-registers calling mode
 [ ] Statically allocate closures that exist at most once
 [ ] Specialize functions of constant closures by inlining to get constant empty closures
 [ ] Unrecurse mem_deref

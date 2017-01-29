@@ -40,7 +40,10 @@
 [x] mem_alloc returns new closure in rsp
 [x] Set alloc refcount on alloc
 [x] closure-in-registers calling mode
+[ ] Staticaly infer bounds on reference counts
 [ ] Statically allocate closures that exist at most once
+[ ] Re-use own closure if it matches an alloc in size
+[ ] Re-use closure objects (ie try to elliminate free-1 alloc-1 pairs)
 [ ] Specialize functions of constant closures by inlining to get constant empty closures
 [ ] Unrecurse mem_deref
 [ ] Shuffle call arguments by finding cycle decompositions and using xchg
@@ -97,9 +100,12 @@ Idea: Provide a native "syscall" function, use this to implement an stdlib.
 http://syscalls.kernelgrok.com/
 See teensy.asm
 
-This is similar to how Jonesforth operates: http://git.annexia.org/?p=jonesforth.git;a=blob;f=jonesforth.S
+Reading list:
+* https://en.wikipedia.org/wiki/Dominator_(graph_theory)
+* https://en.wikipedia.org/wiki/Static_single_assignment_form
+* https://en.wikipedia.org/wiki/Continuation-passing_style
 
-/// TODO: Use alloca when we can
+This is similar to how Jonesforth operates: http://git.annexia.org/?p=jonesforth.git;a=blob;f=jonesforth.S
 
 /// TODO: Background thread to analyse the performance oprofile style
 /// TODO: Background thread to dynamically optimize code

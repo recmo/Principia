@@ -51,10 +51,9 @@ type_string:
 	syscall      ; Execution stops here
 
 mem_alloc:
-	; rsi contains the size rsi = 12 + n * 8
 	; rdi contains the return address
 	; rsp contains the allocated address on return
-	; All other registers need to be preserved
+	; All other registers need to be preserved except rsi
 	
 	; Check the free_list
 	mov rsp, [free_list]       ; Load current free object
@@ -66,22 +65,30 @@ mem_alloc:
 	mov [free_list], rsi       ; Store in free_list
 	jmp rdi                    ; Return
 	
-	; Allocate new space from pool
-	.new:
-	
-	; Check the allocation pool
+	.new:                      ; Allocate new space from pool
+	                           ; Check the allocation pool
 	mov rsp, [alloc_top]       ; Get top of allocations
 	add rsp, 44                ; Add fixed closure size 42
 	cmp rsp, [current_brk]     ; Check if below current break
 	jae .morecore              ; If not, go to more core
-	
-	; Allocate from below break
+	                           ;
+	                           ; Allocate from below break
 	mov [alloc_top], rsp       ; Store new top of allocations
 	sub rsp, 44                ; Realign to start
 	jmp rdi                    ; Return
 	
-	; Increase size of pool
-	.morecore:
+	.morecore:                 ; Allocate new core memory
+	mov [registers], rdi
+	mov rdi, .ret
+	jmp morecore
+	.ret:
+	mov rdi, [registers]
+	jmp .new                   ; Retry allocating from alloc_top
+
+morecore:
+	; Increase size of the allocation pool
+	; rdi contains the return address
+	; All other registers need to be preserved except rsi
 	
 	; Store all syscall-clobbered registers except rsi
 	mov rsp, registers_top
@@ -118,7 +125,7 @@ mem_alloc:
 	pop rcx
 	pop rax
 	
-	jmp .new                   ; Retry allocating from alloc_top
+	jmp rdi
 
 mem_deref:
 	; rsi contains pointer to closure
@@ -266,6 +273,6 @@ read: ; ret
 	; defined above as read_fixed
 	
 	; Call [a0 C]
-	mov rsp, rax                   ; Closure from second argument
+	mov rsp, rax                   ; Closure from first argument
 	mov rax, read_fixed            ; Pass read_fixed closure as the first argument
 	jmp [rsp + 4]                  ; Jump to function

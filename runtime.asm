@@ -68,13 +68,13 @@ mem_alloc:
 	.new:                      ; Allocate new space from pool
 	                           ; Check the allocation pool
 	mov rsp, [alloc_top]       ; Get top of allocations
-	add rsp, 44                ; Add fixed closure size 42
+	add rsp, max_alloc         ; Add fixed closure size
 	cmp rsp, [current_brk]     ; Check if below current break
 	jae .morecore              ; If not, go to more core
 	                           ;
 	                           ; Allocate from below break
 	mov [alloc_top], rsp       ; Store new top of allocations
-	sub rsp, 44                ; Realign to start
+	sub rsp, max_alloc         ; Realign to start
 	jmp rdi                    ; Return
 	
 	.morecore:                 ; Allocate new core memory

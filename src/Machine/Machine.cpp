@@ -1250,7 +1250,7 @@ void assemble()
 	std::wcout <<
 		"; Output from Principia\n"
 		"; nasm -f elf64 -\n"
-		"%assign max_size " << max_size << "\n"
+		"%assign max_alloc " << closure_size(max_size) << "\n"
 		"%include \"runtime.asm\"\n"
 		"\n"
 		"section .rodata\n"

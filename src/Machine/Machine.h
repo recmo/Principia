@@ -9,6 +9,7 @@ void unload();
 void load(const Compile::Program& program);
 
 void print();
+void print_graph();
 
 void run();
 

@@ -15,7 +15,7 @@ Command assemble(L"assemble", [](Command::Arguments arguments) {
 	std::wcerr << "\n";
 	
 	Machine::load(cp);
-	// Machine::print();
+	Machine::print();
 	Machine::assemble();
 	Machine::unload();
 	

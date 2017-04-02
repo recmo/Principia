@@ -2,17 +2,17 @@ title       “The answer to Scott”
 author      “Remco Bloemen”
 date        “2016-07-01”
 description “
-	
+
 	This file implements Scott numerals and decimal printing using
 	only a “print” function that takes a single string constant:
-	
+
 		λ print value ret
-	
+
 	Other than this, the file is entirely self-contained.
-	
+
 	The function “main” will compute 7 × 6 and print the result in
 	decimal along with a whimsical quote.
-	
+
 ”
 
 section “Print helpers”
@@ -164,7 +164,7 @@ section “Main”
 	print-number f (λ ·) fail
 	print-newline (λ ·)
 	print “11! = ” (λ ·)
-	fact n11 (λ · f)
+	fact n9 (λ · f)
 	print-number f (λ ·) fail
 	print-newline (λ ·)
 	print “The answer to the universe, life and everything is: ” (λ ·)
@@ -174,7 +174,6 @@ section “Main”
 	λ fail
 		print-newline (λ ·)
 		print-line “Failed!” exit
-
 
 section “Meta circular evaluator”
 
@@ -197,19 +196,19 @@ compilation “
 x Function:
 	* has a closure of M arguments. Fixed on compile.
 	* takes in N arguments. Fixed in code.
-	
+
 	These are the only values available on entering the function. As a
 	consequence, they represent the complete machine state at that point.
-	
+
 	Inside the function, new values can be created. This can only be done
 	through allocating closures.
-	
+
 	xᵢ = <function id> <list of closure arguments for function>
-	
+
 	CLOSE <function id> <value ids>…
-	
+
 	Finally, the function does a tail call to one of the values/closures
-	
+
 	CALL <value ids> <value ids>…
 
 
@@ -218,16 +217,16 @@ x Function:
 x Function:
 	Stack contains N values form arguments
 	Stack contains M values from closure
-	
+
 	* SWAP_n DUP_n POP_n to move things arround
-	
+
 	* No PUSH. All constants are part of the closure (really?)
-	
+
 	CLOSE_y: Pops M_y values from the stack and pushes a closure for function y on the stack.
-	
+
 	At the end of the function body, the closure on top of the stack is called
 	with the remainder of the stack as arguments.
-	
+
 	To call the closure, the closure contents are pushed on the stack. Execution
 	then jumps to the closure function body and the process repeats.
 
@@ -236,9 +235,9 @@ x Function:
 x Function:
 	Array of closure values
 	Array of argument values
-	
+
 	Size of new argument values array
-	
+
 	Index of closure
 
 ”

@@ -1,8 +1,30 @@
 # Continuation-Passing Style
 
+## Why?
+
+https://www.quora.com/What-is-continuation-passing-style-in-functional-programming
+
+http://matt.might.net/articles/by-example-continuation-passing-style/
+
+http://matt.might.net/articles/cps-conversion/
+
+* Full control over control flow
+* Minimal core language
+* Supports for multiple-return values
+* Supports multiple return paths
+* Every call is a tail call
+* All program state is in the call
+* Easy supports for green threads
+* Stackless: no stack allocation and overflow
+* Non-blocking IO
+
+
+## Examples
+
+
 Statement:
 
-	f arg₁ arg₂ … ↦ call arg₁ arg₂ …  
+	f arg₁ arg₂ … ↦ call arg₁ arg₂ …
 
 The order of the arguments in the function call is syntactically significant,
 but semantically it is just a mapping from symbols on the call-site to symbols
@@ -33,11 +55,11 @@ passed?
 # Factorial
 
 	is_zero n ret_true ret_false ↦
-	
+
 	pred n ret ↦
-	
+
 	mul n m ret ↦
-	
+
 	factorial n ret  ↦ is_zero n base recurse
 		base          ↦ ret 1
 		recurse       ↦ pred n recurse'
@@ -51,13 +73,13 @@ Let look at an example with more complex recursion. The doubly recursive
 even-odd functions:
 
 	pred n ret ↦ # Call `ret` with `n - 1`
-	
+
 	is_zero n ret_true ret_false ↦ # Call `ret_true` if `n = 0` or else call `ret_false`
-	
+
 	even n ret_true ret_false ↦ is_zero n ret_true recurse
 		recurse     ↦ pred n recurse'
 		recurse' n' ↦ odd n' ret_true ret_false
-	
+
 	odd n ret_true ret_false ↦ is_zero n ret_false recurse
 		recurse     ↦ pred n recurse'
 		recurse' n' ↦ even n' ret_true ret_false
@@ -66,13 +88,13 @@ even-odd functions:
 Let's make all the identifiers unique
 
 	pred pn pret ↦ # Call `ret` with `n - 1`
-	
+
 	is_zero in itrue ifalse ↦ # Call `ret_true` if `n = 0` or else call `ret_false`
-	
+
 	even en etrue efalse ↦ is_zero en etrue erec
 		erec ↦ pred en erecp
 		erecp enp ↦ odd enp etrue efalse
-	
+
 	odd on otrue ofalse ↦ is_zero on ofalse orec
 		orec ↦ pred on orecp
 		orecp onp ↦ even onp otrue ofalse
@@ -119,17 +141,17 @@ have closures ignore addition.
 
 	λ pred n ret
 		# Call `ret` with `n - 1`
-	
+
 	λ is_zero n ret_true ret_false
 		# Call `ret_true` if `n = 0` or else call `ret_false`
-	
+
 	λ even n ret_true ret_false
 		is_zero n ret_true recurse
 		λ recurse nil
 			pred n recurse' nil
 			λ recurse' n'
 				odd n' ret_true ret_false
-	
+
 	λ odd n ret_true ret_false
 		is_zero n ret_false recurse
 		λ recurse nil
@@ -142,17 +164,17 @@ Let's make all the identifiers unique
 
 	λ pred pn pret
 		# Call `ret` with `n - 1`
-	
+
 	λ is_zero in itrue ifalse
 		# Call `ret_true` if `n = 0` or else call `ret_false`
-	
+
 	λ even en etrue efalse
 		is_zero en etrue erec
 		λ erec enil
 			pred en erecp enil
 			λ erecp enp
 				odd enp etrue efalse
-	
+
 	λ odd on otrue ofalse
 		is_zero on ofalse orec
 		λ orec onil
@@ -206,7 +228,7 @@ We have now recovered all the function bodies.
 Task: Create a type with two constructors, `C₁` taking two parameters and `C₂`
 taking no parameters.
 
-	
+
 	λ C₁ x₁ x₂ ret
 		ret obj
 		λ obj c₁ c₂
@@ -215,10 +237,10 @@ taking no parameters.
 		ret obj
 		λ obj c₁ c₂
 			c₂
-	
+
 	λ C₁ x₁ x₂ (· (λ · c₁ c₂ (c₁ x₁ x₂)))
 	λ C₂       (· (λ · c₁ c₂ (c₂      )))
-	
+
 	C₁ x₁ x₂ ret ↦ ret obj
 		obj c₁ c₂ ↦ c₁ x₁ x₂
 	C₂ ret ↦ ret obj
@@ -244,7 +266,7 @@ print-line arg ret ↦ print arg (· print-newline ↦ ret)
 Task: Create a type with two constructors, `True` and `False` taking no
 parameters. Instantiate two global values.
 
-	
+
 	λ True ret
 		ret obj
 		λ obj t f
@@ -253,17 +275,17 @@ parameters. Instantiate two global values.
 		ret obj
 		λ obj t f
 			f
-	
+
 	True ret
 	λ ret true
 		False ret
 		λ ret false
 			md “We now have `true` and `false`”
-	
+
 
 # Scott graph
 
-TASK: Create a 
+TASK: Create a
 
 
 # Parallelism
@@ -293,7 +315,7 @@ a closure argument to be ultimately used as an argument to `join`. Dataflow
 analysis may be the key here.
 
 
-# Syntax 
+# Syntax
 
 Syntax rules:
 
@@ -311,16 +333,16 @@ Like [de Bruijn indices](https://en.wikipedia.org/wiki/De_Bruijn_index) with
 TODO: What about higher indices? Let's for now take the progression `·`, `:`,
 `∴`, `∷`, …
 
-	
+
 	λ C₁ x₁ x₂ (· (λ · (· x₁ x₂)  _  ))
 	λ C₂       (· (λ ·  _        (·) ))
-	
+
 	λ True  (· (λ · (·)  _ ))
 	λ False (· (λ ·  _  (·)))
-	
+
 	True  (λ · true )
 	False (λ · false)
-	
+
 
 * http://homepage.divms.uiowa.edu/~astump/papers/archon.pdf
 
@@ -337,11 +359,11 @@ and return a function computing it's derivative.
 
 	λ double a ret
 		add a a ret
-	
+
 	λ diff func ret
 		c “Binding site, variable, call, closure”
-		… 
-	
+		…
+
 	diff double (λ · double_da)
 
 In reflection, we should have `λ · x (· x)` equivalent to `λ · y (· y)`.
@@ -350,7 +372,7 @@ Wand's system:
 
 	λ fexpr func ret
 		“Calls ret with a Morgensen-Scott encoding of func”
-	
+
 	λ eval rep ret
 		“Calls ret with a lambda of the Morgensen-Scott encoded functions”
 
@@ -388,7 +410,7 @@ TASK: Take a closure and replace instances of `add` with `mul`.
 
 	λ double a ret
 		add a a ret
-	
+
 	replace double add mul (λ · square)
 
 

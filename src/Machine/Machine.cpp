@@ -60,6 +60,8 @@ struct function_t {
 	std::vector<alloc_instruction_t> allocs;
 	std::vector<ref_instruction_t>   refs;
 	std::vector<address_t> call;
+	
+	std::vector<uint16_t> allocators;
 };
 
 std::vector<function_t> functions;
@@ -243,6 +245,7 @@ void inline_functions(std::vector<function_t>& functions);
 void remove_unused_functions_and_constants();
 void remove_unused_closures(function_t& function);
 void deduplicate_allocs(function_t& function);
+void update_allocators();
 
 void print(const function_t& f, uint index);
 
@@ -434,6 +437,9 @@ void load(const Compile::Program& program)
 		update_reference_counts(func);
 		deduplicate_allocs(func);
 	}
+	
+	// Update allocators
+	update_allocators();
 	
 	// Make sure we have a valid main
 	assert(main_index != -1);
@@ -1000,10 +1006,20 @@ void inline_functions(std::vector<function_t>& functions)
 	}
 }
 
+void update_allocators()
+{
+	for(function_t& func: functions)
+		func.allocators.clear();
+	for(function_t& func: functions)
+		for(const alloc_instruction_t& alloc: func.allocs)
+			functions[alloc.function_index].allocators.push_back(find_function_index(func));
+}
+
 void print(const function_t& f, uint index)
 {
 	std::wcerr << "Function " << index << " " << f.name << "\n";
 	std::wcerr << "\tcall count: " << f.call_count << "\n";
+	std::wcerr << "\talloced by: " << f.allocators << "\n";
 	std::wcerr << "\tclosures:   " << f.closures << "\n";
 	std::wcerr << "\targuments:  " << f.arguments << "\n";
 	std::wcerr << "\tderefs:     " << f.derefs << "\n";
@@ -1027,6 +1043,15 @@ void print()
 	for(const auto& f: functions) {
 		print(f, index);
 		++index;
+	}
+}
+
+void print_graph()
+{
+	for(const auto& f: functions) {
+		for(const alloc_instruction_t& a: f.allocs) {
+			std::wcerr << a.function_index << " -> " << find_function_index(f) << "\n";
+		}
 	}
 }
 

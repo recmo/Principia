@@ -14,6 +14,7 @@
 [x] Global list of constants
 [x] Deduplicated constants
 [x] Remove unused allocs
+[x] Reference counting memory manager
 [x] Explicit reference count instructions
 [x] Explicit reference counting (instead of std::shared_ptr)
 [x] Allocate closures as header + values
@@ -40,8 +41,20 @@
 [x] mem_alloc returns new closure in rsp
 [x] Set alloc refcount on alloc
 [x] closure-in-registers calling mode
+
+[ ] Port to AsmJit
+
+[ ] Alloc of function calling a closure argument, can be inlined?
+
+[ ] Static analysis starting from main
+
+[ ] http://gallium.inria.fr/blog/ssa-cps-reading-notes/
+[ ] Statically analyse possible functions at tail call site
+[ ] Statically analyse closure life-times
+[ ] Control flow analysis, to find more constants
 [ ] Staticaly infer bounds on reference counts
 [ ] Statically allocate closures that exist at most once
+[ ] Fix terminology (closure, function, procedure, state, routine, continuation, callbacks, ..?)
 [ ] Re-use own closure if it matches an alloc in size
 [ ] Re-use closure objects (ie try to elliminate free-1 alloc-1 pairs)
 [ ] Specialize functions of constant closures by inlining to get constant empty closures
@@ -53,7 +66,6 @@
 [ ] Calling convention passing closure arguments in registers
 [ ] Skip setting closure pointer when calling funcs with constant empty closures
 [ ] Use rsp to point to closures, use ret to jump to them, pop to unpack them
-[ ] Control flow analysis, to find more constants
 [ ] Deduplicate functions (Is there a unique reduced form?)
 [ ] Inline memory
 [ ] Handle overflow in assembler ref
@@ -63,9 +75,6 @@
 [ ] Abuse rsp, push and pop for memory management
 [ ] Benchmarking per closure, histogram per function
 [ ] Promote closure alllocs to closure values (closure-inlining)
-[ ] Reference counting memory manager
-[ ] Statically analyse possible functions at tail call site
-[ ] Statically analyse closure life-times
 [ ] Investigate different memory allocation strategies
 
 ## Language
@@ -160,7 +169,7 @@ This gives four kinds of functions
 
 
 // Boolean edges as truth values
-// Theorems as 
+// Theorems as
 
 // Implement boolean values as:
 // True a b ↦ a
@@ -243,7 +252,7 @@ They can be implemented as unspecified propositions: IsInteger(n). Dependent typ
 TODO: Performance characteristics:
 
 slowdiv n m ↦ q r
-	complexity.time slowdiv log(n) + log(m) 
+	complexity.time slowdiv log(n) + log(m)
 	complexity.memory slowdiv 2 * m
 
 
@@ -263,11 +272,10 @@ TODO: Allow syntax modifications in language:
 Lexer -> Preprocessor -> Parser
 Lexer: Chunk source into identifiers
 Preprocessor: resolve scoping and references
-Parser: 
+Parser:
 
 
 [parse rule:  #1 + #2 ↦ (. ≔ plus #1 #2) ]
 [parse rule:  if #1 then #2 else #3  ↦ (≔(≔if #1 (↦ #2) (↦#3))) ]
 [parse rule:  /#1/ ↦ ( . ≔  regexp_parse("#3") ) ]
 etc…
-

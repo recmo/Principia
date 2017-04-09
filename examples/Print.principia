@@ -1,0 +1,34 @@
+
+section “Print helpers”
+
+λ print-newline ret
+	print “
+” ret
+
+λ print-line arg ret
+	print arg (λ ·)
+	print-newline ret
+
+section “Decimal output”
+
+λ print-decimal n ret fail
+	if_equal n n0 (λ · (print “0” ret)) (λ ·)
+	if_equal n n1 (λ · (print “1” ret)) (λ ·)
+	if_equal n n2 (λ · (print “2” ret)) (λ ·)
+	if_equal n n3 (λ · (print “3” ret)) (λ ·)
+	if_equal n n4 (λ · (print “4” ret)) (λ ·)
+	if_equal n n5 (λ · (print “5” ret)) (λ ·)
+	if_equal n n6 (λ · (print “6” ret)) (λ ·)
+	if_equal n n7 (λ · (print “7” ret)) (λ ·)
+	if_equal n n8 (λ · (print “8” ret)) (λ ·)
+	if_equal n n9 (λ · (print “9” ret)) (λ ·)
+	fail
+
+λ print-number n ret fail
+	div n n10 (λ · q r)
+	if_zero q done recurse
+	λ recurse
+		print-number q done fail
+	λ done
+		print-decimal r ret fail
+

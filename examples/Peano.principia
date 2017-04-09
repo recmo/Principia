@@ -1,0 +1,143 @@
+title       “Peano”
+author      “Remco Bloemen”
+date        “2017-07-01”
+description “
+
+	This file implements a CPS-Scott encoded version of Peano arithmetic.
+”
+
+
+section “Constructors”
+
+λ Z   (· (λ · (·) _    ))
+λ S n (· (λ ·  _ (· n) ))
+
+
+section “Constants”
+
+λ n0 z s (z)
+λ n1 z s (s n0)
+λ n2 z s (s n1)
+λ n3 z s (s n2)
+λ n4 z s (s n3)
+λ n5 z s (s n4)
+λ n6 z s (s n5)
+λ n7 z s (s n6)
+λ n8 z s (s n7)
+λ n9 z s (s n8)
+λ n10 z s (s n9)
+λ n11 z s (s n10)
+λ n12 z s (s n11)
+
+
+section “Control flow”
+
+λ count start end state iterator ret
+	iterator(state, num)→state
+
+
+section “Predicates”
+
+λ is_zero n ret
+	n yes no
+	λ yes
+		ret true
+	λ no
+		ret false
+
+λ is_equal m n ret
+	n yes no
+	λ yes
+		ret true
+	λ no
+		ret false
+
+
+λ if_equal m n then else
+	m m_zero m_nonzero
+	λ m_zero
+		if_zero n then else
+	λ m_nonzero m'
+		n else recurse
+		λ recurse n'
+			if_equal m' n' then else
+
+
+section “Operators”
+
+
+λ add m n ret
+	m m_zero m_nonzero
+	λ m_zero
+		ret n
+	λ m_nonzero m'
+		S n recurse
+		λ recurse n'
+			add m' n' ret
+
+λ sub m n ret fail
+	n n_zero n_nonzero
+	λ n_zero
+		ret m
+	λ n_nonzero n'
+		m fail recurse
+		λ recurse m'
+			sub m' n' ret fail
+
+λ mul m n ret
+	m m_zero m_nonzero
+	λ m_zero
+		Z ret
+	λ m_nonzero m'
+		mul m' n (λ · r)
+		add r n ret
+
+λ div m n ret
+	sub m n recurse done
+	λ done
+		ret n0 m
+	λ recurse m'
+		div m' n (λ · q r)
+		S q (λ · q')
+		ret q' r
+
+λ exp m n ret
+	n (λ · (ret n1)) recurse
+	λ recurse n'
+		exp m n' (λ · r')
+		mul m r' (λ · r)
+		ret r
+
+λ fact n ret
+	n done recurse
+	λ done
+		ret n1
+	λ recurse n'
+		fact n' (λ · r')
+		mul n r' (λ · r)
+		ret r
+
+λ fib n ret
+	n zero recurse
+	λ zero
+		ret n1
+	λ recurse n'
+		n' one recurse'
+		λ one
+			ret n1
+		λ recurse' n''
+			fib n' (λ · r')
+			fib n'' (λ · r'')
+			add r' r'' (λ · r)
+			ret r
+
+λ pra m n ret
+	m case0 (λ · m' (n case1 case2))
+	λ case0
+		add n1 n ret
+	λ case1
+		pra m' 1 ret
+	λ case2 n'
+		pra m n' (λ · r)
+		pra m' r ret
+

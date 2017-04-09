@@ -1,0 +1,88 @@
+title       “Peano”
+author      “Remco Bloemen”
+date        “2017-07-01”
+description “
+
+	This file implements a CPS-Scott encoded version of Boolean arithmetic.
+”
+
+
+section “Constructors”
+
+λ True  (· (λ · (·) _  ))
+λ False (· (λ ·  _ (·) ))
+
+
+section “Constants”
+
+λ true  t f (t)
+λ false t f (f)
+
+
+section “Control flow”
+
+λ if condition then else
+	condition then else
+
+λ while state test iterator ret
+	test state (λ condition)
+	if condition then else
+	λ then
+		iterator state (λ state')
+		while state' test iterator ret
+	λ else
+		ret state
+
+type “λ iterator (λ ·continue state) (λ ·return result)”
+λ do state iterator ret
+	iterator state (λ state' repeat)
+	if repeat then else
+	λ then
+		do state' iterator ret
+	λ else
+		ret state
+
+
+type “λ iterator (λ ·repeat state) (λ ·return result)”
+λ do state iterator ret
+	iterator state (λ state') ret
+	do state' iterator ret
+
+
+λ μ_loop
+
+λ ν_loop
+
+
+
+section “Operators”
+
+
+λ not a ret
+	a then else
+	λ then
+		ret false
+	λ else
+		ret true
+
+λ and a b ret
+	a then else
+	λ then
+		ret b
+	λ else
+		ret false
+
+λ or a b ret
+	a then else
+	λ then
+		ret true
+	λ else
+		ret b
+
+λ xor a b ret
+	a then else
+	λ then
+		not b ret
+	λ else
+		ret b
+

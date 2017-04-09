@@ -1,0 +1,32 @@
+title       “Peano”
+author      “Remco Bloemen”
+date        “2017-07-01”
+description “
+
+	This file implements a CPS-Scott encoded version of Boolean arithmetic.
+”
+
+
+section “Constructors”
+
+λ Nil      (· (λ · (·) _      ))
+λ Cons h t (· (λ ·  _ (· h t) ))
+
+
+section “Constants”
+
+λ nil  n c (n)
+
+
+section “Control flow”
+
+λ for_each list state f ret
+	…
+
+section “Predicates”
+
+λ is_empty
+
+
+section “Operators”
+

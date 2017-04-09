@@ -1,0 +1,15 @@
+title       “Integers”
+author      “Remco Bloemen”
+date        “2017-07-01”
+description “
+
+	This file implements a CPS-Scott encoded version of Boolean arithmetic.
+”
+
+
+section “Constructors”
+
+λ Positive p (· (λ · (· p) _  ))
+λ Negative p (· (λ ·  _ (· p) ))
+
+

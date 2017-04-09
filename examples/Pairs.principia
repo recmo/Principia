@@ -1,0 +1,32 @@
+title       “Pairs”
+author      “Remco Bloemen”
+date        “2017-04-09”
+description “
+
+	This file implements a CPS-Scott encoded version of Boolean arithmetic.
+”
+
+
+section “Constructors”
+
+λ Pair a b (· (λ · (· a b)  ))
+
+
+section “Functions”
+
+λ first p ret
+	p (λ · a b)
+	ret a
+
+λ second p ret
+	p (λ · a b)
+	ret b
+
+
+λ second p ret
+	p (λ · _ (ret ·))
+
+
+λ first  p (p (λ · (∴ ·) _ ))
+λ second p (p (λ · _ (∴ ·) ))
+

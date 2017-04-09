@@ -5,8 +5,8 @@ prefix    ?= /usr/local
 ################################################################################
 
 version   := $(shell git show --pretty=format:%h -q HEAD)
-sources   := $(shell find src -name *.cpp)
-headers   := $(shell find src -name *.h)
+sources   := $(shell find src -name "*.cpp")
+headers   := $(shell find src -name "*.h")
 install_h := $(if $(headers),$(shell grep -l VISIBLE $(headers)),)
 tests     := src/test.cpp $(shell find src -name *.test.cpp)
 sources   := $(filter-out $(tests),$(sources))

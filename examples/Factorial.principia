@@ -1,9 +1,0 @@
-
-fact n ↦ r
-	if_zero d ↦ 1
-	otherwise d ↦ or
-		or ≔ mul n (≔ fact (≔ sub n 1))
-	fr ≔ if n otherwise if_zero
-	r ≔ fr n
-
-

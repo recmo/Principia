@@ -1,8 +1,0 @@
-numericDiff f δ ↦ g
-	g x ↦ (≔ div (≔ sub (≔ f (≔ add x δ) (≔ f x)) δ)
-
-
-symbolicDiff f ↦ g
-	if head(f) == add ⇉ symbolicDiff( in(f, 1)) + symbolicDiff( in(f, 2))
-
-

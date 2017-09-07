@@ -4,6 +4,17 @@
 
 Futuristic programming, reasoning and proof language.
 
+## Inspiration
+
+* Metamath (minimalist proof language)
+* Python (indentation based syntax)
+* Haskell
+* Agda
+* Idris
+* Coq
+* Forth
+* Lisp (minimalist language)
+
 
 ### About the name
 
@@ -100,3 +111,183 @@ For programming in this Unicode heavy language I use XCompose. My compose key is
 https://en.wikipedia.org/wiki/Bracket
 
 ( ) [ ] { } < > ‘ ’ “ ” ⸤ ⸥ ｢ ｣ ⟦ ⟧ ⟨ ⟩ 【 】 ⟦ ⟧ ⟨ ⟩ ⟪ ⟫ ⟬ ⟭ ⟮ ⟯ ⦃ ⦄ ⦅ ⦆ ⦇ ⦈ ⦉ ⦊ ⦋ ⦌ ⦍ ⦎ ⦏ ⦐ ⦑ ⦒ ⦓ ⦔ ⦕ ⦖ ⦗ ⦘  ⌈ ⌉ ⌊ ⌋ ⌌ ⌍ ⌎ ⌏ ⌜ ⌝ ⌞ ⌟
+
+
+Nothing return ↦ return (nothing just ↦ nothing)
+
+Just value return ↦ return (nothing just ↦ just value)
+
+
+λ main exit
+	print “Hello” (λ)
+	input ”Name?” (λ name)
+	print “Hello, ” (λ)
+	print name (λ)
+	exit
+
+
+main exit ↦ print “Hello” (↦
+	input ”Name?” (name ↦
+		print “Hello, ” (↦
+			print name (↦
+				exit
+			)
+		)
+	)
+)
+
+
+main exit ↦
+	print “Hello” (↦
+		input ”Name?” (name ↦
+			print “Hello, ” (↦
+				print name (↦
+					exit
+				)
+			)
+		)
+	)
+
+
+select cond then else return
+
+
+main exit ↦
+	print “Hello”;
+	input ”Name?”; name
+	input ”Is it morning?”; morning
+	if morning (↦ cnt “Good morning, ”) (↦ cnt “good day”)
+	cnt day ↦
+		print day;
+		print name;
+		exit
+
+
+⊥ ↦ ⊥
+
+nop return ↦ return
+
+id₀ return ↦ return
+id₁ a return ↦ return a
+id₂ a b return ↦ return a b
+id₃ a b c return ↦ return a b c
+
+pack₀ return ↦ return (return ↦ return)
+pack₁ a return ↦ return (return ↦ return a)
+pack₂ a b return ↦ return (return ↦ return a b)
+pack₃ a b c return ↦ return (return ↦ return a b c)
+
+ternary condition a b return ↦ if condition (↦ return a) (↦ return b)
+
+
+doc string return ↦ return
+arg argument description return ↦ return
+
+doc “Annotations are variants of nop with extra arguments. Annotations can
+take any number of arguments. There is no special compiler support for them,
+a simple inlining pass will remove them. But you can write compiler extension
+operating on the program graph that can give them meaning. Anything that
+resolves in the local scope can be passed to them (since they are no different
+from any other call). This is how the proof verifier will be implemented.”
+
+fibonacci n return ↦ .
+	doc “Implements the Fibonacci function.” (↦ .)
+	arg n “The Fibonacci number to compute.” (↦ .)
+	typeof n Int (↦ .)
+
+aᵢ ,\n bᵢ ≡ ‘aᵢ bᵢ’
+aᵢ : bᵢ ≡ ‘bᵢ ↦ ,’
+aᵢ ; bᵢ ≡ ‘aᵢ (bᵢ ↦ ,)’
+aᵢ ⇒ bᵢ ≡ `aᵢ return ↦ return bᵢ`
+
+
+fibonacci n return:
+	doc “Implements the Fibonacci function.”;
+	arg n “The Fibonacci number to compute.”;
+	typeof n Int;
+	mul a b; m
+
+, ≡ continues on next line
+aᵢ ≔ bᵢ ≡ ‘bᵢ (aᵢ ↦ ,)’
+
+fibonacci n return ↦,
+	≔ doc “Implements the Fibonacci function.”
+	≔ arg n “The Fibonacci number to compute.”
+	≔ typeof n Int
+	m ≔ mul a b
+
+Con: Causal order disappears. m doesn't exist before mul, yet stands before mul.
+Pro: Easy to find definition point of variables.
+
+, ≡ continues on next line
+aᵢ → bᵢ ≡ ‘aᵢ (bᵢ ↦ ,)’
+
+fibonacci n return ↦,
+	doc “Implements the Fibonacci function.” →
+	arg n “The Fibonacci number to compute.” →
+	typeof n Int →
+	mul a b → m
+
+fibonacci.m
+
+Maybe ↦ class
+	Nothing return ↦ return (n j ↦ n)
+	Just a return ↦ return (n j ↦ j a)
+	nothing n j ↦ n
+
+length a b c return ↦
+	mul a a (sa ↦ …)
+	mul b b (sb ↦ …)
+	mul c c (sc ↦ …)
+	add sa sb (t ↦ …)
+	add t sc (q ↦ …)
+	sqrt q return
+
+length a b c ⇒ sqrt(add(add(mul(a, a), mul(b, b)), mul(c, c)))
+
+length a b c return ↦ mul a a (sa ↦ mul b b (sb ↦ mul c c (sc ↦ add sa sb (t ↦ add t sc (q ↦ sqrt q return)))))
+
+
+length a b c ⇒ mul a a (sa ↦ mul b b (sb ↦ mul c c (sc ↦ add sa sb (t ↦ add t sc (q ↦ sqrt q return)))))
+
+square a k ↦ mul a a k
+
+square a (mul a a ·)
+
+[aᵢ] ≡ (aᵢ (: ↦ ¿?))
+
+====
+if no ‘↦’ in line, but indentation increases then next line is call-line.
+
+fibonacci n return
+	doc “Implements the Fibonacci function.”
+	arg n “The Fibonacci number to compute.”
+	typeof n Int
+	mul a b (m ↦,)
+
+FAIL: This is not flexible
+====
+
+Definition: *Functional* a procedure is functional if it always calls it's last
+argument. This last argument is conventionally called `return`.
+
+TODO: What if the function is not total?
+
+Defintion: *Recursive* a functional procedure is recursive if it can call
+itself before calling `return`.
+
+TODO: Can we generalize this to non-functional procedures?
+
+Definition: *Constructor* a function that immediately calls return is a
+constructor:
+
+Z return ↦ return (z s ↦ z)
+S n return ↦ return (z s ↦ s n)
+
+TODO: Is this definition strong enough?
+
+
+TODO: Algebraic data types!
+TODO: Generators / streams!
+TODO: State machines!
+

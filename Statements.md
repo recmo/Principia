@@ -111,3 +111,30 @@ identifier_character = [
 ]
 operator_identifier = [:Pattern_Syntax:]
 ```
+
+
+Parsing order for error recovery:
+
+1. Quotes: “ ” with nesting
+2. Grouping: () with de Bruijn indices · : ∴ ∷ ·₂ 
+3. Newline separated statements with indentation based scoping
+4. Unicode based tokenization, normalization and binding
+
+
+* There is no return (you can build your own)
+* There are no types (you can build your own)
+
+* Every call is a tail call
+* Every function has one and only one call in it's implementation
+* There is no stack
+* There is no type-safety (we will proof correctness instead)
+
+
+A procedure is functional if it always calls the same argument. By convention
+this is the last argument, and called `return`.
+
+Example:
+
+  square x return ↦ mul x x return
+
+

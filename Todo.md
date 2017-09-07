@@ -48,6 +48,8 @@
 
 [ ] Static analysis starting from main
 
+[ ] https://stackoverflow.com/questions/43184660/how-is-coqs-parser-implemented
+
 [ ] http://gallium.inria.fr/blog/ssa-cps-reading-notes/
 [ ] Statically analyse possible functions at tail call site
 [ ] Statically analyse closure life-times

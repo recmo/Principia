@@ -15,6 +15,9 @@
 ; [3] http://man7.org/linux/man-pages/man7/vdso.7.html
 
 
+; Multi-threading
+; http://nullprogram.com/blog/2015/05/15/
+
 ; Closures in memory have the following layout:
 ;
 ;   reference_count  uint16

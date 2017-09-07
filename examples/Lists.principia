@@ -30,3 +30,28 @@ section “Predicates”
 
 section “Operators”
 
+
+section “Constructors”
+
+λ Nothing  (· (λ · (·) _      ))
+λ Just a   (· (λ ·  _ (· a) ))
+
+
+section “Constants”
+
+λ nothing  n j (n)
+
+
+section “Functions”
+
+c “safeHead ∷ List a → Maybe a”
+
+λ safeHead list k
+	list nil cons
+	λ nil
+		k nothing
+	λ cons h t
+		k h
+
+
+

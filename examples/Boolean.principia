@@ -48,11 +48,22 @@ type “λ iterator (λ ·repeat state) (λ ·return result)”
 	iterator state (λ state') ret
 	do state' iterator ret
 
+to_do “
+https://en.wikipedia.org/wiki/Primitive_recursive_function
 
-λ μ_loop
+Generallized primitive recursion: Recurse over type destruction.
 
-λ ν_loop
+Also: Well-founded recursion.
 
+https://en.wikipedia.org/wiki/Well-order
+https://en.wikipedia.org/wiki/Well-founded_relation
+https://en.wikipedia.org/wiki/Structural_induction
+
+https://en.wikipedia.org/wiki/Machine_that_always_halts
+
+https://en.wikipedia.org/wiki/Total_functional_programming
+
+”
 
 
 section “Operators”
